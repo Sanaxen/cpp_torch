@@ -1,5 +1,5 @@
 # cpp_torch
-## [libtorch](https://pytorch.org/get-started/locally/) atVisual Studio C++  
+## [libtorch](https://pytorch.org/get-started/locally/) at Visual Studio C++  
 
 Directory structure
 <img src="./images/image00.png"/>  
