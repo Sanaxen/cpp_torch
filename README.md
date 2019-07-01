@@ -1,6 +1,7 @@
 # cpp_torch
 ## [libtorch](https://pytorch.org/get-started/locally/) at Visual Studio C++  
-####header only, dependency-free deep learning framework  
+
+**header only, deep learning framework with no dependencies other than libtorch**  
 
 Directory structure
 <img src="./images/image00.png"/>  
