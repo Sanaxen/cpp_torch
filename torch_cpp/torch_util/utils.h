@@ -61,6 +61,59 @@ namespace tiny_dnn {
 		std::string msg_;
 	};
 
+	struct result {
+		result() : num_success(0), num_total(0) {}
+
+		float_t accuracy() const { return float_t(num_success * 100.0 / num_total); }
+
+		template <typename Char, typename CharTraits>
+		void print_summary(std::basic_ostream<Char, CharTraits> &os) const {
+			os << "accuracy:" << accuracy() << "% (" << num_success << "/" << num_total
+				<< ")" << std::endl;
+		}
+
+		template <typename Char, typename CharTraits>
+		void print_detail(std::basic_ostream<Char, CharTraits> &os) const {
+			print_summary(os);
+			auto all_labels = labels();
+
+			os << std::setw(5) << "*"
+				<< " ";
+			for (auto c : all_labels) os << std::setw(5) << c << " ";
+			os << std::endl;
+
+			for (auto r : all_labels) {
+				os << std::setw(5) << r << " ";
+				const auto row_iter = confusion_matrix.find(r);
+				for (auto c : all_labels) {
+					int count = 0;
+					if (row_iter != confusion_matrix.end()) {
+						const auto &row = row_iter->second;
+						const auto col_iter = row.find(c);
+						if (col_iter != row.end()) {
+							count = col_iter->second;
+						}
+					}
+					os << std::setw(5) << count << " ";
+				}
+				os << std::endl;
+			}
+		}
+
+		std::set<label_t> labels() const {
+			std::set<label_t> all_labels;
+			for (auto const &r : confusion_matrix) {
+				all_labels.insert(r.first);
+				for (auto const &c : r.second) all_labels.insert(c.first);
+			}
+			return all_labels;
+		}
+
+		int num_success;
+		int num_total;
+		std::map<label_t, std::map<label_t, int>> confusion_matrix;
+	};
+
 	namespace detail {
 
 		struct mnist_header {
@@ -94,6 +147,8 @@ namespace tiny_dnn {
 			float_t scale_max,
 			int x_padding,
 			int y_padding,
+			float_t mean,
+			float_t stddev,
 			vec_t &dst) {
 			const int width = header.num_cols + 2 * x_padding;
 			const int height = header.num_rows + 2 * y_padding;
@@ -107,10 +162,14 @@ namespace tiny_dnn {
 
 			for (uint32_t y = 0; y < header.num_rows; y++)
 				for (uint32_t x = 0; x < header.num_cols; x++)
+				{
 					dst[width * (y + y_padding) + x + x_padding] =
-					(image_vec[y * header.num_cols + x] / float_t(255)) *
-					(scale_max - scale_min) +
-					scale_min;
+						(image_vec[y * header.num_cols + x] / float_t(255)) *
+						(scale_max - scale_min) + scale_min;
+
+					dst[width * (y + y_padding) + x + x_padding] =
+						(dst[width * (y + y_padding) + x + x_padding] - mean) / stddev;
+				}
 		}
 
 	}  // namespace detail
@@ -178,7 +237,9 @@ namespace tiny_dnn {
 		float_t scale_min,
 		float_t scale_max,
 		int x_padding,
-		int y_padding) {
+		int y_padding,
+		float_t mean,
+		float_t stddev) {
 		if (x_padding < 0 || y_padding < 0)
 			throw nn_error("padding size must not be negative");
 		if (scale_min >= scale_max)
@@ -197,7 +258,7 @@ namespace tiny_dnn {
 		for (uint32_t i = 0; i < header.num_items; i++) {
 			vec_t image;
 			detail::parse_mnist_image(ifs, header, scale_min, scale_max, x_padding,
-				y_padding, image);
+				y_padding, mean, stddev, image);
 			(*images)[i] = image;
 		}
 	}

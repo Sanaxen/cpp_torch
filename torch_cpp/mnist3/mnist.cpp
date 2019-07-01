@@ -52,8 +52,7 @@ struct NetImpl : torch::nn::Module {
     x = torch::relu(fc1->forward(x));
     x = torch::dropout(x, /*p=*/0.5, /*training=*/is_training());
     x = fc2->forward(x);
-	return x;
-	//return torch::log_softmax(x, /*dim=*/1);
+	return torch::log_softmax(x, /*dim=*/1);
   }
 
   torch::nn::Conv2d conv1;
@@ -86,14 +85,14 @@ void learning_and_test_mnist_dataset(torch::Device device)
 
 	Net model;
 
-	torch::optim::SGD optimizer(
-		model.get()->parameters(), torch::optim::SGDOptions(0.01).momentum(0.5));
-	//auto optimizer = torch::optim::Adam(model.get()->parameters(), torch::optim::AdamOptions(1));
+	//torch::optim::SGD optimizer(
+	//	model.get()->parameters(), torch::optim::SGDOptions(0.01).momentum(0.5));
+	auto optimizer = torch::optim::Adam(model.get()->parameters(), torch::optim::AdamOptions(0.01));
 
 	tiny_libtorch_dnn::network_torch<Net> nn(model, &optimizer, device);
 	nn.input_dim(1, 28, 28);
 	nn.out_dim(1, 1, 10);
-	//nn.classification = true;
+	nn.classification = true;
 
 	tiny_dnn::progress_display disp(train_images.size());
 	tiny_dnn::timer t;
@@ -128,9 +127,7 @@ void learning_and_test_mnist_dataset(torch::Device device)
 
 	Net model2;
 	tiny_libtorch_dnn::network_torch<Net> nn2(model2, &optimizer, device);
-	nn2.input_dim(1, 28, 28);
-	nn2.out_dim(1, 10, 1);
-	nn2.classification = nn.classification;
+	nn2 = nn;
 
 	nn2.load(std::string("model1.pt"));
 	nn2.test(test_images, test_labels, kTrainBatchSize);
