@@ -222,7 +222,7 @@ namespace tiny_libtorch_dnn
 
 			for (size_t epoch = 1; epoch <= kNumberOfEpochs; ++epoch)
 			{
-				model.get()->train();
+				model.get()->train(true);
 
 				if (stop_training_) break;
 
@@ -439,11 +439,10 @@ namespace tiny_libtorch_dnn
 //#endif
 //				}
 			}
-			model.get()->train(true);
 
 			if (classification)
 			{
-				std::printf(" Accuracy: %.3f Loss: %.3f\n", static_cast<double>(correct) / images.size(), loss_ave / testNum);
+				std::printf(" Accuracy: %.3f%% Loss: %.3f\n", 100.0*static_cast<float_t>(correct) / images.size(), loss_ave / testNum);
 			}
 			else
 			{
@@ -501,14 +500,19 @@ namespace tiny_libtorch_dnn
 		 **/
 		inline torch::Tensor predict(torch::Tensor& X)
 		{
-			return model.get()->forward(X);
+			model.get()->train(false);
+			torch::Tensor y =  model.get()->forward(X.to(device));
+
+			return y;
 		}
 		/**
 		 * executes forward-propagation and returns output
 		 **/
 		inline std::vector<tiny_dnn::tensor_t> predict(torch::Tensor& X, const int batch)
 		{
-			torch::Tensor y = model.get()->forward(X);
+			model.get()->train(false);
+			torch::Tensor y = model.get()->forward(X.to(device));
+
 			std::vector<tiny_dnn::tensor_t> t;
 			toTensor_t(y, t, batch, out_channels, out_W, out_H);
 			return t;
@@ -518,10 +522,8 @@ namespace tiny_libtorch_dnn
 		**/
 		inline tiny_dnn::vec_t predict(tiny_dnn::vec_t& X)
 		{
-			torch::Tensor images_torch = toTorchTensors(X);
-
-			images_torch = images_torch.view({ 1, in_channels, in_W, in_H });
-			images_torch = images_torch.to(device);
+			model.get()->train(false);
+			torch::Tensor images_torch = toTorchTensors(X).view({ 1, in_channels, in_W, in_H }).to(device);
 
 			torch::Tensor y = model.get()->forward(images_torch);
 			tiny_dnn::vec_t t = toTensor_t(y, out_data_size());
@@ -532,17 +534,17 @@ namespace tiny_libtorch_dnn
 		**/
 		inline tiny_dnn::label_t predict_label(tiny_dnn::vec_t& X)
 		{
-			torch::Tensor images_torch = toTorchTensors(X);
+			model.get()->train(false);
+			torch::Tensor images_torch = toTorchTensors(X).view({ 1, in_channels, in_W, in_H }).to(device);
 
-			images_torch = images_torch.view({ 1, in_channels, in_W, in_H });
 			torch::Tensor y = model.get()->forward(images_torch);
 			tiny_dnn::vec_t t = toTensor_t(y, out_data_size());
 			return vec_max_index(t);
 		}
 
-		void label2vec(const std::vector<tiny_dnn::label_t>& labels, std::vector<tiny_dnn::vec_t>& vec)
+		inline void label2vec(const std::vector<tiny_dnn::label_t>& labels, std::vector<tiny_dnn::vec_t>& vec)
 		{
-			size_t outdim = out_data_size();
+			const size_t outdim = out_data_size();
 			vec.clear();
 			vec.resize(labels.size());
 			for (int i = 0; i < labels.size(); i++)
@@ -555,20 +557,20 @@ namespace tiny_libtorch_dnn
 
 		inline void label2vec(const tiny_dnn::label_t& labels, tiny_dnn::vec_t& vec)
 		{
-			size_t outdim = out_data_size();
+			const size_t outdim = out_data_size();
 			tiny_dnn::vec_t t(outdim, 0);
 			t[labels] = 1.0;
 			vec = t;
 		}
 
-		tiny_dnn::label_t vec_max_index(torch::Tensor &out) {
+		inline tiny_dnn::label_t vec_max_index(torch::Tensor &out) {
 			return tiny_dnn::label_t(out.view({ out_data_size() }).argmax(0).template item<float>());
 		}
 
-		tiny_dnn::label_t vec_max_index(tiny_dnn::vec_t &out) {
+		inline tiny_dnn::label_t vec_max_index(tiny_dnn::vec_t &out) {
 			return tiny_dnn::label_t(max_index(out));
 		}
-		tiny_dnn::label_t vec_max_index(tiny_dnn::tensor_t &out) {
+		inline tiny_dnn::label_t vec_max_index(tiny_dnn::tensor_t &out) {
 			return tiny_dnn::label_t(max_index(out[0]));
 		}
 
@@ -594,14 +596,12 @@ namespace tiny_libtorch_dnn
 		tiny_dnn::result  get_accuracy(network_torch<Net>& model, tiny_dnn::tensor_t& images, tiny_dnn::tensor_t& labels)
 	{
 		tiny_dnn::result result;
-		float accuracy = 0;
 
 		if (images.size() == 0)
 		{
 			result.num_total = 1;
 			return result;
 		}
-		model.model.get()->train(false);
 
 		for (int i = 0; i < images.size(); i++)
 		{
@@ -613,7 +613,6 @@ namespace tiny_libtorch_dnn
 			result.num_total++;
 			result.confusion_matrix[predicted][actual]++;
 		}
-		accuracy = 100.0*result.num_success / result.num_total;
 		return result;
 	}
 
@@ -631,7 +630,8 @@ namespace tiny_libtorch_dnn
 		std::cout << "ConfusionMatrix:" << std::endl;
 		res.print_detail(std::cout);
 		std::cout << res.num_success << "/" << res.num_total << std::endl;
-		printf("accuracy:%.3f%%\n", res.accuracy());
+		res.print_summary(std::cout);
+		//printf("accuracy:%.3f%%\n", res.accuracy());
 	}
 }
 #endif
