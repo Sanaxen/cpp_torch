@@ -90,7 +90,7 @@ void learning_and_test_mnist_dataset(torch::Device device)
 		model.get()->parameters(), torch::optim::SGDOptions(0.01).momentum(0.5));
 	//auto optimizer = torch::optim::Adam(model.get()->parameters(), torch::optim::AdamOptions(1));
 
-	tiny_libtorch_dnn::network_torch<Net> nn(model, &optimizer, device);
+	cpp_torch::network_torch<Net> nn(model, device);
 	nn.input_dim(1, 28, 28);
 	nn.out_dim(1, 1, 10);
 	//nn.classification = true;
@@ -107,7 +107,7 @@ void learning_and_test_mnist_dataset(torch::Device device)
 
 		nn.test(test_images, test_labels, kTrainBatchSize);
 
-		disp.restart(train_images.size());
+		if ( epoch <= kNumberOfEpochs) disp.restart(train_images.size());
 		t.restart();
 	};
 
@@ -118,7 +118,7 @@ void learning_and_test_mnist_dataset(torch::Device device)
 	};
 
 	nn.batch_shuffle = true;
-	nn.train(train_images, train_labels, kTrainBatchSize,
+	nn.train(&optimizer, train_images, train_labels, kTrainBatchSize,
 		kNumberOfEpochs, on_enumerate_minibatch, on_enumerate_epoch);
 	std::cout << "\ntrain " << " finished. " << nn.time_measurement.elapsed() << "s elapsed." << std::endl;
 
@@ -127,7 +127,7 @@ void learning_and_test_mnist_dataset(torch::Device device)
 	nn.save(std::string("model1.pt"));
 
 	Net model2;
-	tiny_libtorch_dnn::network_torch<Net> nn2(model2, &optimizer, device);
+	cpp_torch::network_torch<Net> nn2(model2, device);
 	nn2.input_dim(1, 28, 28);
 	nn2.out_dim(1, 10, 1);
 	nn2.classification = nn.classification;
@@ -135,8 +135,8 @@ void learning_and_test_mnist_dataset(torch::Device device)
 	nn2.load(std::string("model1.pt"));
 	nn2.test(test_images, test_labels, kTrainBatchSize);
 
-	tiny_dnn::result res = tiny_libtorch_dnn::get_accuracy<Net>(nn, test_images, test_labels);
-	tiny_libtorch_dnn::print_ConfusionMatrix(res);
+	tiny_dnn::result res = nn.test(test_images, test_labels);
+	cpp_torch::print_ConfusionMatrix(res);
 
 }
 

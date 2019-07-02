@@ -52,6 +52,7 @@ struct NetImpl : torch::nn::Module {
     x = torch::relu(fc1->forward(x));
     x = torch::dropout(x, /*p=*/0.5, /*training=*/is_training());
     x = fc2->forward(x);
+	//return x;
 	return torch::log_softmax(x, /*dim=*/1);
   }
 
@@ -87,53 +88,65 @@ void learning_and_test_mnist_dataset(torch::Device device)
 
 	//torch::optim::SGD optimizer(
 	//	model.get()->parameters(), torch::optim::SGDOptions(0.01).momentum(0.5));
-	auto optimizer = torch::optim::Adam(model.get()->parameters(), torch::optim::AdamOptions(0.01));
 
-	tiny_libtorch_dnn::network_torch<Net> nn(model, &optimizer, device);
+	cpp_torch::network_torch<Net> nn(model, device);
 	nn.input_dim(1, 28, 28);
 	nn.out_dim(1, 1, 10);
 	nn.classification = true;
 
+	std::cout << "start training" << std::endl;
+
 	tiny_dnn::progress_display disp(train_images.size());
 	tiny_dnn::timer t;
+
+	auto optimizer = 
+		torch::optim::Adam(model.get()->parameters(),
+				torch::optim::AdamOptions(0.01));
 
 	int epoch = 1;
 	// create callback
 	auto on_enumerate_epoch = [&]() {
 		std::cout << "\nEpoch " << epoch << "/" << kNumberOfEpochs << " finished. "
 			<< t.elapsed() << "s elapsed." << std::endl;
-		epoch++;
 
-		nn.test(test_images, test_labels, kTrainBatchSize);
+		++epoch;
+		tiny_dnn::result res = nn.test(test_images, test_labels);
+		std::cout << res.num_success << "/" << res.num_total << std::endl;
 
 		disp.restart(train_images.size());
 		t.restart();
 	};
 
-	int batch = 1;
 	auto on_enumerate_minibatch = [&]() {
-		batch++;
 		disp += kTrainBatchSize;
 	};
 
-	nn.batch_shuffle = true;
-	nn.train(train_images, train_labels, kTrainBatchSize,
-		kNumberOfEpochs, on_enumerate_minibatch, on_enumerate_epoch);
-	std::cout << "\ntrain " << " finished. " << nn.time_measurement.elapsed() << "s elapsed." << std::endl;
+	// train
+	nn.train(&optimizer, train_images, train_labels, kTrainBatchSize,
+			kNumberOfEpochs, on_enumerate_minibatch,
+			on_enumerate_epoch);
+
+	std::cout << "end training." << std::endl;
+
+	float_t loss = nn.get_loss(train_images, train_labels);
+	printf("loss:%f\n", loss);
+
+	tiny_dnn::result res = nn.test(test_images, test_labels);
+	cpp_torch::print_ConfusionMatrix(res);
 
 	nn.test(test_images, test_labels, kTrainBatchSize);
 
 	nn.save(std::string("model1.pt"));
 
 	Net model2;
-	tiny_libtorch_dnn::network_torch<Net> nn2(model2, &optimizer, device);
+	cpp_torch::network_torch<Net> nn2(model2, device);
 	nn2 = nn;
 
 	nn2.load(std::string("model1.pt"));
 	nn2.test(test_images, test_labels, kTrainBatchSize);
 
-	tiny_dnn::result res = tiny_libtorch_dnn::get_accuracy<Net>(nn, test_images, test_labels);
-	tiny_libtorch_dnn::print_ConfusionMatrix(res);
+	tiny_dnn::result res2 = nn2.test(test_images, test_labels);
+	cpp_torch::print_ConfusionMatrix(res2);
 
 }
 

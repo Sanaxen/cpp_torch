@@ -4,7 +4,7 @@
 #include <random>
 #include "../torch_util/utils.h"
 
-namespace tiny_libtorch_dnn
+namespace cpp_torch
 {
 	inline void nop() {
 		// do nothing
@@ -14,6 +14,7 @@ namespace tiny_libtorch_dnn
 	{
 		vec.clear();
 		vec.resize(labels.size());
+#pragma omp parallel for
 		for (int i = 0; i < labels.size(); i++)
 		{
 			tiny_dnn::vec_t t(max_label, 0);
@@ -113,7 +114,6 @@ namespace tiny_libtorch_dnn
 
 		torch::Device device;
 		Model model;
-		torch::optim::Optimizer* optimizer;
 		float loss_value = 0.0;
 		tiny_dnn::timer time_measurement;
 
@@ -123,8 +123,8 @@ namespace tiny_libtorch_dnn
 		 * @param device_            Device Type(kCPU, kCUDA)
 		 * assume
 		 */
-		network_torch(Model& model_, torch::optim::Optimizer* optimizer_, torch::Device device_)
-			:model(model_), optimizer(optimizer_), device(device_)
+		network_torch(Model& model_, torch::Device device_)
+			:model(model_), device(device_)
 		{
 			model.get()->to(device);
 		}
@@ -178,6 +178,7 @@ namespace tiny_libtorch_dnn
 		 * assume
 		 */
 		bool fit(
+			torch::optim::Optimizer* optimizer,
 			std::vector<torch::Tensor> &images,
 			std::vector<torch::Tensor> &labels,
 			int kTrainBatchSize,
@@ -220,16 +221,15 @@ namespace tiny_libtorch_dnn
 				}
 			}
 
-			for (size_t epoch = 1; epoch <= kNumberOfEpochs; ++epoch)
+			optimizer->zero_grad();
+			stop_training_ = false;
+			model.get()->train(true);
+			for (size_t epoch = 0; epoch < kNumberOfEpochs && !stop_training_; ++epoch)
 			{
-				model.get()->train(true);
-
-				if (stop_training_) break;
-
 				loss_value = 0.0;
 
 				float loss_ave = 0.0;
-				for (int batch_idx = 0; batch_idx < batchNum; batch_idx++)
+				for (int batch_idx = 0; batch_idx < batchNum && !stop_training_; batch_idx++)
 				{
 					if (!pre_make_batch)
 					{
@@ -272,11 +272,13 @@ namespace tiny_libtorch_dnn
 					loss_value = loss.template item<float>();
 					loss_ave += loss_value;
 					on_batch_enumerate();
+					model.get()->train(true);
 				}
 
 				if (stop_training_) break;
 				loss_value = loss_ave / batchNum;
 				on_epoch_enumerate();
+				model.get()->train(true);
 			}
 			time_measurement.stop();
 			return true;
@@ -292,6 +294,7 @@ namespace tiny_libtorch_dnn
 		 * assume
 		 */
 		bool fit(
+			torch::optim::Optimizer* optimizer,
 			tiny_dnn::tensor_t &images,
 			tiny_dnn::tensor_t &labels,
 			int kTrainBatchSize,
@@ -305,7 +308,7 @@ namespace tiny_libtorch_dnn
 			toTorchTensors(images, images_torch);
 			toTorchTensors(labels, labels_torch);
 
-			return fit(images_torch, labels_torch, kTrainBatchSize, kNumberOfEpochs, on_batch_enumerate, on_epoch_enumerate);
+			return fit(optimizer, images_torch, labels_torch, kTrainBatchSize, kNumberOfEpochs, on_batch_enumerate, on_epoch_enumerate);
 		}
 
 		/**
@@ -319,6 +322,7 @@ namespace tiny_libtorch_dnn
 		 * assume
 		 */
 		bool train(
+			torch::optim::Optimizer* optimizer,
 			tiny_dnn::tensor_t &images,
 			std::vector<tiny_dnn::label_t> &class_labels,
 			int kTrainBatchSize,
@@ -335,7 +339,7 @@ namespace tiny_libtorch_dnn
 			toTorchTensors(images, images_torch);
 			toTorchTensors(one_hot_vec, labels_torch);
 
-			return fit(images_torch, labels_torch, kTrainBatchSize, kNumberOfEpochs, on_batch_enumerate, on_epoch_enumerate);
+			return fit(optimizer, images_torch, labels_torch, kTrainBatchSize, kNumberOfEpochs, on_batch_enumerate, on_epoch_enumerate);
 		}
 
 		bool test(
@@ -388,21 +392,6 @@ namespace tiny_libtorch_dnn
 				loss_value = loss.template item<float>();
 				loss_ave += loss_value;
 
-				//if (test == 0)
-				//{
-				//	for (int i = 0; i < out_H; i++)
-				//	{
-				//		printf("%.3f ", output[0][0][0][i].template item<float>());
-				//	}
-				//	printf("\n");
-				//	std::vector<tiny_dnn::tensor_t>& t = predict(data, kTestBatchSize);
-				//	for (int i = 0; i < out_H; i++)
-				//	{
-				//		printf("%.3f ", t[0][0][i]);
-				//	}
-				//	printf("\n");
-				//}
-				//
 				if (classification)
 				{
 					auto pred = output.argmax(1);
@@ -495,6 +484,11 @@ namespace tiny_libtorch_dnn
 		}
 
 
+		torch::Tensor fprop(torch::Tensor &in) {
+			model.get()->train(false);
+			return model.get()->forward(in);
+		}
+
 		/**
 		 * executes forward-propagation and returns output
 		 **/
@@ -574,11 +568,91 @@ namespace tiny_libtorch_dnn
 			return tiny_dnn::label_t(max_index(out[0]));
 		}
 
-		inline int in_data_size()
+		float_t get_loss(std::vector<tiny_dnn::vec_t> &in, std::vector<tiny_dnn::label_t> &t) {
+			std::vector<tiny_dnn::vec_t> vec;
+			label2vec(t, vec);
+
+			return get_loss(in, vec);
+		}
+
+		float_t get_loss( std::vector<tiny_dnn::vec_t> &in, std::vector<tiny_dnn::vec_t> &t) {
+			float_t sum_loss = float_t(0);
+
+			std::vector<float> loss_list(in.size(), 0.0);
+#pragma omp parallel for
+			for (int i = 0; i < in.size(); i++) {
+				torch::Tensor input = toTorchTensors(in[i]).view({ 1, in_channels, in_W, in_H }).to(device);
+				torch::Tensor targets = toTorchTensors(t[i]).view({ 1,out_data_size() }).to(device);
+
+				torch::Tensor predicted = predict(input).to(device);
+
+
+				//dump_dim(predicted);
+				//dump_dim(targets);
+
+				torch::Tensor loss;
+				if (classification)
+				{
+					loss = torch::nll_loss(predicted, targets.argmax(1));
+				}
+				else
+				{
+					loss = torch::mse_loss(predicted, targets);
+				}
+				AT_ASSERT(!std::isnan(loss.template item<float>()));
+
+				loss_list[i] = loss.template item<float>();
+			}
+
+			for (size_t i = 0; i < in.size(); i++) {
+				sum_loss += loss_list[i];
+			}
+			return sum_loss;
+		}
+
+		tiny_dnn::result  get_accuracy( tiny_dnn::tensor_t& images, tiny_dnn::tensor_t& labels)
+		{
+			tiny_dnn::result result;
+
+			if (images.size() == 0)
+			{
+				result.num_total = 1;
+				return result;
+			}
+
+			for (int i = 0; i < images.size(); i++)
+			{
+				tiny_dnn::vec_t& predict_y = predict(images[i]);
+				const tiny_dnn::label_t predicted = vec_max_index(predict_y);
+				const tiny_dnn::label_t actual = vec_max_index(labels[i]);
+
+				if (predicted == actual) result.num_success++;
+				result.num_total++;
+				result.confusion_matrix[predicted][actual]++;
+			}
+			return result;
+		}
+
+		tiny_dnn::result  get_accuracy(tiny_dnn::tensor_t& images, std::vector <tiny_dnn::label_t>& labels)
+		{
+			std::vector<tiny_dnn::vec_t> vec;
+			label2vec(labels, vec);
+			return get_accuracy(images, vec);
+		}
+		tiny_dnn::result  test(tiny_dnn::tensor_t& images, tiny_dnn::tensor_t& labels)
+		{
+			return get_accuracy(images, labels);
+		}
+		tiny_dnn::result  test(tiny_dnn::tensor_t& images, std::vector <tiny_dnn::label_t>& labels)
+		{
+			return get_accuracy(images, labels);
+		}
+
+		inline int in_data_size() const
 		{
 			return in_channels * in_W*in_H;
 		}
-		inline int out_data_size()
+		inline int out_data_size() const
 		{
 			return out_channels * out_W*out_H;
 		}
@@ -592,37 +666,6 @@ namespace tiny_libtorch_dnn
 		}
 	};
 
-	template <typename Net>
-		tiny_dnn::result  get_accuracy(network_torch<Net>& model, tiny_dnn::tensor_t& images, tiny_dnn::tensor_t& labels)
-	{
-		tiny_dnn::result result;
-
-		if (images.size() == 0)
-		{
-			result.num_total = 1;
-			return result;
-		}
-
-		for (int i = 0; i < images.size(); i++)
-		{
-			tiny_dnn::vec_t& predict_y = model.predict(images[i]);
-			const tiny_dnn::label_t predicted = model.vec_max_index(predict_y);
-			const tiny_dnn::label_t actual = model.vec_max_index(labels[i]);
-
-			if (predicted == actual) result.num_success++;
-			result.num_total++;
-			result.confusion_matrix[predicted][actual]++;
-		}
-		return result;
-	}
-
-	template <typename Net>
-	tiny_dnn::result  get_accuracy(network_torch<Net>& model, tiny_dnn::tensor_t& images, std::vector <tiny_dnn::label_t>& labels)
-	{
-		std::vector<tiny_dnn::vec_t> vec;
-		label2vec(labels, vec, model.out_data_size());
-		return get_accuracy(model, images, vec);
-	}
 
 	void print_ConfusionMatrix(tiny_dnn::result& res)
 	{

@@ -10,6 +10,7 @@ This project aims to be a wrapper for libtorch to make [**tiny-dnn**](https://gi
 [**tiny-dnn**](https://github.com/tiny-dnn/tiny-dnn) really great, but unfortunately it can not be calculated on a GPU.
 At first glance, this header-only framework aims to be used as written in [**tiny-dnn**](https://github.com/tiny-dnn/tiny-dnn).
 
+<img src="./images/image02.png"/>  
 
 ## Requirements  
 visual studio 2015,2017  
