@@ -21,4 +21,3 @@ visual studio 2015,2017
 
 ## tiny-dnn
 [BSD 3-Clause License Copyright (c) 2013, Taiga Nomi](https://github.com/tiny-dnn/tiny-dnn)  
-Used for nonlinear regression and nonlinear time series prediction
