@@ -6,7 +6,7 @@
 #include <string>
 #include <vector>
 
-#include "../torch_util/libtorch.hpp"
+#include "../../torch_util/libtorch.hpp"
 
 // Where to find the MNIST dataset.
 const char* kDataRoot = "./data";

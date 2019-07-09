@@ -6,8 +6,8 @@
 #include <string>
 #include <vector>
 
-#include "../torch_util/libtorch_utils.h"
-#include "../torch_util/libtorch.hpp"
+#include "../../torch_util/libtorch_utils.h"
+#include "../../torch_util/libtorch.hpp"
 
 //#define TEST1
 #define TEST2

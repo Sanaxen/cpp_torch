@@ -1,5 +1,5 @@
-copy ..\..\..\libtorch\lib\*.dll run /v /y
-copy ..\..\mnist\mnist\run\data\* run\data /v /y
+copy ..\..\..\..\libtorch\lib\*.dll run /v /y
+copy ..\..\..\example\mnist\mnist\run\data\* run\data /v /y
 
 copy .\x64\Release\*.exe run /v /y
 
