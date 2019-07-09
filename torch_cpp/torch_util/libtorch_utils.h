@@ -9,7 +9,15 @@ namespace cpp_torch
 	inline void nop() {
 		// do nothing
 	}
-
+	inline void dump_dim(std::string & s, torch::Tensor& t)
+	{
+		printf("%s dim:%d ", s.c_str(), t.dim());
+		for (int i = 0; i < t.sizes().size() - 1; i++)
+		{
+			printf("%d x", t.sizes()[i]);
+		}
+		printf("%d\n", t.sizes()[t.sizes().size() - 1]);
+	}
 	void label2vec(const std::vector<tiny_dnn::label_t>& labels, std::vector<tiny_dnn::vec_t>& vec, int max_label)
 	{
 		vec.clear();
@@ -158,15 +166,6 @@ namespace cpp_torch
 		inline void stop_ongoing_training() { stop_training_ = true; }
 
 
-		inline void dump_dim(torch::Tensor& t)
-		{
-			printf("output dim:%d ", t.dim());
-			for (int i = 0; i < t.sizes().size() - 1; i++)
-			{
-				printf("%d x", t.sizes()[i]);
-			}
-			printf("%d\n", t.sizes()[t.sizes().size() - 1]);
-		}
 		/**
 		 * @param optimizer          optimizing algorithm for training
 		 * @param images             array of input data
