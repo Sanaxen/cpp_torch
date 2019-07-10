@@ -13,7 +13,7 @@
 //#define TEST1
 #define TEST2
 
-//#define USE_CUDA
+#define USE_CUDA
 
 // Where to find the MNIST dataset.
 const char* kDataRoot = "./data";
@@ -145,8 +145,6 @@ void learning_and_test_mnist_dataset(torch::Device device)
 	model.get()->add_LogSoftmax(1);
 #endif
 
-	//torch::optim::SGD optimizer(
-	//	model.get()->parameters(), torch::optim::SGDOptions(0.01).momentum(0.5));
 
 #ifndef TEST
 	cpp_torch::network_torch<Net> nn(model, device);
@@ -164,9 +162,11 @@ void learning_and_test_mnist_dataset(torch::Device device)
 	tiny_dnn::progress_display disp(train_images.size());
 	tiny_dnn::timer t;
 
-	auto optimizer =
-		torch::optim::Adam(model.get()->parameters(),
-			torch::optim::AdamOptions(0.01));
+	torch::optim::SGD optimizer(
+		model.get()->parameters(), torch::optim::SGDOptions(0.01).momentum(0.5));
+	//auto optimizer =
+	//	torch::optim::Adam(model.get()->parameters(),
+	//		torch::optim::AdamOptions(0.01));
 
 	int epoch = 1;
 	// create callback
