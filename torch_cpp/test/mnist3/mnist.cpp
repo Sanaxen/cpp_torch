@@ -7,12 +7,12 @@
 #include <vector>
 
 #include "../../torch_util/libtorch_utils.h"
-#include "../../torch_util/libtorch.hpp"
+#include "../../torch_util/libtorch_link_libs.hpp"
 
 //#define TEST1
 #define TEST2
 
-#define USE_CUDA
+//#define USE_CUDA
 
 // Where to find the MNIST dataset.
 const char* kDataRoot = "./data";
@@ -86,9 +86,6 @@ void learning_and_test_mnist_dataset(torch::Device device)
 
 	Net model;
 
-	//torch::optim::SGD optimizer(
-	//	model.get()->parameters(), torch::optim::SGDOptions(0.01).momentum(0.5));
-
 	cpp_torch::network_torch<Net> nn(model, device);
 	nn.input_dim(1, 28, 28);
 	nn.out_dim(1, 1, 10);
@@ -99,9 +96,12 @@ void learning_and_test_mnist_dataset(torch::Device device)
 	tiny_dnn::progress_display disp(train_images.size());
 	tiny_dnn::timer t;
 
-	auto optimizer = 
-		torch::optim::Adam(model.get()->parameters(),
-				torch::optim::AdamOptions(0.01));
+	//auto optimizer = 
+	//	torch::optim::Adam(model.get()->parameters(),
+	//			torch::optim::AdamOptions(0.01));
+	torch::optim::SGD optimizer(
+		model.get()->parameters(), torch::optim::SGDOptions(0.01).momentum(0.5));
+
 
 	int epoch = 1;
 	// create callback

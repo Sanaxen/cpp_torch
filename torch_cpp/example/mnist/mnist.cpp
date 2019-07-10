@@ -6,7 +6,8 @@
 #include <string>
 #include <vector>
 
-#include "../../torch_util/libtorch.hpp"
+#include "../../torch_util/libtorch_link_libs.hpp"
+#define USE_CUDA
 
 // Where to find the MNIST dataset.
 const char* kDataRoot = "./data";
@@ -118,13 +119,17 @@ auto main() -> int {
   torch::manual_seed(1);
 
   torch::DeviceType device_type;
-  if (torch::cuda::is_available()) {
+#ifdef USE_CUDA
+  //if (torch::cuda::is_available()) {
     std::cout << "CUDA available! Training on GPU." << std::endl;
     device_type = torch::kCUDA;
-  } else {
+  //} else 
+#else
+  //{
     std::cout << "Training on CPU." << std::endl;
     device_type = torch::kCPU;
-  }
+  //}
+#endif
   torch::Device device(device_type);
 
   Net model;

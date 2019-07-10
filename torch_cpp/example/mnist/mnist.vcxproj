@@ -148,7 +148,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\torch_util\libtorch.hpp" />
     <ClInclude Include="..\..\torch_util\libtorch_utils.h" />
     <ClInclude Include="..\..\torch_util\utils.h" />
   </ItemGroup>

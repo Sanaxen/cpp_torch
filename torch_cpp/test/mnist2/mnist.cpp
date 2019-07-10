@@ -7,12 +7,12 @@
 #include <vector>
 
 #include "../../torch_util/libtorch_utils.h"
-#include "../../torch_util/libtorch.hpp"
+#include "../../torch_util/libtorch_link_libs.hpp"
 
 //#define TEST1
 #define TEST2
 
-#define USE_CUDA
+//#define USE_CUDA
 
 // Where to find the MNIST dataset.
 const char* kDataRoot = "./data";
