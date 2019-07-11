@@ -344,4 +344,76 @@ namespace tiny_dnn {
 
 }  // namespace tiny_dnn
 
+
+namespace tiny_dnn {
+	namespace cpp_torch {
+		void normalizeZ(tiny_dnn::tensor_t& X, std::vector<float_t>& mean, std::vector<float_t>& sigma)
+		{
+			mean = std::vector<float_t>(X[0].size(), 0.0);
+			sigma = std::vector<float_t>(X[0].size(), 0.0);
+
+			for (int i = 0; i < X.size(); i++)
+			{
+				for (int k = 0; k < X[0].size(); k++)
+				{
+					mean[k] += X[i][k];
+				}
+			}
+			for (int k = 0; k < X[0].size(); k++)
+			{
+				mean[k] /= X.size();
+			}
+			for (int i = 0; i < X.size(); i++)
+			{
+				for (int k = 0; k < X[0].size(); k++)
+				{
+					sigma[k] += (X[i][k] - mean[k])*(X[i][k] - mean[k]);
+				}
+			}
+			for (int k = 0; k < X[0].size(); k++)
+			{
+				sigma[k] /= (X.size() - 1);
+				sigma[k] = sqrt(sigma[k]);
+			}
+			for (int i = 0; i < X.size(); i++)
+			{
+				for (int k = 0; k < X[0].size(); k++)
+				{
+					X[i][k] = (X[i][k] - mean[k]) / (sigma[k] + 1.0e-10);
+				}
+			}
+		}
+
+		void normalizeMinMax(tiny_dnn::tensor_t& X, std::vector<float_t>& min_, std::vector<float_t>& maxmin_)
+		{
+			min_ = std::vector<float_t>(X[0].size(), 0.0);
+			maxmin_ = std::vector<float_t>(X[0].size(), 1.0);
+
+			for (int k = 0; k < X[0].size(); k++)
+			{
+				float max_value = -std::numeric_limits<float>::max();
+				float min_value = std::numeric_limits<float>::max();
+				for (int i = 0; i < X.size(); i++)
+				{
+					if (max_value < X[i][k]) max_value = X[i][k];
+					if (min_value > X[i][k]) min_value = X[i][k];
+				}
+				min_[k] = min_value;
+				maxmin_[k] = (max_value - min_value);
+				if (fabs(maxmin_[k]) < 1.0e-14)
+				{
+					min_[k] = 0.0;
+					maxmin_[k] = max_value;
+				}
+			}
+			for (int i = 0; i < X.size(); i++)
+			{
+				for (int k = 0; k < X[0].size(); k++)
+				{
+					X[i][k] = (X[i][k] - min_[k]) / maxmin_[k];
+				}
+			}
+		}
+	}
+}
 #endif

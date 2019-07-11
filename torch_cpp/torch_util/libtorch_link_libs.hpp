@@ -1,5 +1,12 @@
 #ifndef libtorch_LIBS
 #define libtorch_LIBS
+/*
+	Copyright (c) 2019, Sanaxen
+	All rights reserved.
+
+	Use of this source code is governed by a MIT license that can be found
+	in the LICENSE file.
+*/
 
 #pragma comment(lib, "c10.lib")
 #pragma comment(lib, "c10_cuda.lib")

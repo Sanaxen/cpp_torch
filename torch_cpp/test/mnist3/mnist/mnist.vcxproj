@@ -150,11 +150,6 @@
   <ItemGroup>
     <ClCompile Include="..\mnist.cpp" />
   </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="..\..\torch_util\libtorch.hpp" />
-    <ClInclude Include="..\..\torch_util\libtorch_utils.h" />
-    <ClInclude Include="..\..\torch_util\utils.h" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

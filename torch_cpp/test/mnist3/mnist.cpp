@@ -1,3 +1,10 @@
+/*
+	Copyright (c) 2019, Sanaxen
+	All rights reserved.
+
+	Use of this source code is governed by a MIT license that can be found
+	in the LICENSE file.
+*/
 #include <torch/torch.h>
 
 #include <cstddef>
@@ -88,7 +95,7 @@ void learning_and_test_mnist_dataset(torch::Device device)
 
 	cpp_torch::network_torch<Net> nn(model, device);
 	nn.input_dim(1, 28, 28);
-	nn.out_dim(1, 1, 10);
+	nn.output_dim(1, 1, 10);
 	nn.classification = true;
 
 	std::cout << "start training" << std::endl;

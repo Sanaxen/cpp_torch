@@ -1,8 +1,15 @@
+/*
+	Copyright (c) 2019, Sanaxen
+	All rights reserved.
+
+	Use of this source code is governed by a MIT license that can be found
+	in the LICENSE file.
+*/
 #include <torch/torch.h>
 
-#include <cstddef>
-#include <cstdio>
-#include <iostream>
+//#include <cstddef>
+//#include <cstdio>
+//#include <iostream>
 #include <string>
 #include <vector>
 
@@ -153,7 +160,7 @@ void learning_and_test_mnist_dataset(torch::Device device)
 #endif
 
 	nn.input_dim(1, 28, 28);
-	nn.out_dim(1, 1, 10);
+	nn.output_dim(1, 1, 10);
 	nn.classification = true;
 	nn.batch_shuffle = false;
 

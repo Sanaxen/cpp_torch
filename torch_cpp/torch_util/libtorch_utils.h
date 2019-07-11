@@ -1,5 +1,12 @@
 #ifndef libtorch_UTILS
 #define libtorch_UTILS
+/*
+	Copyright (c) 2019, Sanaxen
+	All rights reserved.
+
+	Use of this source code is governed by a MIT license that can be found
+	in the LICENSE file.
+*/
 
 #include <random>
 #include "../torch_util/utils.h"
@@ -49,10 +56,10 @@ namespace cpp_torch
 		return torch::tensor({ vec });
 	}
 
-	inline std::vector<tiny_dnn::tensor_t> toTensor_t(torch::Tensor& x, int batch, int channel, int w, int h)
+	inline std::vector<tiny_dnn::tensor_t> toTensor_t(torch::Tensor& x, int batch, int channel, int h, int w)
 	{
 		std::vector<tiny_dnn::tensor_t> y;
-		const int size = channel * w*h;
+		const int size = channel * h*w;
 		torch::Tensor& xx = x.view({ batch, 1,1, size });
 
 		for (int i = 0; i < batch; i++)
@@ -68,9 +75,9 @@ namespace cpp_torch
 		}
 		return y;
 	}
-	inline tiny_dnn::tensor_t toTensor_t(torch::Tensor& x, int channel, int w, int h)
+	inline tiny_dnn::tensor_t toTensor_t(torch::Tensor& x, int channel, int h, int w)
 	{
-		const int size = channel * w*h;
+		const int size = channel * h*w;
 		torch::Tensor& xx = x.view({ 1, 1,1, size });
 
 		tiny_dnn::tensor_t t;
@@ -112,18 +119,19 @@ namespace cpp_torch
 		typename Model>
 		class network_torch
 	{
+		std::vector<float> Tolerance_Set;
+		float loss_value = 0.0;
+		tiny_dnn::timer time_measurement;
 	public:
 		int in_channels = 1;
-		int in_W = 1;
 		int in_H = 1;
+		int in_W = 1;
 		int out_channels = 1;
-		int out_W = 1;
 		int out_H = 1;
+		int out_W = 1;
 
 		torch::Device device;
 		Model model;
-		float loss_value = 0.0;
-		tiny_dnn::timer time_measurement;
 
 		/**
 		 * @param model_             model of neural networks
@@ -137,17 +145,17 @@ namespace cpp_torch
 			model.get()->to(device);
 		}
 
-		inline void input_dim(int c, int w, int h)
+		inline void input_dim(int c, int h, int w)
 		{
 			in_channels = c;
-			in_W = w;
 			in_H = h;
+			in_W = w;
 		}
-		inline void out_dim(int c, int w, int h)
+		inline void output_dim(int c, int h, int w)
 		{
 			out_channels = c;
-			out_W = w;
 			out_H = h;
+			out_W = w;
 		}
 
 		bool classification = false;
@@ -586,8 +594,8 @@ namespace cpp_torch
 				torch::Tensor predicted = predict(input).to(device);
 
 
-				//dump_dim(predicted);
-				//dump_dim(targets);
+				//dump_dim(std::string("predicted"), predicted);
+				//dump_dim(std::string("targets"), targets);
 
 				torch::Tensor loss;
 				if (classification)
@@ -596,7 +604,7 @@ namespace cpp_torch
 				}
 				else
 				{
-					loss = torch::mse_loss(predicted, targets);
+					loss = torch::mse_loss(predicted.view_as(targets), targets);
 				}
 				AT_ASSERT(!std::isnan(loss.template item<float>()));
 
@@ -607,6 +615,59 @@ namespace cpp_torch
 				sum_loss += loss_list[i];
 			}
 			return sum_loss;
+		}
+
+		void set_tolerance(const float max_tol, const float min_tol, int div = 5)
+		{
+			if (div < 3) div = 3;
+			Tolerance_Set.resize(div);
+
+			for (int i = 0; i < div; i++)
+			{
+				Tolerance_Set[i] = (max_tol + i*(min_tol - max_tol) / (div - 1.0));
+			}
+		}
+		std::vector<float>& get_tolerance()
+		{
+			return Tolerance_Set;
+		}
+
+		/*
+		 * output vector  output[0..tolerance_set.size()-1]=num_success, output[tolerance_set.size()]=image of size, 
+		 */
+		std::vector<int> get_accuracy(tiny_dnn::tensor_t& images, tiny_dnn::tensor_t& labels, std::vector<float>& tolerance_set)
+		{
+			std::vector<int> result(tolerance_set.size()+1);
+
+			if (images.size() == 0)
+			{
+				return result;
+			}
+
+			result[tolerance_set.size()] = images.size();
+			for (int i = 0; i < images.size(); i++)
+			{
+				tiny_dnn::vec_t& predict_y = predict(images[i]);
+				const tiny_dnn::vec_t& actual = labels[i];
+
+				AT_ASSERT(predict_y.size() == actual.size());
+
+				float sum = 0.0;
+				for (int k = 0; k < predict_y.size(); k++)
+				{
+					sum += (predict_y[k] - actual[k])*(predict_y[k] - actual[k]);
+				}
+				sum /= predict_y.size();
+
+				for (int j = 0; j < tolerance_set.size(); j++)
+				{
+					if (sum < tolerance_set[j])
+					{
+						result[j]++;
+					}
+				}
+			}
+			return result;
 		}
 
 		tiny_dnn::result  get_accuracy( tiny_dnn::tensor_t& images, tiny_dnn::tensor_t& labels)
@@ -632,16 +693,24 @@ namespace cpp_torch
 			return result;
 		}
 
+		std::vector<int> test_tolerance(tiny_dnn::tensor_t& images, tiny_dnn::tensor_t& labels)
+		{
+			AT_ASSERT(Tolerance_Set.size() != 0);
+			return get_accuracy(images, labels, Tolerance_Set);
+		}
+
+		// labels[#] = 0,1,..class-1 
 		tiny_dnn::result  get_accuracy(tiny_dnn::tensor_t& images, std::vector <tiny_dnn::label_t>& labels)
 		{
 			std::vector<tiny_dnn::vec_t> vec;
-			label2vec(labels, vec);
+			label2vec(labels, vec);	//on-hot-vector
 			return get_accuracy(images, vec);
 		}
 		tiny_dnn::result  test(tiny_dnn::tensor_t& images, tiny_dnn::tensor_t& labels)
 		{
 			return get_accuracy(images, labels);
 		}
+		// labels[#] = on-hot-vector 
 		tiny_dnn::result  test(tiny_dnn::tensor_t& images, std::vector <tiny_dnn::label_t>& labels)
 		{
 			return get_accuracy(images, labels);
@@ -675,5 +744,16 @@ namespace cpp_torch
 		res.print_summary(std::cout);
 		//printf("accuracy:%.3f%%\n", res.accuracy());
 	}
+	void print_ConfusionMatrix(std::vector<int>& res, std::vector<float>& tol)
+	{
+		//ConfusionMatrix
+		std::cout << "ConfusionMatrix:" << std::endl;
+		for (int i = 0; i < res.size()-1; i++)
+		{
+			printf("tolerance:%.4f %d / %d accuracy:%.3f%%\n", tol[i], res[i], res.back(),
+				100.0*(float)res[i] / (float)res.back());
+		}
+	}
+
 }
 #endif
