@@ -19,11 +19,14 @@ namespace cpp_torch
 	inline void dump_dim(std::string & s, torch::Tensor& t)
 	{
 		printf("%s dim:%d ", s.c_str(), t.dim());
-		for (int i = 0; i < t.sizes().size() - 1; i++)
+		if (t.dim())
 		{
-			printf("%d x", t.sizes()[i]);
+			for (int i = 0; i < t.sizes().size() - 1; i++)
+			{
+				printf("%d x", t.sizes()[i]);
+			}
+			printf("%d\n", t.sizes()[t.sizes().size() - 1]);
 		}
-		printf("%d\n", t.sizes()[t.sizes().size() - 1]);
 	}
 	void label2vec(const std::vector<tiny_dnn::label_t>& labels, std::vector<tiny_dnn::vec_t>& vec, int max_label)
 	{
