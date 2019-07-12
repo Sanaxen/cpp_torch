@@ -29,7 +29,7 @@ const char* kDataRoot = "./data";
 const int64_t kTrainBatchSize = 128;
 
 // The batch size for testing.
-const int64_t kTestBatchSize = 20;
+const int64_t kTestBatchSize = 10;
 
 // The number of epochs to train.
 const int64_t kNumberOfEpochs = 200;
@@ -138,6 +138,8 @@ void read_dataset(const std::string &data_dir_path)
 			test_labels.push_back(label);
 		}
 	}
+
+	//data normalize
 	tiny_dnn::cpp_torch::normalizeMinMax(train_labels, dataset_min, dataset_maxmin);
 	tiny_dnn::cpp_torch::normalizeMinMax(test_labels, dataset_min, dataset_maxmin);
 }
@@ -194,7 +196,7 @@ void learning_and_test_dataset(torch::Device device)
 			<< t.elapsed() << "s elapsed." << std::endl;
 
 		++epoch;
-		float loss = nn.get_loss(train_images, train_labels);
+		float loss = nn.get_loss(train_images, train_labels, kTestBatchSize);
 		std::cout << "loss :" << loss << std::endl;
 
 		disp.restart(train_images.size());
@@ -214,7 +216,7 @@ void learning_and_test_dataset(torch::Device device)
 
 	std::cout << "end training." << std::endl;
 
-	float_t loss = nn.get_loss(train_images, train_labels);
+	float_t loss = nn.get_loss(train_images, train_labels, kTestBatchSize);
 	printf("loss:%f\n", loss);
 
 	std::vector<int>& res = nn.test_tolerance(test_images, test_labels);

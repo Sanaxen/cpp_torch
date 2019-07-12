@@ -19,7 +19,7 @@
 //#define TEST1
 #define TEST2
 
-//#define USE_CUDA
+#define USE_CUDA
 
 // Where to find the MNIST dataset.
 const char* kDataRoot = "./data";
@@ -129,7 +129,7 @@ void learning_and_test_mnist_dataset(torch::Device device)
 		kNumberOfEpochs, on_enumerate_minibatch, on_enumerate_epoch);
 	std::cout << "\ntrain " << " finished. " << nn.time_measurement.elapsed() << "s elapsed." << std::endl;
 
-	nn.test(test_images, test_labels, kTrainBatchSize);
+	nn.test(test_images, test_labels, kTestBatchSize);
 
 	nn.save(std::string("model1.pt"));
 
@@ -140,7 +140,7 @@ void learning_and_test_mnist_dataset(torch::Device device)
 	nn2.classification = nn.classification;
 
 	nn2.load(std::string("model1.pt"));
-	nn2.test(test_images, test_labels, kTrainBatchSize);
+	nn2.test(test_images, test_labels, kTestBatchSize);
 
 	tiny_dnn::result res = nn.test(test_images, test_labels);
 	cpp_torch::print_ConfusionMatrix(res);

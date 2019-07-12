@@ -181,9 +181,12 @@ void learning_and_test_mnist_dataset(torch::Device device)
 		std::cout << "\nEpoch " << epoch << "/" << kNumberOfEpochs << " finished. "
 			<< t.elapsed() << "s elapsed." << std::endl;
 
+		if (epoch % kLogInterval == 0)
+		{
+			tiny_dnn::result res = nn.test(test_images, test_labels);
+			std::cout << res.num_success << "/" << res.num_total << std::endl;
+		}
 		++epoch;
-		//tiny_dnn::result res = nn.test(test_images, test_labels);
-		//std::cout << res.num_success << "/" << res.num_total << std::endl;
 
 		disp.restart(train_images.size());
 		t.restart();
@@ -200,13 +203,13 @@ void learning_and_test_mnist_dataset(torch::Device device)
 
 	std::cout << "end training." << std::endl;
 
-	float_t loss = nn.get_loss(train_images, train_labels);
+	float_t loss = nn.get_loss(train_images, train_labels, kTestBatchSize);
 	printf("loss:%f\n", loss);
 
 	tiny_dnn::result res = nn.test(test_images, test_labels);
 	cpp_torch::print_ConfusionMatrix(res);
 
-	nn.test(test_images, test_labels, kTrainBatchSize);
+	nn.test(test_images, test_labels, kTestBatchSize);
 
 	//nn.save(std::string("model1.pt"));
 

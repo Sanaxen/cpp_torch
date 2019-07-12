@@ -19,7 +19,7 @@
 //#define TEST1
 #define TEST2
 
-//#define USE_CUDA
+#define USE_CUDA
 
 // Where to find the MNIST dataset.
 const char* kDataRoot = "./data";
@@ -31,7 +31,7 @@ const int64_t kTrainBatchSize = 64;
 const int64_t kTestBatchSize = 1000;
 
 // The number of epochs to train.
-const int64_t kNumberOfEpochs = 10;
+const int64_t kNumberOfEpochs = 2;
 
 // After how many batches to log a new update with the loss value.
 const int64_t kLogInterval = 10;
@@ -135,13 +135,13 @@ void learning_and_test_mnist_dataset(torch::Device device)
 
 	std::cout << "end training." << std::endl;
 
-	float_t loss = nn.get_loss(train_images, train_labels);
+	float_t loss = nn.get_loss(train_images, train_labels, kTestBatchSize);
 	printf("loss:%f\n", loss);
 
 	tiny_dnn::result res = nn.test(test_images, test_labels);
 	cpp_torch::print_ConfusionMatrix(res);
 
-	nn.test(test_images, test_labels, kTrainBatchSize);
+	nn.test(test_images, test_labels, kTestBatchSize);
 
 	nn.save(std::string("model1.pt"));
 
@@ -150,7 +150,7 @@ void learning_and_test_mnist_dataset(torch::Device device)
 	nn2 = nn;
 
 	nn2.load(std::string("model1.pt"));
-	nn2.test(test_images, test_labels, kTrainBatchSize);
+	nn2.test(test_images, test_labels, kTestBatchSize);
 
 	tiny_dnn::result res2 = nn2.test(test_images, test_labels);
 	cpp_torch::print_ConfusionMatrix(res2);

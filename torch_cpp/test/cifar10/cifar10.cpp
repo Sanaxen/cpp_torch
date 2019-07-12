@@ -1,3 +1,10 @@
+/*
+	Copyright (c) 2019, Sanaxen
+	All rights reserved.
+
+	Use of this source code is governed by a MIT license that can be found
+	in the LICENSE file.
+*/
 #include <torch/torch.h>
 
 #include <cstddef>
@@ -58,18 +65,18 @@ void learning_and_test_cifar10_dataset(torch::Device device)
 	cpp_torch::Net model;
 
 	model.get()->setInput(3, 32, 32);
-#if 0
-	model.get()->add_conv2d(3, 6, 5);
+#if 10
+	model.get()->add_conv2d(3, 32, 5);
 	model.get()->add_ReLU();
 	model.get()->add_maxpool2d(2);
 
-	model.get()->add_conv2d(6, 16, 5);
+	model.get()->add_conv2d(32, 64, 5);
 	model.get()->add_ReLU();
 	model.get()->add_maxpool2d(2);
 
-	model.get()->add_fc(120);
+	model.get()->add_fc(256);
 	model.get()->add_ReLU();
-	model.get()->add_fc(84);
+	model.get()->add_fc(128);
 	model.get()->add_ReLU();
 	model.get()->add_fc(10);
 #else
@@ -136,7 +143,7 @@ void learning_and_test_cifar10_dataset(torch::Device device)
 
 	auto optimizer =
 		torch::optim::Adam(model.get()->parameters(),
-			torch::optim::AdamOptions(0.001));
+			torch::optim::AdamOptions(0.01));
 	//torch::optim::SGD optimizer(
 	//	model.get()->parameters(), torch::optim::SGDOptions(0.001).momentum(0.9));
 
@@ -146,9 +153,13 @@ void learning_and_test_cifar10_dataset(torch::Device device)
 		std::cout << "\nEpoch " << epoch << "/" << kNumberOfEpochs << " finished. "
 			<< t.elapsed() << "s elapsed." << std::endl;
 
+
+		if (epoch % 10 == 0)
+		{
+			tiny_dnn::result res = nn.test(test_images, test_labels);
+			std::cout << res.num_success << "/" << res.num_total << std::endl;
+		}
 		++epoch;
-		tiny_dnn::result res = nn.test(test_images, test_labels);
-		std::cout << res.num_success << "/" << res.num_total << std::endl;
 
 		disp.restart(train_images.size());
 		t.restart();
@@ -165,7 +176,7 @@ void learning_and_test_cifar10_dataset(torch::Device device)
 
 	std::cout << "end training." << std::endl;
 
-	float_t loss = nn.get_loss(train_images, train_labels);
+	float_t loss = nn.get_loss(train_images, train_labels, kTestBatchSize);
 	printf("loss:%f\n", loss);
 
 	tiny_dnn::result res = nn.test(test_images, test_labels);
