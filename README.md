@@ -12,12 +12,24 @@ At first glance, this header-only framework aims to be used as written in [**tin
 
 <img src="./images/image02.png"/>  
 
+**progress**  
+*tiny_dnn*  
+```
+tiny_dnn::progress_display disp(train_images.size());
+```
+  
+*cpp_torch  *
+```
+cpp_torch::progress_display disp(train_images.size());
+```
+cpp_torch::progress_display disp(train_images.size());  
+<img src="./images/colored_progress.png"/>  
 ## Requirements  
 visual studio 2015,2017  
 
 [libtorch](https://pytorch.org/get-started1locally/)
 **Please adapt the version of cuda to your environment**  
-<img src="./images/image01.png"/>  
+
 
 ## tiny-dnn
 [BSD 3-Clause License Copyright (c) 2013, Taiga Nomi](https://github.com/tiny-dnn/tiny-dnn)  

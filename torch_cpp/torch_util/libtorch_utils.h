@@ -9,7 +9,7 @@
 */
 
 #include <random>
-#include "../torch_util/utils.h"
+#include "../torch_util/util/utils.h"
 
 namespace cpp_torch
 {
