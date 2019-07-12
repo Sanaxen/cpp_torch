@@ -124,7 +124,6 @@ namespace cpp_torch
 	{
 		std::vector<float> Tolerance_Set;
 		float loss_value = 0.0;
-		tiny_dnn::timer time_measurement;
 	public:
 		int in_channels = 1;
 		int in_H = 1;
@@ -132,6 +131,7 @@ namespace cpp_torch
 		int out_channels = 1;
 		int out_H = 1;
 		int out_W = 1;
+		tiny_dnn::timer time_measurement;
 
 		torch::Device device;
 		Model model;
@@ -226,8 +226,8 @@ namespace cpp_torch
 					}
 					get_BATCH(images, labels, batch_x[batch_idx], batch_y[batch_idx], kTrainBatchSize, index);
 
-					batch_x[batch_idx] = batch_x[batch_idx].view({ kTrainBatchSize, in_channels, in_W, in_H });
-					batch_y[batch_idx] = batch_y[batch_idx].view({ kTrainBatchSize, out_channels, out_W, out_H });
+					batch_x[batch_idx] = batch_x[batch_idx].view({ kTrainBatchSize, in_channels, in_H, in_W });
+					batch_y[batch_idx] = batch_y[batch_idx].view({ kTrainBatchSize, out_channels, out_H, out_W });
 				}
 			}
 
@@ -380,8 +380,8 @@ namespace cpp_torch
 				}
 				get_BATCH(images, labels, batch_x, batch_y, kTestBatchSize, index);
 
-				torch::Tensor& data = batch_x.view({ kTestBatchSize,in_channels, in_W, in_H });
-				torch::Tensor& targets = batch_y.view({ kTestBatchSize, out_channels, out_W, out_H });
+				torch::Tensor& data = batch_x.view({ kTestBatchSize,in_channels, in_H, in_W });
+				torch::Tensor& targets = batch_y.view({ kTestBatchSize, out_channels, out_H, out_W });
 
 				data = data.to(device);
 				targets = targets.to(device);
@@ -518,7 +518,7 @@ namespace cpp_torch
 			torch::Tensor y = model.get()->forward(X.to(device));
 
 			std::vector<tiny_dnn::tensor_t> t;
-			toTensor_t(y, t, batch, out_channels, out_W, out_H);
+			toTensor_t(y, t, batch, out_channels, out_H, out_W);
 			return t;
 		}
 		/**
@@ -527,7 +527,7 @@ namespace cpp_torch
 		inline tiny_dnn::vec_t predict(tiny_dnn::vec_t& X)
 		{
 			model.get()->train(false);
-			torch::Tensor images_torch = toTorchTensors(X).view({ 1, in_channels, in_W, in_H }).to(device);
+			torch::Tensor images_torch = toTorchTensors(X).view({ 1, in_channels, in_H, in_W }).to(device);
 
 			torch::Tensor y = model.get()->forward(images_torch);
 			tiny_dnn::vec_t t = toTensor_t(y, out_data_size());
@@ -539,7 +539,7 @@ namespace cpp_torch
 		inline tiny_dnn::label_t predict_label(tiny_dnn::vec_t& X)
 		{
 			model.get()->train(false);
-			torch::Tensor images_torch = toTorchTensors(X).view({ 1, in_channels, in_W, in_H }).to(device);
+			torch::Tensor images_torch = toTorchTensors(X).view({ 1, in_channels, in_H, in_W }).to(device);
 
 			torch::Tensor y = model.get()->forward(images_torch);
 			tiny_dnn::vec_t t = toTensor_t(y, out_data_size());
@@ -578,21 +578,46 @@ namespace cpp_torch
 			return tiny_dnn::label_t(max_index(out[0]));
 		}
 
-		float_t get_loss(std::vector<tiny_dnn::vec_t> &in, std::vector<tiny_dnn::label_t> &t) {
+		float_t get_loss(std::vector<tiny_dnn::vec_t> &in, std::vector<tiny_dnn::label_t> &t, int batchSize) {
 			std::vector<tiny_dnn::vec_t> vec;
 			label2vec(t, vec);
 
-			return get_loss(in, vec);
+			return get_loss(in, vec, batchSize);
 		}
 
-		float_t get_loss( std::vector<tiny_dnn::vec_t> &in, std::vector<tiny_dnn::vec_t> &t) {
+		float_t get_loss( std::vector<tiny_dnn::vec_t> &in, std::vector<tiny_dnn::vec_t> &t, int BatchSize) {
 			float_t sum_loss = float_t(0);
+
+			std::vector<torch::Tensor> images;
+			std::vector<torch::Tensor> labels;
+
+			toTorchTensors(in, images);
+			toTorchTensors(t, labels);
+
+			const int batchNum = in.size() / BatchSize; ;
+
+			std::vector< torch::Tensor> batch_x(batchNum);
+			std::vector< torch::Tensor> batch_y(batchNum);
 
 			std::vector<float> loss_list(in.size(), 0.0);
 #pragma omp parallel for
-			for (int i = 0; i < in.size(); i++) {
-				torch::Tensor input = toTorchTensors(in[i]).view({ 1, in_channels, in_W, in_H }).to(device);
-				torch::Tensor targets = toTorchTensors(t[i]).view({ 1,out_data_size() }).to(device);
+			for (int i = 0; i < batchNum; i++) {
+
+				//if (!pre_make_batch)
+				{
+					std::vector<int> index(BatchSize);
+					for (int k = 0; k < BatchSize; k++)
+					{
+						index[k] = i* BatchSize + k;
+					}
+					get_BATCH(images, labels, batch_x[i], batch_y[i], BatchSize, index);
+
+					batch_x[i] = batch_x[i].view({ BatchSize, in_channels, in_H, in_W });
+					batch_y[i] = batch_y[i].view({ BatchSize, out_channels, out_H, out_W });
+				}
+
+				torch::Tensor input = batch_x[i].to(device);
+				torch::Tensor targets = batch_y[i].to(device);
 
 				torch::Tensor predicted = predict(input).to(device);
 
@@ -603,14 +628,16 @@ namespace cpp_torch
 				torch::Tensor loss;
 				if (classification)
 				{
-					loss = torch::nll_loss(predicted, targets.argmax(1));
+					loss = torch::nll_loss(predicted, targets.view_as(predicted).argmax(1));
 				}
 				else
 				{
 					loss = torch::mse_loss(predicted.view_as(targets), targets);
 				}
 				AT_ASSERT(!std::isnan(loss.template item<float>()));
+				//dump_dim(std::string("loss"), loss);
 
+				//std::cout << loss << std::endl;
 				loss_list[i] = loss.template item<float>();
 			}
 
@@ -721,11 +748,11 @@ namespace cpp_torch
 
 		inline int in_data_size() const
 		{
-			return in_channels * in_W*in_H;
+			return in_channels * in_H*in_W;
 		}
 		inline int out_data_size() const
 		{
-			return out_channels * out_W*out_H;
+			return out_channels * out_H*out_W;
 		}
 		inline void save(std::string& filename)
 		{
