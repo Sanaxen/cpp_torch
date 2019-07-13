@@ -13,11 +13,11 @@
 #include <string>
 #include <vector>
 
-#include "../../torch_util/libtorch_utils.h"
-#include "../../torch_util/libtorch_sequential_layer_model.h"
-#include "../../torch_util/csvreader.h"
+#include "libtorch_utils.h"
+#include "libtorch_sequential_layer_model.h"
+#include "csvreader.h"
 
-#include "../../torch_util/libtorch_link_libs.hpp"
+#include "libtorch_link_libs.hpp"
 
 
 #define USE_CUDA

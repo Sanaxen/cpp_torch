@@ -13,8 +13,8 @@
 #include <string>
 #include <vector>
 
-#include "../../torch_util/libtorch_utils.h"
-#include "../../torch_util/libtorch_link_libs.hpp"
+#include "libtorch_utils.h"
+#include "libtorch_link_libs.hpp"
 
 //#define TEST1
 #define TEST2

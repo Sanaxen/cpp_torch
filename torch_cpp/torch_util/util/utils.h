@@ -42,6 +42,8 @@ inline size_t max_index(const T &vec) {
   return std::max_element(begin_iterator, std::end(vec)) - begin_iterator;
 }
 
+#define CHANNEL_RANGE	float_t(255)
+//#define CHANNEL_RANGE	float_t(1)
 
 namespace tiny_dnn {
 	typedef float float_t;
@@ -164,7 +166,7 @@ namespace tiny_dnn {
 				for (uint32_t x = 0; x < header.num_cols; x++)
 				{
 					dst[width * (y + y_padding) + x + x_padding] =
-						(image_vec[y * header.num_cols + x] / float_t(255)) *
+						(image_vec[y * header.num_cols + x] / CHANNEL_RANGE) *
 						(scale_max - scale_min) + scale_min;
 
 					dst[width * (y + y_padding) + x + x_padding] =
@@ -323,7 +325,7 @@ namespace tiny_dnn {
 							img[c * w * h + (y + y_padding) * w + x + x_padding] =
 								scale_min +
 								(scale_max - scale_min) *
-								buf[c * CIFAR10_IMAGE_AREA + y * CIFAR10_IMAGE_WIDTH + x] / 255;
+								buf[c * CIFAR10_IMAGE_AREA + y * CIFAR10_IMAGE_WIDTH + x] / CHANNEL_RANGE;
 
 							img[c * w * h + (y + y_padding) * w + x + x_padding] = (img[c * w * h + (y + y_padding) * w + x + x_padding] - mean) / stddev;
 						}
@@ -333,7 +335,7 @@ namespace tiny_dnn {
 			else {
 				std::transform(buf.begin(), buf.end(), std::back_inserter(img),
 					[=](unsigned char c) {
-					return ((scale_min + (scale_max - scale_min) * c / 255) - mean) / stddev;
+					return ((scale_min + (scale_max - scale_min) * c / CHANNEL_RANGE) - mean) / stddev;
 				});
 			}
 

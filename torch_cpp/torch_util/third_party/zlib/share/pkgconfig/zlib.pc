@@ -1,0 +1,13 @@
+prefix=C:\Users\bccat\Desktop\zip_ext\zlib
+exec_prefix=C:\Users\bccat\Desktop\zip_ext\zlib
+libdir=C:\Users\bccat\Desktop\zip_ext\zlib/lib
+sharedlibdir=C:\Users\bccat\Desktop\zip_ext\zlib/lib
+includedir=C:\Users\bccat\Desktop\zip_ext\zlib/include
+
+Name: zlib
+Description: zlib compression library
+Version: 1.2.11
+
+Requires:
+Libs: -L${libdir} -L${sharedlibdir} -lz
+Cflags: -I${includedir}

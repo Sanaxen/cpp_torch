@@ -15,7 +15,10 @@
 
 #include "libtorch_utils.h"
 #include "libtorch_sequential_layer_model.h"
+#include "util/Progress.hpp"
+#include "util/download_data_set.h"
 #include "libtorch_link_libs.hpp"
+
 
 //#define TEST1
 #define TEST2
@@ -166,8 +169,9 @@ void learning_and_test_mnist_dataset(torch::Device device)
 
 	std::cout << "start training" << std::endl;
 
-	tiny_dnn::progress_display disp(train_images.size());
+	cpp_torch::progress_display disp(train_images.size());
 	tiny_dnn::timer t;
+
 
 	torch::optim::SGD optimizer(
 		model.get()->parameters(), torch::optim::SGDOptions(0.01).momentum(0.5));
@@ -188,14 +192,20 @@ void learning_and_test_mnist_dataset(torch::Device device)
 		}
 		++epoch;
 
-		disp.restart(train_images.size());
+		if (epoch <= kNumberOfEpochs)
+		{
+			disp.restart(train_images.size());
+		}
 		t.restart();
 	};
 
+	int batch = 1;
 	auto on_enumerate_minibatch = [&]() {
 		disp += kTrainBatchSize;
+		batch++;
 	};
 
+	//progress.start();
 	// train
 	nn.train(&optimizer, train_images, train_labels, kTrainBatchSize,
 		kNumberOfEpochs, on_enumerate_minibatch,
@@ -225,7 +235,30 @@ void learning_and_test_mnist_dataset(torch::Device device)
 
 }
 
+
 auto main() -> int {
+
+	//cpp_torch::url_download("http://yann.lecun.com/exdb/mnist/train-images-idx3-ubyte.gz", "./data/train-images-idx3-ubyte.gz");
+	//cpp_torch::url_download("http://yann.lecun.com/exdb/mnist/train-labels-idx1-ubyte.gz", "./data/train-labels-idx1-ubyte.gz");
+	//cpp_torch::url_download("http://yann.lecun.com/exdb/mnist/t10k-images-idx3-ubyte.gz", "./data/t10k-images-idx3-ubyte.gz");
+	//cpp_torch::url_download("http://yann.lecun.com/exdb/mnist/t10k-labels-idx1-ubyte.gz", "./data/t10k-labels-idx1-ubyte.gz");
+	//
+	//cpp_torch::file_uncompress("./data/train-images-idx3-ubyte.gz", true);
+	//cpp_torch::file_uncompress("./data/train-labels-idx1-ubyte.gz", true);
+	//cpp_torch::file_uncompress("./data/t10k-images-idx3-ubyte.gz", true);
+	//cpp_torch::file_uncompress("./data/t10k-labels-idx1-ubyte.gz", true);
+
+	std::string url = "http://yann.lecun.com/exdb/mnist/";
+	std::vector<std::string> files = {
+			"train-images-idx3-ubyte.gz",
+			"train-labels-idx1-ubyte.gz",
+			"t10k-images-idx3-ubyte.gz",
+			"t10k-labels-idx1-ubyte.gz"
+	};
+	std::string dir = std::string(kDataRoot) + std::string("/");
+
+	url_download_dataSet(url, files, dir );
+
 	torch::manual_seed(1);
 
 	torch::DeviceType device_type;
@@ -242,7 +275,7 @@ auto main() -> int {
 	}
 	torch::Device device(device_type);
 
-
+	cpp_torch::console_create();
 	read_mnist_dataset(std::string(kDataRoot));
 
 	learning_and_test_mnist_dataset(device);
