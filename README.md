@@ -18,7 +18,7 @@ At first glance, this header-only framework aims to be used as written in [**tin
 tiny_dnn::progress_display disp(train_images.size());
 ```
   
-*cpp_torch  *
+*cpp_torch*
 ```
 cpp_torch::progress_display disp(train_images.size());
 ```
