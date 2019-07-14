@@ -71,7 +71,7 @@ namespace cpp_torch
 			tiny_dnn::vec_t v(size);
 			for (int j = 0; j < size; j++)
 			{
-				v[j] = xx[i][0][0][j].template item<float>();
+				v[j] = xx[i][0][0][j].template item<float_t>();
 			}
 			t.push_back(v);
 			y.push_back(t);
@@ -87,7 +87,7 @@ namespace cpp_torch
 		tiny_dnn::vec_t v(size);
 		for (int j = 0; j < size; j++)
 		{
-			v[j] = xx[0][0][0][j].template item<float>();
+			v[j] = xx[0][0][0][j].template item<float_t>();
 		}
 		t.push_back(v);
 		return t;
@@ -99,7 +99,7 @@ namespace cpp_torch
 		tiny_dnn::vec_t v(size);
 		for (int j = 0; j < size; j++)
 		{
-			v[j] = xx[0][0][0][j].template item<float>();
+			v[j] = xx[0][0][0][j].template item<float_t>();
 		}
 		return v;
 	}
@@ -122,7 +122,7 @@ namespace cpp_torch
 		typename Model>
 		class network_torch
 	{
-		std::vector<float> Tolerance_Set;
+		std::vector<float_t> Tolerance_Set;
 		float loss_value = 0.0;
 	public:
 		int in_channels = 1;
@@ -275,11 +275,11 @@ namespace cpp_torch
 					{
 						loss = torch::mse_loss(output, targets);
 					}
-					AT_ASSERT(!std::isnan(loss.template item<float>()));
+					AT_ASSERT(!std::isnan(loss.template item<float_t>()));
 					loss.backward();
 					optimizer->step();
 
-					loss_value = loss.template item<float>();
+					loss_value = loss.template item<float_t>();
 					loss_ave += loss_value;
 					on_batch_enumerate();
 					model.get()->train(true);
@@ -397,9 +397,9 @@ namespace cpp_torch
 				{
 					loss = torch::mse_loss(output, targets);
 				}
-				AT_ASSERT(!std::isnan(loss.template item<float>()));
+				AT_ASSERT(!std::isnan(loss.template item<float_t>()));
 
-				loss_value = loss.template item<float>();
+				loss_value = loss.template item<float_t>();
 				loss_ave += loss_value;
 
 				if (classification)
@@ -568,7 +568,7 @@ namespace cpp_torch
 		}
 
 		inline tiny_dnn::label_t vec_max_index(torch::Tensor &out) {
-			return tiny_dnn::label_t(out.view({ out_data_size() }).argmax(0).template item<float>());
+			return tiny_dnn::label_t(out.view({ out_data_size() }).argmax(0).template item<float_t>());
 		}
 
 		inline tiny_dnn::label_t vec_max_index(tiny_dnn::vec_t &out) {
@@ -599,7 +599,7 @@ namespace cpp_torch
 			std::vector< torch::Tensor> batch_x(batchNum);
 			std::vector< torch::Tensor> batch_y(batchNum);
 
-			std::vector<float> loss_list(in.size(), 0.0);
+			std::vector<float_t> loss_list(in.size(), 0.0);
 #pragma omp parallel for
 			for (int i = 0; i < batchNum; i++) {
 
@@ -634,11 +634,11 @@ namespace cpp_torch
 				{
 					loss = torch::mse_loss(predicted.view_as(targets), targets);
 				}
-				AT_ASSERT(!std::isnan(loss.template item<float>()));
+				AT_ASSERT(!std::isnan(loss.template item<float_t>()));
 				//dump_dim(std::string("loss"), loss);
 
 				//std::cout << loss << std::endl;
-				loss_list[i] = loss.template item<float>();
+				loss_list[i] = loss.template item<float_t>();
 			}
 
 			for (size_t i = 0; i < in.size(); i++) {
@@ -657,7 +657,7 @@ namespace cpp_torch
 				Tolerance_Set[i] = (max_tol + i*(min_tol - max_tol) / (div - 1.0));
 			}
 		}
-		std::vector<float>& get_tolerance()
+		std::vector<float_t>& get_tolerance()
 		{
 			return Tolerance_Set;
 		}
@@ -665,7 +665,7 @@ namespace cpp_torch
 		/*
 		 * output vector  output[0..tolerance_set.size()-1]=num_success, output[tolerance_set.size()]=image of size, 
 		 */
-		std::vector<int> get_accuracy(tiny_dnn::tensor_t& images, tiny_dnn::tensor_t& labels, std::vector<float>& tolerance_set)
+		std::vector<int> get_accuracy(tiny_dnn::tensor_t& images, tiny_dnn::tensor_t& labels, std::vector<float_t>& tolerance_set)
 		{
 			std::vector<int> result(tolerance_set.size()+1);
 
@@ -774,14 +774,14 @@ namespace cpp_torch
 		res.print_summary(std::cout);
 		//printf("accuracy:%.3f%%\n", res.accuracy());
 	}
-	void print_ConfusionMatrix(std::vector<int>& res, std::vector<float>& tol)
+	void print_ConfusionMatrix(std::vector<int>& res, std::vector<float_t>& tol)
 	{
 		//ConfusionMatrix
 		std::cout << "ConfusionMatrix:" << std::endl;
 		for (int i = 0; i < res.size()-1; i++)
 		{
 			printf("tolerance:%.4f %d / %d accuracy:%.3f%%\n", tol[i], res[i], res.back(),
-				100.0*(float)res[i] / (float)res.back());
+				100.0*(float_t)res[i] / (float_t)res.back());
 		}
 	}
 

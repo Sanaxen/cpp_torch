@@ -393,8 +393,8 @@ namespace tiny_dnn {
 
 			for (int k = 0; k < X[0].size(); k++)
 			{
-				float max_value = -std::numeric_limits<float>::max();
-				float min_value = std::numeric_limits<float>::max();
+				float max_value = -std::numeric_limits<float_t>::max();
+				float min_value = std::numeric_limits<float_t>::max();
 				for (int i = 0; i < X.size(); i++)
 				{
 					if (max_value < X[i][k]) max_value = X[i][k];

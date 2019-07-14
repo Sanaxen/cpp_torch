@@ -188,13 +188,13 @@ void learning_and_test_cifar10_dataset(torch::Device device)
 
 auto main() -> int {
 
-	//std::string url = "https://www.cs.toronto.edu/~kriz/";
-	//std::vector<std::string> files = {
-	//		"cifar-10-binary.tar.gz"
-	//};
-	//std::string dir = std::string(kDataRoot) + std::string("/");
+	std::string url = "https://www.cs.toronto.edu/~kriz/";
+	std::vector<std::string> files = {
+			"cifar-10-binary.tar.gz"
+	};
+	std::string dir = std::string(kDataRoot) + std::string("/");
 
-	//cpp_torch::url_download_dataSet(url, files, dir);
+	cpp_torch::url_download_dataSet(url, files, dir);
 
 	torch::manual_seed(1);
 

@@ -46,7 +46,7 @@ namespace cpp_torch
 		bool bias = true;
 
 		int dim = 1;	//softmax, logsoftmax
-		float dropout_rate = 0.0;
+		float_t dropout_rate = 0.0;
 	};
 
 	struct NetImpl : torch::nn::Module {
@@ -238,7 +238,7 @@ namespace cpp_torch
 		* Usually the input comes from nn.Conv2d modules.
 		* As described in the paper Efficient Object Localization Using Convolutional Networks , if adjacent pixels within feature maps are strongly correlated (as is normally the case in early convolution layers) then i.i.d. dropout will not regularize the activations and will otherwise just result in an effective learning rate decrease.
 		*/
-		void add_conv_drop(float rate)
+		void add_conv_drop(float_t rate)
 		{
 			int id = conv_drop.size();
 			cpp_torch::LayerInOut inout;
@@ -267,7 +267,7 @@ namespace cpp_torch
 		* Furthermore, the outputs are scaled by a factor of \frac{1}{1-p}
 		* during training. This means that during evaluation the module simply computes an identity function.
 		*/
-		void add_dropout(float rate)
+		void add_dropout(float_t rate)
 		{
 			cpp_torch::LayerInOut inout;
 			inout.name = "dropout";
@@ -289,7 +289,7 @@ namespace cpp_torch
 		* @param momentum        [in] momentum in the computation of the exponential
 		* @param eos             [in] The epsilon value added for numerical stability.
 		**/
-		void add_bn(float momentum=0.1, float eps= 1e-5)
+		void add_bn(float_t momentum=0.1, float_t eps= 1e-5)
 		{
 			int id = bn.size();
 			cpp_torch::LayerInOut inout;

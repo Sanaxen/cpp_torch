@@ -8,14 +8,18 @@
 	Use of this source code is governed by a MIT license that can be found
 	in the LICENSE file.
 */
-
+#include "config.h"
 #include<iostream>
+#ifdef USE_WINDOWS
 #include<windows.h>
 #include <tchar.h>
 #include <atlstr.h>
 #include <urlmon.h>
 #pragma comment(lib, "urlmon.lib")
 #pragma comment(lib,"wininet.lib")
+#else
+#error Not supported url_download.h
+#endif
 
 namespace cpp_torch
 {
@@ -27,6 +31,10 @@ namespace cpp_torch
 	 */
 	int url_download(const char* url, const char* download_file)
 	{
+#ifndef USE_WINDOWS
+		fprintf(stderr, "%s\n", "Not supported \'url_download\'"); fflush(stderr);
+		throw "Not supported \'url_download\'";
+#endif
 		HRESULT hr;
 		USES_CONVERSION;
 		LPCTSTR Url = A2T(url), File = A2T(download_file);

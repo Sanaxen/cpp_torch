@@ -15,8 +15,11 @@
 #include <stdlib.h>
 #include <string>
 
+#include "config.h"
+#ifdef USE_ZLIB
 #include "third_party/zlib/include/zlib.h"
 #pragma comment(lib, "third_party/zlib/lib/zlibstatic.lib")
+#endif
 
 namespace cpp_torch
 {
@@ -24,6 +27,7 @@ namespace cpp_torch
 #define BUFLEN      16384
 #define MAX_NAME_LEN 1024
 
+#ifdef USE_ZLIB
 
 	void gz_compress(FILE   *in, gzFile out)
 	{
@@ -148,6 +152,39 @@ namespace cpp_torch
 	{
 		file_compress((char*)file.c_str(), ext, mode, removeOrgfle);
 	}
+#else
+inline void file_uncompress(char  *file, bool removeOrgfle = false)
+{
+#ifndef USE_ZLIB
+	fprintf(stderr, "%s\n", "Not defined USE_ZLIB  \'file_uncompress\'"); fflush(stderr);
+	throw "Not defined USE_ZLIB \'file_uncompress\'";
+#endif
+}
+
+
+inline void file_compress(char  *file, std::string ext = std::string(".gz"), std::string mode = std::string("wb6 "), bool removeOrgfle = false)
+{
+#ifndef USE_ZLIB
+	fprintf(stderr, "%s\n", "Not defined USE_ZLIB  \'file_compress\'"); fflush(stderr);
+	throw "Not defined USE_ZLIB \'file_compress\'";
+#endif
+}
+
+inline void file_uncompress(std::string& file, bool removeOrgfle = false)
+{
+#ifndef USE_ZLIB
+	fprintf(stderr, "%s\n", "Not defined USE_ZLIB  \'file_uncompress\'"); fflush(stderr);
+	throw "Not defined USE_ZLIB \'file_uncompress\'";
+#endif
+}
+inline void file_compress(std::string& file, std::string ext = std::string(".gz"), std::string mode = std::string("wb6 "), bool removeOrgfle = false)
+{
+#ifndef USE_ZLIB
+	fprintf(stderr, "%s\n", "Not defined USE_ZLIB  \'file_compress\'"); fflush(stderr);
+	throw "Not defined USE_ZLIB \'file_compress\'";
+#endif
+}
+#endif
 
 }
 #endif

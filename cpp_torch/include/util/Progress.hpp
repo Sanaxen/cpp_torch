@@ -1,6 +1,8 @@
 #ifndef _PROGRESS_H
 #define _PROGRESS_H
 
+#include "config.h"
+
 #include "text_color.hpp"
 namespace cpp_torch
 {
@@ -23,7 +25,7 @@ namespace cpp_torch
 			_count = _next_tic_count = _tic = 0;
 			_expected_count = expected_count_;
 
-#ifdef _CONSOLE
+#ifdef USE_WINDOWS
 			if (hStdout != NULL)
 			{
 				SetConsoleCursorPosition(hStdout, cur.dwCursorPosition);
@@ -45,7 +47,7 @@ namespace cpp_torch
 				<< m_s3;
 			if (!_expected_count) _expected_count = 1;  // prevent divide by zero
 
-#ifdef _CONSOLE
+#ifdef USE_WINDOWS
 			GetConsoleScreenBufferInfo(hStdout, (PCONSOLE_SCREEN_BUFFER_INFO)&cur);
 #endif
 		}                                             // restart
@@ -79,14 +81,14 @@ namespace cpp_torch
 			size_t tics_needed = static_cast<size_t>(
 				(static_cast<double>(_count) / _expected_count) * 50.0);
 
-#ifdef _CONSOLE
+#ifdef USE_WINDOWS
 			console.color(FOREGROUND_BLUE | FOREGROUND_GREEN | FOREGROUND_RED | FOREGROUND_INTENSITY | BACKGROUND_RED | BACKGROUND_GREEN | BACKGROUND_INTENSITY);
 			//console.color(FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_INTENSITY | BACKGROUND_RED | BACKGROUND_GREEN /*| BACKGROUND_INTENSITY*/);
 #endif
 			do {
 				m_os << '*' << std::flush;
 			} while (++_tic < tics_needed);
-#ifdef _CONSOLE
+#ifdef USE_WINDOWS
 			console.reset();
 #endif
 
@@ -99,7 +101,7 @@ namespace cpp_torch
 
 		progress_display &operator=(const progress_display &) = delete;
 
-#ifdef _CONSOLE
+#ifdef USE_WINDOWS
 		HANDLE hStdout = NULL;
 		CONSOLE_SCREEN_BUFFER_INFO cur;
 		textColor console;
