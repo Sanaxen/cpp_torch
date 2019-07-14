@@ -27,7 +27,7 @@ cpp_torch::progress_display disp(train_images.size());
 <img src="./images/colored_progress.png"/>  
 
 **data set download**  
-<img src="./images/url_file_download.png"/>  
+<img src="./images/url_file_download.png"/ width=60%>  =60%
 
 
 ## Requirements  
