@@ -28,12 +28,16 @@ namespace cpp_torch
 #ifdef USE_WINDOWS
 			if (hStdout != NULL)
 			{
+				CONSOLE_SCREEN_BUFFER_INFO pre;
+				GetConsoleScreenBufferInfo(hStdout, (PCONSOLE_SCREEN_BUFFER_INFO)&pre);
+
 				SetConsoleCursorPosition(hStdout, cur.dwCursorPosition);
 				printf("\r");
 				console.color(FOREGROUND_GREEN | FOREGROUND_INTENSITY | BACKGROUND_GREEN | BACKGROUND_INTENSITY);
 				console.printf("###################################################\n");
 				console.color(FOREGROUND_BLUE | FOREGROUND_GREEN | FOREGROUND_INTENSITY);
 				console.reset();
+				SetConsoleCursorPosition(hStdout, pre.dwCursorPosition);
 			}
 			else
 			{
