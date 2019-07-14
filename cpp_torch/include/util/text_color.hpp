@@ -29,6 +29,7 @@ namespace cpp_torch
 		console_create__ = 1;
 	}
 
+#define TEXT_COLOR_STRING_MAX 512
 	/*
 	#define FOREGROUND_BLUE      0x0001 // text color contains blue.
 	#define FOREGROUND_GREEN     0x0002 // text color contains green.
@@ -39,8 +40,6 @@ namespace cpp_torch
 		HANDLE hStdout;
 		CONSOLE_SCREEN_BUFFER_INFO Info;
 		char* pszBuf;
-		int rank;
-		char processor_name[128];
 	public:
 		HANDLE getHANDLE() const
 		{
@@ -49,25 +48,10 @@ namespace cpp_torch
 
 		inline void init()
 		{
-			pszBuf = new char[512];
+			pszBuf = new char[TEXT_COLOR_STRING_MAX];
 			hStdout = GetStdHandle(STD_OUTPUT_HANDLE);
 			GetConsoleScreenBufferInfo(hStdout, &Info);
 
-			rank = 0;
-			processor_name[0] = '\0';
-#ifdef USE_MPI
-			MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-			int namelen;
-			MPI_Get_processor_name(processor_name, &namelen);
-#endif
-		}
-		inline const char* get_processor_name() const
-		{
-			return processor_name;
-		}
-		inline int get_rank() const
-		{
-			return rank;
 		}
 
 		inline textColor()
@@ -80,12 +64,46 @@ namespace cpp_torch
 			init();
 			color(c);
 		}
+		inline textColor(std::string& c, bool intensity = true)
+		{
+			init();
+			color(getColorAttr(c, intensity));
+		}
+		inline textColor(char* c, bool intensity = true)
+		{
+			init();
+			color(getColorAttr(c, intensity));
+		}
+
 
 		~textColor()
 		{
 			SetConsoleTextAttribute(hStdout, Info.wAttributes);
 			if (pszBuf) delete[] pszBuf;
 			pszBuf = 0;
+		}
+
+		inline WORD getColorAttr(std::string& c, bool intensity = true) 
+		{
+			if (intensity)
+			{
+				if (c == "RED") return FOREGROUND_RED | FOREGROUND_INTENSITY;
+				if (c == "GREEN")  return FOREGROUND_GREEN | FOREGROUND_INTENSITY;
+				if (c == "BLUE")  return FOREGROUND_BLUE | FOREGROUND_INTENSITY;
+				if (c == "YELLOW")  return FOREGROUND_GREEN | FOREGROUND_RED | FOREGROUND_INTENSITY;
+			}
+			else
+			{
+				if (c == "RED") return FOREGROUND_RED;
+				if (c == "GREEN")  return FOREGROUND_GREEN;
+				if (c == "BLUE")  return FOREGROUND_BLUE;
+				if (c == "YELLOW")  return FOREGROUND_GREEN | FOREGROUND_RED;
+			}
+			return 0;
+		}
+		inline WORD getColorAttr(char* c, bool intensity = true)
+		{
+			return getColorAttr(std::string(c), intensity);
 		}
 
 		inline void color(WORD atter)
@@ -101,15 +119,11 @@ namespace cpp_torch
 		{
 			va_list	argp;
 			va_start(argp, format);
-			vsnprintf(pszBuf, 512, format, argp);
+			vsnprintf(pszBuf, TEXT_COLOR_STRING_MAX, format, argp);
 			va_end(argp);
-#ifdef USE_MPI
-			::printf("%s", pszBuf);
-#else
 			DWORD length = 0;
 			WriteConsoleA(hStdout, pszBuf, strlen(pszBuf), &length, 0);
 			FlushFileBuffers(hStdout);
-#endif
 		}
 
 		inline void clear_line(int linenum)
@@ -132,7 +146,7 @@ namespace cpp_torch
 		{
 			va_list	argp;
 			va_start(argp, format);
-			vsnprintf(pszBuf, 512, format, argp);
+			vsnprintf(pszBuf, TEXT_COLOR_STRING_MAX, format, argp);
 			va_end(argp);
 
 			GetConsoleScreenBufferInfo(hStdout, (PCONSOLE_SCREEN_BUFFER_INFO)&info_tmp);
@@ -146,7 +160,7 @@ namespace cpp_torch
 		{
 			va_list	argp;
 			va_start(argp, format);
-			vsnprintf(pszBuf, 512, format, argp);
+			vsnprintf(pszBuf, TEXT_COLOR_STRING_MAX, format, argp);
 			va_end(argp);
 
 			SetConsoleCursorPosition(hStdout, info_tmp.dwCursorPosition);
