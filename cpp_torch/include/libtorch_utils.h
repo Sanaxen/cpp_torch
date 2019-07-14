@@ -551,7 +551,10 @@ namespace cpp_torch
 			const size_t outdim = out_data_size();
 			vec.clear();
 			vec.resize(labels.size());
-			for (int i = 0; i < labels.size(); i++)
+
+			const size_t sz = labels.size();
+#pragma omp parallel for
+			for (int i = 0; i < sz; i++)
 			{
 				tiny_dnn::vec_t t(outdim, 0);
 				t[labels[i]] = 1.0;
@@ -710,7 +713,26 @@ namespace cpp_torch
 				return result;
 			}
 
-			for (int i = 0; i < images.size(); i++)
+			const size_t sz = images.size();
+#if 10
+			std::vector< tiny_dnn::label_t> predicted_list(sz, 0);
+			std::vector< tiny_dnn::label_t>actual_list(sz, 0);
+#pragma omp parallel for
+			for (int i = 0; i < sz; i++)
+			{
+				tiny_dnn::vec_t& predict_y = predict(images[i]);
+				predicted_list[i] = vec_max_index(predict_y);
+				actual_list[i] = vec_max_index(labels[i]);
+			}
+			for (int i = 0; i < sz; i++)
+			{
+				if (predicted_list[i] == actual_list[i]) result.num_success++;
+				result.num_total++;
+				result.confusion_matrix[predicted_list[i]][actual_list[i]]++;
+			}
+
+#else
+			for (int i = 0; i < sz; i++)
 			{
 				tiny_dnn::vec_t& predict_y = predict(images[i]);
 				const tiny_dnn::label_t predicted = vec_max_index(predict_y);
@@ -720,6 +742,7 @@ namespace cpp_torch
 				result.num_total++;
 				result.confusion_matrix[predicted][actual]++;
 			}
+#endif
 			return result;
 		}
 
