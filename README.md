@@ -22,8 +22,14 @@ tiny_dnn::progress_display disp(train_images.size());
 ```
 cpp_torch::progress_display disp(train_images.size());
 ```
+
 cpp_torch::progress_display disp(train_images.size());  
 <img src="./images/colored_progress.png"/>  
+
+**data set download**  
+<img src="./images/url_file_download.png"/>  
+
+
 ## Requirements  
 visual studio 2015,2017  
 
