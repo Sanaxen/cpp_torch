@@ -217,7 +217,10 @@ void learning_and_test_mnist_dataset(torch::Device device)
 	printf("loss:%f\n", loss);
 
 	tiny_dnn::result res = nn.test(test_images, test_labels);
-	cpp_torch::print_ConfusionMatrix(res);
+	{
+		cpp_torch::textColor color("YELLOW");
+		cpp_torch::print_ConfusionMatrix(res);
+	}
 
 	nn.test(test_images, test_labels, kTestBatchSize);
 
