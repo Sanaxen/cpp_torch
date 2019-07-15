@@ -14,6 +14,7 @@
 #include "util/url_download.h"
 #include "util/zip_util.h"
 #include "util/tar_util.h"
+#include "util/DirectryTool.h"
 
 namespace cpp_torch
 {
@@ -24,10 +25,10 @@ namespace cpp_torch
 		std::cout << "download...";
 		for (auto file : files)
 		{
-			cpp_torch::url_download(url + file, dir + file);
+			if ( url != "" ) cpp_torch::url_download(url + file, dir + file);
 			cpp_torch::file_uncompress(dir + file, true);
 
-			if (strstr(file.c_str(), ".tar.gz") || strstr(file.c_str(), "TAR.GZ"))
+			if (strstr(file.c_str(), ".tar.gz") || strstr(file.c_str(), "TAR.GZ") || strstr(file.c_str(), ".tgz") || strstr(file.c_str(), "TGZ"))
 			{
 				char infile[1024];
 				strcpy(infile, dir.c_str());
@@ -47,7 +48,7 @@ namespace cpp_torch
 				std::vector<mtar_header_t> mtar_headers;
 				/* Print all file names and sizes */
 				while ((mtar_read_header(&tar, &h)) != MTAR_ENULLRECORD) {
-					printf("%s (%d bytes)\n", h.name, h.size);
+					printf("%s (%d bytes) %d\n", h.name, h.size, h.type);
 					mtar_headers.push_back(h);
 					mtar_next(&tar);
 				}
@@ -58,9 +59,12 @@ namespace cpp_torch
 					char *p = NULL;
 					mtar_header_t h;
 
-					if (mtar_headers[i].size == 0 )
+					if (mtar_headers[i].type == 53 )
 					{
-						if (dir_path == "") dir_path = mtar_headers[i].name;
+						char d[100];
+						strcpy(d, dir.c_str());
+						strcat(d, mtar_headers[i].name);
+						cpp_torch::DirectryTool directry(d);
 						continue;
 					}
 					/* Load and print contents of file "test.txt" */
