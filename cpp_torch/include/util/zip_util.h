@@ -7,6 +7,8 @@
 
 	Use of this source code is governed by a MIT license that can be found
 	in the LICENSE file.
+
+	Decompression of zip (gz) by directory structure is not supported
 */
 
 #pragma warning(disable : 4996)
