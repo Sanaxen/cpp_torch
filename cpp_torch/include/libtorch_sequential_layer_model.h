@@ -19,6 +19,7 @@ namespace cpp_torch
 		MAXPOOL2D = 4,
 		DROPOUT = 5,
 		BATCHNORMAL = 6,
+		LSTM = 7,
 
 		ReLU = 100,
 		LeakyReLU = 101,
@@ -45,6 +46,9 @@ namespace cpp_torch
 		std::vector<int> dilation = { 1,1 };
 		bool bias = true;
 
+		int rnn_seqence_length = 1;
+		int rnn_sequence_single_size = 1;
+
 		int dim = 1;	//softmax, logsoftmax
 		float_t dropout_rate = 0.0;
 	};
@@ -52,14 +56,18 @@ namespace cpp_torch
 	struct NetImpl : torch::nn::Module {
 		NetImpl() :
 			fc(1, nullptr), conv2d(1, nullptr),
-			conv_drop(1, nullptr), bn(1, nullptr)
+			conv_drop(1, nullptr), bn(1, nullptr),
+			lstm(1, nullptr),
+			device(torch::kCPU)
 		{
 			fc.clear();
 			conv2d.clear();
 			conv_drop.clear();
 			bn.clear();
+			lstm.clear();
 		}
 
+		torch::Device device;
 		std::vector<cpp_torch::LayerInOut> layer;
 		void setInput(int channels, int w, int h)
 		{
@@ -309,6 +317,40 @@ namespace cpp_torch
 			std::cout << "bn {" << inout.in_ << "}->{" << inout.out_ << "}" << std::endl;
 		}
 
+		/**
+		* compute multi-layer long-short-term-memory (LSTM)
+		**/
+		/**
+		* @param sequence_length [in] number of sequence of length
+		* @param hidden_size [in] number of hidden of size
+		**/
+		void add_lstm(int sequence_length, int hidden_size)
+		{
+			int id = lstm.size();
+			cpp_torch::LayerInOut inout;
+			inout.name = "lstm";
+			inout.type = cpp_torch::LayerType::LSTM;
+			inout.id = id;
+
+			int in;
+			const int i = layer.size();
+			in = layer[i - 1].out_[0] * layer[i - 1].out_[1] * layer[i - 1].out_[2];
+
+			inout.rnn_seqence_length = sequence_length;
+			inout.rnn_sequence_single_size = in/ sequence_length;
+
+			std::cout << layer[i - 1].out_ << std::endl;
+			inout.in_ = { 1,sequence_length, inout.rnn_sequence_single_size };
+			auto opt = torch::nn::LSTMOptions(inout.rnn_sequence_single_size, hidden_size);
+			opt = opt.batch_first(true);
+
+			lstm.emplace_back(register_module("lstm" + std::to_string(id), torch::nn::LSTM(opt)));
+			inout.out_ = { 1,sequence_length, hidden_size };
+			layer.emplace_back(inout);
+
+			std::cout << "lstm {" << inout.in_ << "}->{" << inout.out_ << "}" << std::endl;
+		}
+
 #define ACTIVATION_LAYER( id_name ) void add_##id_name()	\
 		{												\
 		cpp_torch::LayerInOut inout;					\
@@ -345,14 +387,15 @@ namespace cpp_torch
 		int debug_dmp = 0;
 		torch::Tensor forward(torch::Tensor x)
 		{
+			const int batch = x.sizes()[0];
 
 			for (int i = 1; i < layer.size(); i++)
 			{
-				if (debug_dmp)cpp_torch::dump_dim(std::string(""), x);
+				if (debug_dmp)cpp_torch::dump_dim(std::string("IN"), x);
 				if (layer[i].type == cpp_torch::LayerType::FC)
 				{
 					const int in = layer[i - 1].out_[0]*layer[i - 1].out_[1]*layer[i - 1].out_[2];
-					x = x.view({ -1, in });
+					x = x.view({ batch, -1 });
 					x = fc[layer[i].id]->forward(x);
 					if (debug_dmp)cpp_torch::dump_dim(std::string("fc"), x);
 					continue;
@@ -400,6 +443,17 @@ namespace cpp_torch
 					if (debug_dmp)cpp_torch::dump_dim(std::string("bn"), x);
 					continue;
 				}
+				if (layer[i].type == cpp_torch::LayerType::LSTM)
+				{
+					const int in = layer[i - 1].out_[0] * layer[i - 1].out_[1] * layer[i - 1].out_[2];
+					x = x.view({ -1, layer[i].rnn_seqence_length, layer[i].rnn_sequence_single_size });
+					//dump_dim("X", x);
+					x = lstm[layer[i].id]->forward(x).output;
+					x = x.view({ batch,  layer[i].rnn_seqence_length, -1 });
+					//dump_dim("X", x);
+					if (debug_dmp)cpp_torch::dump_dim(std::string("lstm"), x);
+					continue;
+				}
 
 
 				//Activation
@@ -441,6 +495,7 @@ namespace cpp_torch
 		std::vector<torch::nn::Linear> fc;
 		std::vector<torch::nn::FeatureDropout> conv_drop;
 		std::vector<torch::nn::BatchNorm> bn;
+		std::vector<torch::nn::LSTM> lstm;
 	};
 	TORCH_MODULE(Net); // creates module holder for NetImpl
 }
