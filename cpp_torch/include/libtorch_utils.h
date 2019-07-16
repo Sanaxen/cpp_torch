@@ -28,6 +28,10 @@ namespace cpp_torch
 			printf("%d\n", t.sizes()[t.sizes().size() - 1]);
 		}
 	}
+	inline void dump_dim(char* s, torch::Tensor& t)
+	{
+		dump_dim(std::string(s), t);
+	}
 	void label2vec(const std::vector<tiny_dnn::label_t>& labels, std::vector<tiny_dnn::vec_t>& vec, int max_label)
 	{
 		vec.clear();
@@ -148,13 +152,13 @@ namespace cpp_torch
 			model.get()->to(device);
 		}
 
-		inline void input_dim(int c, int h, int w)
+		inline void input_dim(int c, int w, int h)
 		{
 			in_channels = c;
 			in_H = h;
 			in_W = w;
 		}
-		inline void output_dim(int c, int h, int w)
+		inline void output_dim(int c, int w, int h)
 		{
 			out_channels = c;
 			out_H = h;
@@ -220,9 +224,19 @@ namespace cpp_torch
 				for (int batch_idx = 0; batch_idx < batchNum; batch_idx++)
 				{
 					std::vector<int> index(kTrainBatchSize);
-					for (int k = 0; k < kTrainBatchSize; k++)
+					if (shuffle)
 					{
-						index[k] = rand_index(mt);
+						for (int k = 0; k < kTrainBatchSize; k++)
+						{
+							index[k] = rand_index(mt);
+						}
+					}
+					else
+					{
+						for (int k = 0; k < kTrainBatchSize; k++)
+						{
+							index[k] = batch_idx*kTrainBatchSize + k;
+						}
 					}
 					get_BATCH(images, labels, batch_x[batch_idx], batch_y[batch_idx], kTrainBatchSize, index);
 
@@ -244,9 +258,19 @@ namespace cpp_torch
 					if (!pre_make_batch)
 					{
 						std::vector<int> index(kTrainBatchSize);
-						for (int k = 0; k < kTrainBatchSize; k++)
+						if (shuffle)
 						{
-							index[k] = rand_index(mt);
+							for (int k = 0; k < kTrainBatchSize; k++)
+							{
+								index[k] = rand_index(mt);
+							}
+						}
+						else
+						{
+							for (int k = 0; k < kTrainBatchSize; k++)
+							{
+								index[k] = batch_idx*kTrainBatchSize + k;
+							}
 						}
 						get_BATCH(images, labels, batch_x[batch_idx], batch_y[batch_idx], kTrainBatchSize, index);
 
@@ -597,7 +621,11 @@ namespace cpp_torch
 			toTorchTensors(in, images);
 			toTorchTensors(t, labels);
 
-			const int batchNum = in.size() / BatchSize; ;
+			const int batchNum = in.size() / BatchSize;
+			if (batchNum == 0)
+			{
+				throw "input size < Batch Size";
+			}
 
 			std::vector< torch::Tensor> batch_x(batchNum);
 			std::vector< torch::Tensor> batch_y(batchNum);
