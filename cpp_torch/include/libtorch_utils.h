@@ -16,7 +16,22 @@ namespace cpp_torch
 	inline void nop() {
 		// do nothing
 	}
-	inline void dump_dim(std::string & s, torch::Tensor& t)
+	/**
+	* error exception class
+	**/
+	class error_exception : public std::exception {
+	public:
+		explicit error_exception(const std::string &msg) : msg_(msg) {
+			fprintf(stderr, "ERROR:%s\n", msg.c_str());
+			fflush(stderr);
+		}
+		const char *what() const throw() override { return msg_.c_str(); }
+
+	private:
+		std::string msg_;
+	};
+
+	inline void dump_dim(const std::string & s, torch::Tensor& t)
 	{
 		printf("%s dim:%d ", s.c_str(), t.dim());
 		if (t.dim())
@@ -111,6 +126,10 @@ namespace cpp_torch
 	inline int get_BATCH(const std::vector<torch::Tensor>& images, const std::vector<torch::Tensor>& labels, torch::Tensor& batch_images, torch::Tensor& batch_labels, const int batchSize, std::vector<int>& index)
 	{
 		int batchNum = images.size() / batchSize;
+		if (batchNum == 0)
+		{
+			throw error_exception("input size < batch size");
+		}
 
 		batch_images = images[index[0]];
 		batch_labels = labels[index[0]];
@@ -149,7 +168,15 @@ namespace cpp_torch
 		network_torch(Model& model_, torch::Device device_)
 			:model(model_), device(device_)
 		{
-			model.get()->to(device);
+			try
+			{
+				model.get()->to(device);
+			}
+			catch (std::exception& e)
+			{
+				printf("%s\n", e.what());
+				exit(0);
+			}
 		}
 
 		inline void input_dim(int c, int w, int h)
@@ -393,6 +420,10 @@ namespace cpp_torch
 			float loss_ave = 0.0;
 			int correct = 0;
 			int testNum = images.size() / kTestBatchSize;
+			if (testNum == 0)
+			{
+				throw error_exception("input size < test batch size");
+			}
 			for (size_t test = 0; test < testNum; ++test)
 			{
 				torch::Tensor batch_x;
@@ -624,7 +655,7 @@ namespace cpp_torch
 			const int batchNum = in.size() / BatchSize;
 			if (batchNum == 0)
 			{
-				throw "input size < Batch Size";
+				throw error_exception("input size < Batch Size");
 			}
 
 			std::vector< torch::Tensor> batch_x(batchNum);

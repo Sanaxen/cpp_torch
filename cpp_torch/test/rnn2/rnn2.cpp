@@ -46,33 +46,33 @@ const int64_t kNumberOfEpochs = 2000;
 const int64_t kLogInterval = 10;
 
 const int sequence_length = 20;
-const int out_sequence_length = 1;
+const int out_sequence_length = 3;
 const int hidden_size = 64;
-const int x_dim = 1;
-const int y_dim = 3;
+int x_dim = 1;
+int y_dim = 3;
 
 #define TEST
 
 struct NetImpl : torch::nn::Module {
 	NetImpl()
 		: 
-		lstm({ nullptr }),
+		gru({ nullptr }),
 		fc1(sequence_length*hidden_size, 128),
 		fc2(128, 128),
 		fc3(128, 50),
 		fc4(50, y_dim*out_sequence_length)
 	{
-		auto opt = torch::nn::LSTMOptions(y_dim, hidden_size);
+		auto opt = torch::nn::GRUOptions(y_dim, hidden_size);
 		opt = opt.batch_first(true);
 
-		lstm = torch::nn::LSTM(opt);
-		lstm.get()->options.batch_first(true);
+		gru = torch::nn::GRU(opt);
+		gru.get()->options.batch_first(true);
 		fc1.get()->options.with_bias(false);
 		fc2.get()->options.with_bias(false);
 		fc3.get()->options.with_bias(false);
 		fc4.get()->options.with_bias(false);
 
-		register_module("lstm", lstm);
+		register_module("gru", gru);
 		register_module("fc1", fc1);
 		register_module("fc2", fc2);
 		register_module("fc3", fc3);
@@ -85,7 +85,7 @@ struct NetImpl : torch::nn::Module {
 		//cpp_torch::dump_dim("X", x);
 		x = x.view({ batch, -1, y_dim});
 		//cpp_torch::dump_dim("X", x);
-		x = lstm->forward(x).output;
+		x = gru->forward(x).output;
 		//cpp_torch::dump_dim("X", x);
 		x = torch::tanh(x);
 		//cpp_torch::dump_dim("X", x);
@@ -100,7 +100,7 @@ struct NetImpl : torch::nn::Module {
 		return x;
 	}
 
-	torch::nn::LSTM lstm;
+	torch::nn::GRU gru;
 	torch::nn::Linear fc1;
 	torch::nn::Linear fc2;
 	torch::nn::Linear fc3;
@@ -137,7 +137,7 @@ void learning_and_test_rnn_dataset(cpp_torch::test::SeqenceData& seqence_data, t
 	model.get()->device = device;
 	model.get()->setInput(1, 1, y_dim*sequence_length);
 
-	model.get()->add_recurrent(std::string("lstm"), sequence_length, hidden_size);
+	model.get()->add_recurrent(std::string("gru"), sequence_length, hidden_size);
 	model.get()->add_Tanh();
 	model.get()->add_fc(128);
 	model.get()->add_Tanh();

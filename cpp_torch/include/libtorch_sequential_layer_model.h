@@ -19,7 +19,9 @@ namespace cpp_torch
 		MAXPOOL2D = 4,
 		DROPOUT = 5,
 		BATCHNORMAL = 6,
-		LSTM = 7,
+		RNN = 7,
+		LSTM = 8,
+		GRU = 9,
 
 		ReLU = 100,
 		LeakyReLU = 101,
@@ -57,15 +59,26 @@ namespace cpp_torch
 		NetImpl() :
 			fc(1, nullptr), conv2d(1, nullptr),
 			conv_drop(1, nullptr), bn(1, nullptr),
-			lstm(1, nullptr),
+			lstm(1, nullptr),gru(1, nullptr), rnn(1, nullptr),
 			device(torch::kCPU)
 		{
-			fc.clear();
-			conv2d.clear();
-			conv_drop.clear();
-			bn.clear();
-			lstm.clear();
+			fc.clear();	conv2d.clear();	
+			conv_drop.clear();	bn.clear();
+			lstm.clear();gru.clear();rnn.clear();
 		}
+
+		int activation_count = 0;
+		int maxpool2d_count = 0;
+		int dropout_count = 0;
+
+		std::vector<torch::nn::Conv2d> conv2d;
+		std::vector<torch::nn::Linear> fc;
+		std::vector<torch::nn::FeatureDropout> conv_drop;
+		std::vector<torch::nn::BatchNorm> bn;
+		std::vector<torch::nn::LSTM> lstm;
+		std::vector<torch::nn::GRU> gru;
+		std::vector<torch::nn::RNN> rnn;
+
 
 		torch::Device device;
 		std::vector<cpp_torch::LayerInOut> layer;
@@ -318,37 +331,74 @@ namespace cpp_torch
 		}
 
 		/**
-		* compute multi-layer long-short-term-memory (LSTM)
+		* compute multi-layer long-short-term-memory (RNN)
 		**/
 		/**
+		* @param rnn_type        [in] "rnn", "lstm", "gru"
 		* @param sequence_length [in] number of sequence of length
-		* @param hidden_size [in] number of hidden of size
+		* @param hidden_size     [in] number of hidden of size
+		* @param num_layers      [in] The number of recurrent layers (cells) to use.
+		* @param dropout         [in] If non-zero, adds dropout with the given probability to the output of each RNN layer, except the final layer.
 		**/
-		void add_lstm(int sequence_length, int hidden_size)
+		void add_recurrent(std::string& rnn_type, int sequence_length, int hidden_size, int num_layers = 1, float dropout = 0.0)
 		{
-			int id = lstm.size();
 			cpp_torch::LayerInOut inout;
-			inout.name = "lstm";
-			inout.type = cpp_torch::LayerType::LSTM;
-			inout.id = id;
+			inout.name = rnn_type;
+			
+			if (rnn_type == "rnn")inout.type = cpp_torch::LayerType::RNN;
+			if (rnn_type == "lstm")inout.type = cpp_torch::LayerType::LSTM;
+			if (rnn_type == "gru")inout.type = cpp_torch::LayerType::GRU;
 
 			int in;
 			const int i = layer.size();
 			in = layer[i - 1].out_[0] * layer[i - 1].out_[1] * layer[i - 1].out_[2];
 
 			inout.rnn_seqence_length = sequence_length;
-			inout.rnn_sequence_single_size = in/ sequence_length;
+			inout.rnn_sequence_single_size = in / sequence_length;
 
 			std::cout << layer[i - 1].out_ << std::endl;
 			inout.in_ = { 1,sequence_length, inout.rnn_sequence_single_size };
-			auto opt = torch::nn::LSTMOptions(inout.rnn_sequence_single_size, hidden_size);
-			opt = opt.batch_first(true);
+			
+			int id = -1;
+			if (rnn_type == "rnn")
+			{
+				id = rnn.size();
+				auto opt = torch::nn::RNNOptions(inout.rnn_sequence_single_size, hidden_size);
+				opt = opt.batch_first(true);
+				opt = opt.layers(num_layers);
+				if (dropout > 0.0) opt = opt.dropout(dropout);
 
-			lstm.emplace_back(register_module("lstm" + std::to_string(id), torch::nn::LSTM(opt)));
+				rnn.emplace_back(register_module(rnn_type + std::to_string(id), torch::nn::RNN(opt)));
+			}
+			if (rnn_type == "lstm")
+			{
+				id = lstm.size();
+				auto opt = torch::nn::LSTMOptions(inout.rnn_sequence_single_size, hidden_size);
+				opt = opt.batch_first(true);
+				opt = opt.layers(num_layers);
+				if (dropout > 0.0) opt = opt.dropout(dropout);
+
+				lstm.emplace_back(register_module(rnn_type + std::to_string(id), torch::nn::LSTM(opt)));
+			}
+			if (rnn_type == "gru")
+			{ 
+				id = gru.size();
+				auto opt = torch::nn::GRUOptions(inout.rnn_sequence_single_size, hidden_size);
+				opt = opt.batch_first(true);
+				opt = opt.layers(num_layers);
+				if (dropout > 0.0) opt = opt.dropout(dropout);
+
+				gru.emplace_back(register_module(rnn_type + std::to_string(id), torch::nn::GRU(opt)));
+			}
+			if (id == -1)
+			{
+				throw error_exception("recurrent type error");
+			}
+			inout.id = id;
 			inout.out_ = { 1,sequence_length, hidden_size };
 			layer.emplace_back(inout);
 
-			std::cout << "lstm {" << inout.in_ << "}->{" << inout.out_ << "}" << std::endl;
+			std::cout << rnn_type << "{" << inout.in_ << "}->{" << inout.out_ << "}" << std::endl;
 		}
 
 #define ACTIVATION_LAYER( id_name ) void add_##id_name()	\
@@ -397,14 +447,14 @@ namespace cpp_torch
 					const int in = layer[i - 1].out_[0]*layer[i - 1].out_[1]*layer[i - 1].out_[2];
 					x = x.view({ batch, -1 });
 					x = fc[layer[i].id]->forward(x);
-					if (debug_dmp)cpp_torch::dump_dim(std::string("fc"), x);
+					if (debug_dmp)cpp_torch::dump_dim(fc[layer[i].id]->name(), x);
 					continue;
 				}
 				if (layer[i].type == cpp_torch::LayerType::CONV2D)
 				{
 					x = x.view({ -1, layer[i - 1].out_[0], layer[i - 1].out_[1], layer[i - 1].out_[2] });
 					x = conv2d[layer[i].id]->forward(x);
-					if (debug_dmp)cpp_torch::dump_dim(std::string("conv"), x);
+					if (debug_dmp)cpp_torch::dump_dim(conv2d[layer[i].id]->name(), x);
 					continue;
 				}
 
@@ -418,14 +468,14 @@ namespace cpp_torch
 							{layer[i].dilation[0], layer[i].dilation[1]}
 					);
 
-					if (debug_dmp)cpp_torch::dump_dim(std::string("maxpool"), x);
+					if (debug_dmp)cpp_torch::dump_dim(layer[i].name, x);
 					continue;
 				}
 				if (layer[i].type == cpp_torch::LayerType::CONV_DROP)
 				{
 					const int in = layer[i - 1].out_[0]*layer[i - 1].out_[1]*layer[i - 1].out_[2];
 					x = conv_drop[layer[i].id]->forward(x);
-					if (debug_dmp)cpp_torch::dump_dim(std::string("conv_drop"), x);
+					if (debug_dmp)cpp_torch::dump_dim(conv_drop[layer[i].id]->name(), x);
 					continue;
 				}
 				if (layer[i].type == cpp_torch::LayerType::DROPOUT)
@@ -433,25 +483,53 @@ namespace cpp_torch
 					const int in = layer[i - 1].out_[0] * layer[i - 1].out_[1] * layer[i - 1].out_[2];
 					x = x.view({ -1, in });
 					x = torch::dropout(x, layer[i].dropout_rate, is_training());
-					if (debug_dmp)cpp_torch::dump_dim(std::string("drop"), x);
+					if (debug_dmp)cpp_torch::dump_dim(layer[i].name, x);
 					continue;
 				}
 				if (layer[i].type == cpp_torch::LayerType::BATCHNORMAL)
 				{
 					x = x.view({ -1, layer[i - 1].out_[0], layer[i - 1].out_[1], layer[i - 1].out_[2] });
 					x = bn[layer[i].id]->forward(x);
-					if (debug_dmp)cpp_torch::dump_dim(std::string("bn"), x);
+					if (debug_dmp)cpp_torch::dump_dim(bn[layer[i].id]->name(), x);
 					continue;
 				}
-				if (layer[i].type == cpp_torch::LayerType::LSTM)
+				if (layer[i].type == cpp_torch::LayerType::LSTM ||
+					layer[i].type == cpp_torch::LayerType::GRU  ||
+					layer[i].type == cpp_torch::LayerType::RNN
+					)
 				{
 					const int in = layer[i - 1].out_[0] * layer[i - 1].out_[1] * layer[i - 1].out_[2];
 					x = x.view({ -1, layer[i].rnn_seqence_length, layer[i].rnn_sequence_single_size });
 					//dump_dim("X", x);
-					x = lstm[layer[i].id]->forward(x).output;
+					if (layer[i].type == cpp_torch::LayerType::LSTM)
+					{
+						x = lstm[layer[i].id]->forward(x).output;
+					}else
+					if (layer[i].type == cpp_torch::LayerType::GRU)
+					{
+						x = gru[layer[i].id]->forward(x).output;
+					}else
+					if (layer[i].type == cpp_torch::LayerType::RNN)
+					{
+						x = rnn[layer[i].id]->forward(x).output;
+					}
 					x = x.view({ batch,  layer[i].rnn_seqence_length, -1 });
 					//dump_dim("X", x);
-					if (debug_dmp)cpp_torch::dump_dim(std::string("lstm"), x);
+
+					if (layer[i].type == cpp_torch::LayerType::LSTM)
+					{
+						if (debug_dmp)cpp_torch::dump_dim(lstm[layer[i].id]->name(), x);
+					}
+					else
+					if (layer[i].type == cpp_torch::LayerType::GRU)
+					{
+						if (debug_dmp)cpp_torch::dump_dim(gru[layer[i].id]->name(), x);
+					}
+					else
+					if (layer[i].type == cpp_torch::LayerType::RNN)
+					{
+						if (debug_dmp)cpp_torch::dump_dim(rnn[layer[i].id]->name(), x);
+					}
 					continue;
 				}
 
@@ -486,16 +564,6 @@ namespace cpp_torch
 			debug_dmp = 0;
 			return x;
 		}
-
-		int activation_count = 0;
-		int maxpool2d_count = 0;
-		int dropout_count = 0;
-
-		std::vector<torch::nn::Conv2d> conv2d;
-		std::vector<torch::nn::Linear> fc;
-		std::vector<torch::nn::FeatureDropout> conv_drop;
-		std::vector<torch::nn::BatchNorm> bn;
-		std::vector<torch::nn::LSTM> lstm;
 	};
 	TORCH_MODULE(Net); // creates module holder for NetImpl
 }
