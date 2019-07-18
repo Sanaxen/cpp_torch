@@ -30,11 +30,11 @@
 
 #define USE_CUDA
 
-// Where to find the MNIST dataset.
+// Where to find the CIFAR10 dataset.
 const char* kDataRoot = "./data";
 
 // The batch size for training.
-const int64_t kTrainBatchSize = 128;
+const int64_t kTrainBatchSize = 256;
 
 // The batch size for testing.
 const int64_t kTestBatchSize = 1000;
@@ -131,7 +131,7 @@ void learning_and_test_cifar10_dataset(torch::Device device)
 
 	auto optimizer =
 		torch::optim::Adam(model.get()->parameters(),
-			torch::optim::AdamOptions(0.001));
+			torch::optim::AdamOptions(0.0005));
 	//torch::optim::SGD optimizer(
 	//	model.get()->parameters(), torch::optim::SGDOptions(0.001).momentum(0.9));
 

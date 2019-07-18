@@ -26,7 +26,7 @@
 //#define TEST1
 #define TEST2
 
-#define USE_CUDA
+//#define USE_CUDA
 
 #define ZERO_TOL 0.0001
 
@@ -48,7 +48,7 @@ const int sequence_length = 20;
 const int out_sequence_length = 1;
 const int hidden_size = 64;
 const int x_dim = 1;
-const int y_dim = 3;
+const int y_dim = 1;
 
 #define TEST
 
@@ -110,7 +110,6 @@ TORCH_MODULE(Net); // creates module holder for NetImpl
 std::vector<tiny_dnn::vec_t> train_labels, test_labels;
 std::vector<tiny_dnn::vec_t> train_images, test_images;
 
-
 void read_rnn_dataset(cpp_torch::test::SeqenceData& seqence_data, const std::string &data_dir_path)
 {
 	seqence_data.Initialize(data_dir_path);
@@ -118,6 +117,7 @@ void read_rnn_dataset(cpp_torch::test::SeqenceData& seqence_data, const std::str
 	seqence_data.get_train_data(train_images, train_labels);
 	seqence_data.get_test_data(test_images, test_labels);
 }
+
 
 void learning_and_test_rnn_dataset(cpp_torch::test::SeqenceData& seqence_data, torch::Device device)
 {
@@ -130,7 +130,7 @@ void learning_and_test_rnn_dataset(cpp_torch::test::SeqenceData& seqence_data, t
 	cpp_torch::Net model;
 
 	model.get()->device = device;
-	model.get()->setInput(1, 1, y_dim*sequence_length);
+	model.get()->setInput(1, 1, (y_dim+x_dim)*sequence_length);
 
 	model.get()->add_recurrent(std::string("lstm"), sequence_length, hidden_size);
 	model.get()->add_Tanh();
@@ -148,7 +148,7 @@ void learning_and_test_rnn_dataset(cpp_torch::test::SeqenceData& seqence_data, t
 	cpp_torch::network_torch<cpp_torch::Net> nn(model, device);
 #endif
 
-	nn.input_dim(1, 1, y_dim*sequence_length);
+	nn.input_dim(1, 1, (y_dim + x_dim)*sequence_length);
 	nn.output_dim(1, 1, y_dim*out_sequence_length);
 	nn.classification = false;
 	nn.batch_shuffle = false;
@@ -249,6 +249,9 @@ auto main() -> int {
 	seqence_data.sequence_length = sequence_length;
 	seqence_data.out_sequence_length = out_sequence_length;
 	seqence_data.n_minibatch = kTrainBatchSize;
+
+	// true to add x to the explanatory variable
+	seqence_data.add_explanatory_variable = true;
 
 	read_rnn_dataset(seqence_data, std::string(kDataRoot));
 

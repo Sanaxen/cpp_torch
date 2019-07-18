@@ -26,11 +26,10 @@
 //#define TEST1
 #define TEST2
 
-#define USE_CUDA
+//#define USE_CUDA
 
 #define ZERO_TOL 0.0001
 
-// Where to find the MNIST dataset.
 const char* kDataRoot = "./data";
 
 // The batch size for training.
@@ -48,8 +47,8 @@ const int64_t kLogInterval = 10;
 const int sequence_length = 20;
 const int out_sequence_length = 3;
 const int hidden_size = 64;
-int x_dim = 1;
-int y_dim = 3;
+const int x_dim = 1;
+const int y_dim = 3;
 
 #define TEST
 
@@ -114,14 +113,10 @@ std::vector<tiny_dnn::vec_t> train_images, test_images;
 
 void read_rnn_dataset(cpp_torch::test::SeqenceData& seqence_data, const std::string &data_dir_path)
 {
-	CSVReader csv(data_dir_path + "/sample.csv", ',', false);
-	std::vector<tiny_dnn::vec_t>& dataset = csv.toTensor();
-
-	seqence_data.Initialize(dataset, y_dim, sequence_length, out_sequence_length, kTrainBatchSize);
+	seqence_data.Initialize(data_dir_path);
 
 	seqence_data.get_train_data(train_images, train_labels);
 	seqence_data.get_test_data(test_images, test_labels);
-
 }
 
 void learning_and_test_rnn_dataset(cpp_torch::test::SeqenceData& seqence_data, torch::Device device)
@@ -249,6 +244,12 @@ auto main() -> int {
 	torch::Device device(device_type);
 
 	cpp_torch::test::SeqenceData seqence_data;
+	seqence_data.x_dim = x_dim;
+	seqence_data.y_dim = y_dim;
+	seqence_data.sequence_length = sequence_length;
+	seqence_data.out_sequence_length = out_sequence_length;
+	seqence_data.n_minibatch = kTrainBatchSize;
+
 	read_rnn_dataset(seqence_data, std::string(kDataRoot));
 
 	learning_and_test_rnn_dataset(seqence_data, device);

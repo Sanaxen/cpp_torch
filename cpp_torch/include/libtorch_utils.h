@@ -31,6 +31,20 @@ namespace cpp_torch
 		std::string msg_;
 	};
 
+	inline size_t tensor_flatten_size(torch::Tensor& t)
+	{
+		size_t s = 1;
+		if (t.dim())
+		{
+			for (int i = 0; i < t.sizes().size(); i++)
+			{
+				s *= t.sizes()[i];
+			}
+			return s;
+		}
+		return 0;
+	}
+
 	inline void dump_dim(const std::string & s, torch::Tensor& t)
 	{
 		printf("%s dim:%d ", s.c_str(), t.dim());
@@ -267,6 +281,14 @@ namespace cpp_torch
 					}
 					get_BATCH(images, labels, batch_x[batch_idx], batch_y[batch_idx], kTrainBatchSize, index);
 
+					if (tensor_flatten_size(batch_x[batch_idx]) < kTrainBatchSize*in_channels*in_H*in_W)
+					{
+						throw error_exception("tensor size error.");
+					}
+					if (tensor_flatten_size(batch_y[batch_idx]) < kTrainBatchSize*out_channels*out_H*out_W)
+					{
+						throw error_exception("tensor size error.");
+					}
 					batch_x[batch_idx] = batch_x[batch_idx].view({ kTrainBatchSize, in_channels, in_H, in_W });
 					batch_y[batch_idx] = batch_y[batch_idx].view({ kTrainBatchSize, out_channels, out_H, out_W });
 				}
@@ -301,6 +323,16 @@ namespace cpp_torch
 						}
 						get_BATCH(images, labels, batch_x[batch_idx], batch_y[batch_idx], kTrainBatchSize, index);
 
+						//dump_dim("batch_x[batch_idx]", batch_x[batch_idx]);
+						//dump_dim("batch_y[batch_idx]", batch_y[batch_idx]);
+						if (tensor_flatten_size(batch_x[batch_idx]) < kTrainBatchSize*in_channels*in_H*in_W)
+						{
+							throw error_exception("tensor size error.");
+						}
+						if (tensor_flatten_size(batch_y[batch_idx]) < kTrainBatchSize*out_channels*out_H*out_W)
+						{
+							throw error_exception("tensor size error.");
+						}
 						batch_x[batch_idx] = batch_x[batch_idx].view({ kTrainBatchSize, in_channels, in_W, in_H });
 						batch_y[batch_idx] = batch_y[batch_idx].view({ kTrainBatchSize, out_channels, out_W, out_H });
 					}

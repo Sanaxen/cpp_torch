@@ -15,38 +15,88 @@ namespace cpp_torch
 			std::vector<tiny_dnn::vec_t> dataset;
 			tiny_dnn::vec_t dataset_min, dataset_maxmin;
 
+
+		public:
 			int n_minibatch;
 			int y_dim;
+			int x_dim;
 			int sequence_length;
 			int out_sequence_length;
 
-		public:
 			SeqenceData() {}
 
+			bool add_explanatory_variable = false;	// true to add x to the explanatory variable
 
-			void Initialize(std::vector<tiny_dnn::vec_t>& dataset_, int y_dim_, int sequence_length_, int out_sequence_length_, int n_minibatch_)
+			void Initialize(const std::string &data_dir_path)
 			{
-				dataset = dataset_;
-				y_dim = y_dim_;
-				sequence_length = sequence_length_;
-				out_sequence_length = out_sequence_length_;
-				n_minibatch = n_minibatch_;
+				/*
+				csv data format
+				t1, data11, data12, ... , data1n
+				t2, data21, data22, ... , data2n
+				...
+				tm, datam1, datam2, ... , datamn
+
+				ti = time index
+				*/
+				CSVReader csv(data_dir_path + "/sample.csv", ',', false);
+				std::vector<tiny_dnn::vec_t>& dataset = csv.toTensor();
+
+				/*
+				t0: y0(1),..,y0(y_dim), x0(1),...,x0(x_dim)
+				t1: y1(1),..,y1(y_dim), x1(1),...,x1(x_dim)
+				...
+				tn: yn(1),..,yn(y_dim), xn(1),...,xn(x_dim)
+
+				yi(1)     = dataset[i][0]
+				yi(2)     = dataset[i][1]
+				...
+				yi(y_dim) = dataset[i][y_dim-1]
+				xi(1)     = dataset[i][y_dim]
+				xi(2)     = dataset[i][y_dim+1]
+				...
+				xi(x_dim) = dataset[i][y_dim+x_dim-1]
+
+				x=Explanatory variable
+				y=Objective variable
+
+				yt+1 = F( yt, yt, .., yt-seqlen, xt+1)
+				*/
+
+				//[ yt, xt+1]
+				std::vector<tiny_dnn::vec_t> yy;
+				for (int i = 0; i < dataset.size() - 1; i++)
+				{
+					tiny_dnn::vec_t y;
+					y.push_back(dataset[i][0]);	//time index
+					for (int k = 1; k <= y_dim; k++)
+					{
+						y.push_back(dataset[i][k]);
+					}
+					if (add_explanatory_variable)
+					{
+						//Explanatory variable time sifting
+						for (int k = 0; k < x_dim; k++)
+						{
+							y.push_back(dataset[i + 1][y_dim + k]);
+						}
+					}
+					yy.push_back(y);
+				}
 
 
-				for (int i = 0; i < dataset.size(); i++)
+				for (int i = 0; i < yy.size(); i++)
 				{
 					tiny_dnn::vec_t image;
-					image.push_back(dataset[i][0]);
+					image.push_back(yy[i][0]);
 					iX.push_back(image);
 
 					tiny_dnn::vec_t label;
-					for (int k = 1; k < dataset[i].size(); k++)
+					for (int k = 1; k < yy[i].size(); k++)
 					{
-						label.push_back(dataset[i][k]);
+						label.push_back(yy[i][k]);
 					}
 					iY.push_back(label);
 				}
-				printf("y_dim:%d == %d\n", y_dim, iY[0].size());
 
 				nY = iY;
 				//data normalize
@@ -54,6 +104,7 @@ namespace cpp_torch
 
 				data_set(0.3);
 			}
+
 			void get_train_data(std::vector<tiny_dnn::vec_t>& train_images_, std::vector<tiny_dnn::vec_t>& train_labels_)
 			{
 				train_images_ = train_images;
@@ -208,13 +259,13 @@ namespace cpp_torch
 
 
 
-				FILE* fp = fopen("predict.dat", "w");
+				FILE* fp = fopen("training.dat", "w");
 				float dt = iX[1][0] - iX[0][0];
 				float t = 0;
 				for (int i = 0; i < sequence_length; i++)
 				{
 					fprintf(fp, "%f", t);
-					for (int k = 0; k < 3; k++)
+					for (int k = 0; k < y_dim; k++)
 					{
 						fprintf(fp, " NaN %f", train[i][k] * dataset_maxmin[k] + dataset_min[k]);
 					}
@@ -225,29 +276,32 @@ namespace cpp_torch
 				for (int i = sequence_length - 1; i < train_images.size() - sequence_length; i++)
 				{
 					fprintf(fp, "%f", t);
-					for (int k = 0; k < 3; k++)
+					for (int k = 0; k < y_dim; k++)
 					{
 						fprintf(fp, " %f %f", predict[i][k] * dataset_maxmin[k] + dataset_min[k], train[i][k] * dataset_maxmin[k] + dataset_min[k]);
 					}
 					fprintf(fp, "\n");
 					t += dt;
 				}
+				fclose(fp);
 
+				fp = fopen("predict.dat", "w");
 				for (int i = train_images.size() - sequence_length - 1; i < iY.size() - sequence_length; i++)
 				{
 					fprintf(fp, "%f", t);
 					if (i < train_images.size())
 					{
-						for (int k = 0; k < 3; k++)
+						for (int k = 0; k < y_dim; k++)
 						{
 							fprintf(fp, " %f %f", predict[i][k] * dataset_maxmin[k] + dataset_min[k], train[i][k] * dataset_maxmin[k] + dataset_min[k]);
 						}
 					}
 					else
 					{
-						for (int k = 0; k < 3; k++)
+						for (int k = 0; k < y_dim; k++)
 						{
-							fprintf(fp, " %f NaN", predict[i][k] * dataset_maxmin[k] + dataset_min[k], train[i][k] * dataset_maxmin[k] + dataset_min[k]);
+							fprintf(fp, " %f %f", predict[i][k] * dataset_maxmin[k] + dataset_min[k], train[i][k] * dataset_maxmin[k] + dataset_min[k]);
+							//fprintf(fp, " %f NaN", predict[i][k] * dataset_maxmin[k] + dataset_min[k], train[i][k] * dataset_maxmin[k] + dataset_min[k]);
 						}
 					}
 					fprintf(fp, "\n");
@@ -257,7 +311,7 @@ namespace cpp_torch
 				for (int i = iY.size() - sequence_length - 1; i < iY.size() + prophecy; i++)
 				{
 					fprintf(fp, "%f", t);
-					for (int k = 0; k < 3; k++)
+					for (int k = 0; k < y_dim; k++)
 					{
 						fprintf(fp, " %f NaN", predict[i][k] * dataset_maxmin[k] + dataset_min[k]);
 					}
@@ -270,5 +324,7 @@ namespace cpp_torch
 			}
 		};
 	}
+
+
 }
 #endif

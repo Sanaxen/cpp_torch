@@ -22,7 +22,6 @@
 
 #define USE_CUDA
 
-// Where to find the MNIST dataset.
 const char* kDataRoot = "./data";
 
 // The batch size for training.
