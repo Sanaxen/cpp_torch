@@ -155,7 +155,7 @@ void learning_and_test_rnn_dataset(cpp_torch::test::SeqenceData& seqence_data, t
 
 	std::cout << "start training" << std::endl;
 
-	tiny_dnn::progress_display disp(train_images.size());
+	cpp_torch::progress_display2 disp(train_images.size());
 	tiny_dnn::timer t;
 
 
@@ -172,12 +172,10 @@ void learning_and_test_rnn_dataset(cpp_torch::test::SeqenceData& seqence_data, t
 		std::cout << "\nEpoch " << epoch << "/" << kNumberOfEpochs << " finished. "
 			<< t.elapsed() << "s elapsed." << std::endl;
 
+		float loss = 0;
 		if (epoch % kLogInterval == 0)
 		{
-			float loss = nn.get_loss(train_images, train_labels, kTestBatchSize);
-			std::cout << "loss :" << loss << std::endl;
-			fprintf(lossfp, "%f\n", loss);
-			fflush(lossfp);
+			loss = nn.get_loss(train_images, train_labels, kTestBatchSize);
 
 			seqence_data.sequence_test(nn);
 			if (loss < ZERO_TOL)
@@ -189,7 +187,12 @@ void learning_and_test_rnn_dataset(cpp_torch::test::SeqenceData& seqence_data, t
 
 		if (epoch <= kNumberOfEpochs)
 		{
-			disp.restart(train_images.size());
+			std::string h = "[" + std::to_string(epoch) + "/" + std::to_string(kNumberOfEpochs) + "]" ;
+			if ((epoch - 1) % kLogInterval == 0)
+			{
+				h += " loss:" + std::to_string(loss);
+			}
+			disp.restart(train_images.size(), h);
 		}
 		t.restart();
 	};

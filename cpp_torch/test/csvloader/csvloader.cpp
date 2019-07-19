@@ -19,6 +19,7 @@
 
 #include "libtorch_link_libs.hpp"
 
+#define TEST	//cpp_torch
 
 #define USE_CUDA
 
@@ -36,7 +37,6 @@ const int64_t kNumberOfEpochs = 200;
 // After how many batches to log a new update with the loss value.
 const int64_t kLogInterval = 10;
 
-#define TEST
 
 struct NetImpl : torch::nn::Module {
 	NetImpl()

@@ -16,8 +16,6 @@
 #include "libtorch_utils.h"
 #include "libtorch_link_libs.hpp"
 
-//#define TEST1
-#define TEST2
 
 #define USE_CUDA
 

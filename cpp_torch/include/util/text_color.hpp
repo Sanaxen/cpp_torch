@@ -1,3 +1,10 @@
+/*
+Copyright (c) 2019, Sanaxen
+All rights reserved.
+
+Use of this source code is governed by a MIT license that can be found
+in the LICENSE file.
+*/
 #ifndef _TEXT_COLOR_HPP
 #define _TEXT_COLOR_HPP
 
@@ -5,11 +12,11 @@
 #include <Windows.h>
 #include <stdarg.h>
 
-#define USE_WINDOWS
+#include "config.h"
 namespace cpp_torch
 {
 
-#ifdef USE_WINDOWS
+#if  defined(USE_WINDOWS) && defined(USE_COLOR_CONSOLE)
 	int console_create__ = 0;
 	inline void console_create()
 	{
@@ -83,25 +90,60 @@ namespace cpp_torch
 			pszBuf = 0;
 		}
 
-		inline WORD getColorAttr(std::string& c, bool intensity = true) 
+		inline WORD getColorAttr(std::string& c, bool front = true, bool intensity = true) 
 		{
-			if (intensity)
+			WORD color = 0;
+			if (front)
 			{
-				if (c == "RED") return FOREGROUND_RED | FOREGROUND_INTENSITY;
-				if (c == "GREEN")  return FOREGROUND_GREEN | FOREGROUND_INTENSITY;
-				if (c == "BLUE")  return FOREGROUND_BLUE | FOREGROUND_INTENSITY;
-				if (c == "YELLOW")  return FOREGROUND_GREEN | FOREGROUND_RED | FOREGROUND_INTENSITY;
+				if (c == "RED")     color |= FOREGROUND_RED;
+				if (c == "GREEN")   color |= FOREGROUND_GREEN;
+				if (c == "BLUE")    color |= FOREGROUND_BLUE;
+				if (c == "YELLOW")  color |= FOREGROUND_GREEN | FOREGROUND_RED;
+				if (c == "CYAN")    color |= FOREGROUND_GREEN | FOREGROUND_BLUE;
+				if (c == "MAGENTA") color |= FOREGROUND_RED | FOREGROUND_BLUE;
+				if (c == "GRAY")    color |= FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE;
+
+				if (intensity)
+				{
+					color |= FOREGROUND_INTENSITY;
+				}
+
+				if (c == "WHITE")         color = FOREGROUND_INTENSITY | FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE;
+				if (c == "GRAY")          color = FOREGROUND_INTENSITY;
+				if (c == "DARKYELLOW")    color = FOREGROUND_RED | FOREGROUND_GREEN;
+				if (c == "DARKBLUE")      color = FOREGROUND_BLUE;
+				if (c == "DARKGREEN")     color = FOREGROUND_GREEN;
+				if (c == "DARKRED")       color = FOREGROUND_RED;
+				if (c == "DARKCYAN")      color = FOREGROUND_GREEN | FOREGROUND_BLUE;
+				if (c == "DARKMAGENTA")   color = FOREGROUND_RED | FOREGROUND_BLUE;
+				if (c == "DARKYELLOW")    color = FOREGROUND_RED | FOREGROUND_GREEN;
 			}
 			else
 			{
-				if (c == "RED") return FOREGROUND_RED;
-				if (c == "GREEN")  return FOREGROUND_GREEN;
-				if (c == "BLUE")  return FOREGROUND_BLUE;
-				if (c == "YELLOW")  return FOREGROUND_GREEN | FOREGROUND_RED;
+				if (c == "RED")     color |= BACKGROUND_RED;
+				if (c == "GREEN")   color |= BACKGROUND_GREEN;
+				if (c == "BLUE")    color |= BACKGROUND_BLUE;
+				if (c == "YELLOW")  color |= BACKGROUND_GREEN | BACKGROUND_RED;
+				if (c == "CYAN")    color |= BACKGROUND_GREEN | BACKGROUND_BLUE;
+				if (c == "MAGENTA") color |= BACKGROUND_RED | BACKGROUND_BLUE;
+				if (c == "GRAY")    color |= BACKGROUND_RED | BACKGROUND_GREEN | BACKGROUND_BLUE;
+
+				if (intensity)
+				{
+					color |= BACKGROUND_INTENSITY;
+				}
+				if (c == "WHITE")         color = BACKGROUND_INTENSITY | BACKGROUND_RED | BACKGROUND_GREEN | BACKGROUND_BLUE;
+				if (c == "DARKYELLOW")    color = BACKGROUND_RED | BACKGROUND_GREEN;
+				if (c == "DARKBLUE")      color = BACKGROUND_BLUE;
+				if (c == "DARKGREEN")     color = BACKGROUND_GREEN;
+				if (c == "DARKRED")       color = BACKGROUND_RED;
+				if (c == "DARKCYAN")      color = BACKGROUND_GREEN | BACKGROUND_BLUE;
+				if (c == "DARKMAGENTA")   color = BACKGROUND_RED | BACKGROUND_BLUE;
+				if (c == "DARKYELLOW")    color = BACKGROUND_RED | BACKGROUND_GREEN;
 			}
-			return 0;
+			return color;
 		}
-		inline WORD getColorAttr(char* c, bool intensity = true)
+		inline WORD getColorAttr(char* c, bool front = true, bool intensity = true)
 		{
 			return getColorAttr(std::string(c), intensity);
 		}
@@ -209,6 +251,14 @@ public:
 	{
 		init();
 		color(c);
+	}
+	inline textColor(std::string& c, bool intensity = true)
+	{
+		init();
+	}
+	inline textColor(char* c, bool intensity = true)
+	{
+		init();
 	}
 
 	~textColor()

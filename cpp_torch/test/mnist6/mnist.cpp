@@ -20,9 +20,6 @@
 #include "libtorch_link_libs.hpp"
 
 
-//#define TEST1
-#define TEST2
-
 #define USE_CUDA
 
 // Where to find the MNIST dataset.

@@ -22,10 +22,7 @@
 #include "test/include/seqence_data.h"
 #include "libtorch_link_libs.hpp"
 
-
-//#define TEST1
-#define TEST2
-
+#define TEST		//cpp_torch
 #define USE_CUDA
 
 #define ZERO_TOL 0.0001
@@ -50,7 +47,6 @@ const int hidden_size = 64;
 const int x_dim = 1;
 const int y_dim = 3;
 
-#define TEST
 
 struct NetImpl : torch::nn::Module {
 	NetImpl()

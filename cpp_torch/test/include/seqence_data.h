@@ -1,3 +1,10 @@
+/*
+Copyright (c) 2019, Sanaxen
+All rights reserved.
+
+Use of this source code is governed by a MIT license that can be found
+in the LICENSE file.
+*/
 #ifndef _SEQUENCE_DATA_H
 
 #define _SEQUENCE_DATA_H
@@ -202,13 +209,8 @@ namespace cpp_torch
 			}
 
 
-			void sequence_test(
-#ifndef TEST
-				cpp_torch::network_torch<Net> nn
-#else
-				cpp_torch::network_torch<cpp_torch::Net> nn
-#endif
-			)
+			template <typename Model>
+			void sequence_test(	Model nn)
 			{
 				int prophecy = 0;
 				std::vector<tiny_dnn::vec_t> train(nY.size() + prophecy + sequence_length + out_sequence_length);

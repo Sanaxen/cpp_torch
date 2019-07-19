@@ -23,10 +23,9 @@
 #include "libtorch_link_libs.hpp"
 
 
-//#define TEST1
-#define TEST2
+#define TEST	//cpp_torch
 
-//#define USE_CUDA
+#define USE_CUDA
 
 #define ZERO_TOL 0.0001
 
@@ -36,7 +35,7 @@ const char* kDataRoot = "./data";
 const int64_t kTrainBatchSize = 32;
 
 // The batch size for testing.
-const int64_t kTestBatchSize = 10;
+const int64_t kTestBatchSize = 100;
 
 // The number of epochs to train.
 const int64_t kNumberOfEpochs = 2000;
@@ -50,7 +49,6 @@ const int hidden_size = 64;
 const int x_dim = 1;
 const int y_dim = 1;
 
-#define TEST
 
 struct NetImpl : torch::nn::Module {
 	NetImpl()
@@ -155,15 +153,28 @@ void learning_and_test_rnn_dataset(cpp_torch::test::SeqenceData& seqence_data, t
 
 	std::cout << "start training" << std::endl;
 
-	tiny_dnn::progress_display disp(train_images.size());
+	cpp_torch::progress_display2 disp(train_images.size());
 	tiny_dnn::timer t;
 
+	torch::optim::Optimizer* optimizer = nullptr;
 
-	torch::optim::SGD optimizer(
+	const std::string& solver_name = "SGD";
+
+	auto optimizerSGD = torch::optim::SGD(
 		model.get()->parameters(), torch::optim::SGDOptions(0.01).momentum(0.5));
-	//auto optimizer =
-	//	torch::optim::Adam(model.get()->parameters(),
-	//		torch::optim::AdamOptions(0.01));
+
+	auto optimizerAdam =
+		torch::optim::Adam(model.get()->parameters(),
+			torch::optim::AdamOptions(0.01));
+
+	if (solver_name == "SGD")
+	{
+		optimizer = &optimizerSGD;
+	}
+	if (solver_name == "Adam")
+	{
+		optimizer = &optimizerAdam;
+	}
 
 	FILE* lossfp = fopen("loss.dat", "w");
 	int epoch = 1;
@@ -203,7 +214,7 @@ void learning_and_test_rnn_dataset(cpp_torch::test::SeqenceData& seqence_data, t
 	nn.set_tolerance(0.01, 0.0001, 5);
 
 	// train
-	nn.fit(&optimizer, train_images, train_labels, kTrainBatchSize,
+	nn.fit(optimizer, train_images, train_labels, kTrainBatchSize,
 		kNumberOfEpochs, on_enumerate_minibatch,
 		on_enumerate_epoch);
 
