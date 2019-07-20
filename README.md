@@ -1,4 +1,4 @@
-# **tiny-dnn** based on  [libtorch](https://pytorch.org/get-started/locally/) 
+# [**tiny-dnn**](https://github.com/tiny-dnn/tiny-dnn) based on  [libtorch](https://pytorch.org/get-started/locally/) 
 
 **header only, deep learning framework with no dependencies other than libtorch**  
 
