@@ -90,7 +90,7 @@ namespace cpp_torch
 			pszBuf = 0;
 		}
 
-		inline WORD getColorAttr(std::string& c, bool front = true, bool intensity = true) 
+		inline WORD getColorAttr(std::string& c, bool front = true, bool intensity = false) 
 		{
 			WORD color = 0;
 			if (front)
@@ -109,7 +109,6 @@ namespace cpp_torch
 				}
 
 				if (c == "WHITE")         color = FOREGROUND_INTENSITY | FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE;
-				if (c == "GRAY")          color = FOREGROUND_INTENSITY;
 				if (c == "DARKYELLOW")    color = FOREGROUND_RED | FOREGROUND_GREEN;
 				if (c == "DARKBLUE")      color = FOREGROUND_BLUE;
 				if (c == "DARKGREEN")     color = FOREGROUND_GREEN;
@@ -145,7 +144,7 @@ namespace cpp_torch
 		}
 		inline WORD getColorAttr(char* c, bool front = true, bool intensity = true)
 		{
-			return getColorAttr(std::string(c), intensity);
+			return getColorAttr(std::string(c), front, intensity);
 		}
 
 		inline void color(WORD atter)
