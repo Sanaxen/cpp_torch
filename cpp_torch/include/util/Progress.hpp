@@ -45,7 +45,7 @@ namespace cpp_torch
 				SetConsoleCursorPosition(hStdout, progress_str.dwCursorPosition);
 				printf("\r");
 				fflush(stdout);
-				console.color(console.getColorAttr("GREEN") | console.getColorAttr("GREEN", false, false));
+				console.color(console.getColorAttr("WHITE") | console.getColorAttr("WHITE", false));
 				console.printf("##################################################\n");
 				console.reset();
 				SetConsoleCursorPosition(hStdout, current.dwCursorPosition);
@@ -118,7 +118,7 @@ namespace cpp_torch
 				(static_cast<double>(_count) / _expected_count) * 50.0);
 
 #if  defined(USE_WINDOWS) && defined(USE_COLOR_CONSOLE)
-			console.color(console.getColorAttr("WHITE") | console.getColorAttr("WHITE", false));
+			console.color(console.getColorAttr("YELLOW") | console.getColorAttr("YELLOW", false));
 #endif
 			do {
 				m_os << '*' << std::flush;
