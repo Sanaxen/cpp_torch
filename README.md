@@ -1,5 +1,4 @@
-# cpp_torch　(tiny-dnn based on libtorch)
-## [libtorch](https://pytorch.org/get-started/locally/) at Visual Studio C++  
+# [**tiny-dnn**](https://github.com/tiny-dnn/tiny-dnn) based on  [libtorch](https://pytorch.org/get-started/locally/) 
 
 **header only, deep learning framework with no dependencies other than libtorch**  
 
