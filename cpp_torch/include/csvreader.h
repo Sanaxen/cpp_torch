@@ -8,7 +8,7 @@
 	in the LICENSE file.
 */
 
-#include "third_party/CSVparser/CSVparser_single.hpp"
+#include "../third_party/CSVparser/CSVparser_single.hpp"
 class CSVReader
 {
 	csv::Parser* csvfile_;

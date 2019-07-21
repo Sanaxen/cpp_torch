@@ -29,6 +29,23 @@ cpp_torch::progress_display disp(train_images.size());
 **data set download**  
 <img src="./images/url_file_download.png" width=60%>
 
+**Include path settings**  
+```
+Libtorch_path/include
+Libtorch_path /include/torch/csrc/api/include
+cpp_torch_path
+cpp_torch_path /include
+```
+**Library path setting**  
+```
+Libtorch_path /lib
+cpp_torch_path
+```
+
+**Minimum include file**  
+```
+#include "cpp_torch.h"
+```
 
 ## Requirements  
 visual studio 2015,2017  

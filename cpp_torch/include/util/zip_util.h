@@ -19,7 +19,7 @@
 
 #include "config.h"
 #ifdef USE_ZLIB
-#include "third_party/zlib/include/zlib.h"
+#include "../third_party/zlib/include/zlib.h"
 #pragma comment(lib, "third_party/zlib/lib/zlibstatic.lib")
 #endif
 
