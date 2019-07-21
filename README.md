@@ -11,22 +11,6 @@ At first glance, this header-only framework aims to be used as written in [**tin
 
 <img src="./images/image02.png"/>  
 
-**progress**  
-*tiny_dnn*  
-```
-tiny_dnn::progress_display disp(train_images.size());
-```
-  
-*cpp_torch*
-```
-cpp_torch::progress_display disp(train_images.size());
-```
-
-cpp_torch::progress_display disp(train_images.size());  
-<img src="./images/colored_progress.png"/>  
-
-**data set download**  
-<img src="./images/url_file_download.png" width=60%>
 
 **Include path settings**  
 ```
@@ -45,6 +29,23 @@ cpp_torch_path
 ```
 #include "cpp_torch.h"
 ```
+**progress**  
+*tiny_dnn*  
+```
+tiny_dnn::progress_display disp(train_images.size());
+```
+  
+*cpp_torch*
+```
+cpp_torch::progress_display disp(train_images.size());
+```
+
+cpp_torch::progress_display disp(train_images.size());  
+<img src="./images/colored_progress.png"/>  
+
+**data set download**  
+<img src="./images/url_file_download.png" width=60%>
+
 
 ## Requirements  
 visual studio 2015,2017  
