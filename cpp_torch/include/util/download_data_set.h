@@ -22,6 +22,9 @@ namespace cpp_torch
 	inline void url_download_dataSet(std::string& url, std::vector<std::string>& files, std::string& dir)
 	{
 
+		bool top_dir_make = false;
+		std::string top_dir = "";
+
 		std::cout << "download...";
 		for (auto file : files)
 		{
@@ -61,9 +64,21 @@ namespace cpp_torch
 
 					if (mtar_headers[i].type == 53 )
 					{
+						if (top_dir == "") top_dir = mtar_headers[i].name;
+						char tmp[100] = { '\0' };
+						if (!top_dir_make)
+						{
+							char* p = strstr(mtar_headers[i].name, top_dir.c_str());
+							strcpy(tmp, p + strlen(top_dir.c_str()));
+						}
+						else
+						{
+							strcpy(tmp, mtar_headers[i].name);
+						}
+
 						char d[100];
 						strcpy(d, dir.c_str());
-						strcat(d, mtar_headers[i].name);
+						strcat(d, tmp);
 						cpp_torch::DirectryTool directry(d);
 						continue;
 					}
@@ -72,14 +87,22 @@ namespace cpp_torch
 					p = (char*)calloc(1, h.size);
 					mtar_read_data(&tar, p, h.size);
 
+					char tmp[1024];
 					char outfile[1024];
-					strcpy(outfile, mtar_headers[i].name);
+					if (!top_dir_make)
+					{
+						char* p = strstr(mtar_headers[i].name, top_dir.c_str());
+						strcpy(outfile, p + strlen(top_dir.c_str()));
+					}
+					else
+					{
+						strcpy(outfile, mtar_headers[i].name);
+					}
 					if (dir_path != "")
 					{
 						char* d = strstr(outfile, (char*)dir_path.c_str());
 						strcpy(outfile, d+strlen(dir_path.c_str()));
 					}
-					char tmp[1024];
 					strcpy(tmp, dir.c_str());
 					strcat(tmp, outfile);
 					strcpy(outfile, tmp);
