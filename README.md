@@ -15,13 +15,13 @@ At first glance, this header-only framework aims to be used as written in [**tin
 **Include path settings**  
 ```
 Libtorch_path/include
-Libtorch_path /include/torch/csrc/api/include
+Libtorch_path/include/torch/csrc/api/include
 cpp_torch_path
-cpp_torch_path /include
+cpp_torch_path/include
 ```
 **Library path setting**  
 ```
-Libtorch_path /lib
+Libtorch_path/lib
 cpp_torch_path
 ```
 
