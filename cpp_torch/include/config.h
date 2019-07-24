@@ -12,5 +12,6 @@ in the LICENSE file.
 #define USE_COLOR_CONSOLE
 #define USE_WINDOWS
 #define USE_ZLIB
+#define USE_IMAGE_UTIL
 
 #endif
