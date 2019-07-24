@@ -79,6 +79,7 @@ namespace cpp_torch
 		inline void toTorchTensors(initial_vector& vec, std::vector<torch::Tensor>& tensor_vect)
 	{
 		tensor_vect.resize(vec.size());
+#pragma omp parallel for
 		for (int i = 0; i < vec.size(); i++)
 		{
 			torch::Tensor& tensor = torch::tensor({ vec[i] });
@@ -98,6 +99,8 @@ namespace cpp_torch
 		const int size = channel * h*w;
 		torch::Tensor& xx = x.view({ batch, 1,1, size });
 
+		y.resize(batch);
+#pragma omp parallel for
 		for (int i = 0; i < batch; i++)
 		{
 			tiny_dnn::tensor_t t;
@@ -107,7 +110,7 @@ namespace cpp_torch
 				v[j] = xx[i][0][0][j].template item<float_t>();
 			}
 			t.push_back(v);
-			y.push_back(t);
+			y[i] = t;
 		}
 		return y;
 	}
@@ -118,6 +121,7 @@ namespace cpp_torch
 
 		tiny_dnn::tensor_t t;
 		tiny_dnn::vec_t v(size);
+#pragma omp parallel for
 		for (int j = 0; j < size; j++)
 		{
 			v[j] = xx[0][0][0][j].template item<float_t>();
@@ -130,6 +134,7 @@ namespace cpp_torch
 		torch::Tensor& xx = x.view({ 1, 1,1, size });
 
 		tiny_dnn::vec_t v(size);
+#pragma omp parallel for
 		for (int j = 0; j < size; j++)
 		{
 			v[j] = xx[0][0][0][j].template item<float_t>();
@@ -262,6 +267,7 @@ namespace cpp_torch
 
 			if (pre_make_batch)
 			{
+#pragma omp parallel for
 				for (int batch_idx = 0; batch_idx < batchNum; batch_idx++)
 				{
 					std::vector<int> index(kTrainBatchSize);
