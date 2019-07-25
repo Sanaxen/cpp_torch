@@ -5,19 +5,7 @@
 	Use of this source code is governed by a MIT license that can be found
 	in the LICENSE file.
 */
-#include <torch/torch.h>
-
-#include <cstddef>
-#include <cstdio>
-#include <iostream>
-#include <string>
-#include <vector>
-
-#include "libtorch_utils.h"
-#include "libtorch_sequential_layer_model.h"
-#include "util/Progress.hpp"
-#include "util/download_data_set.h"
-#include "libtorch_link_libs.hpp"
+#include "cpp_torch.h"
 
 /* CIFAR-10 dataset
  * The classes are completely mutually exclusive.

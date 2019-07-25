@@ -1010,22 +1010,22 @@ namespace cpp_torch
 			{
 				if (rand(mt) < 0.5)
 				{
-					s.sift(&data2[0], x, y, 1, (int)(std::max(0.1, rand(mt)) * 3 + 0.5));
+					s.sift(&data2[0], x, y, 1, (int)(std::max(0.1, rand(mt)) * 5 + 0.5));
 				}
 				else
 				{
-					s.sift(&data2[0], x, y, -1, (int)(std::max(0.1, rand(mt)) * 3 + 0.5));
+					s.sift(&data2[0], x, y, -1, (int)(std::max(0.1, rand(mt)) * 5 + 0.5));
 				}
 			}
 			else
 			{
 				if (rand(mt) < 0.5)
 				{
-					s.sift(&data2[0], x, y, 2, (int)(std::max(0.1, rand(mt)) * 3 + 0.5));
+					s.sift(&data2[0], x, y, 2, (int)(std::max(0.1, rand(mt)) * 5 + 0.5));
 				}
 				else
 				{
-					s.sift(&data2[0], x, y, -2, (int)(std::max(0.1, rand(mt)) * 3 + 0.5));
+					s.sift(&data2[0], x, y, -2, (int)(std::max(0.1, rand(mt)) * 5 + 0.5));
 				}
 			}
 

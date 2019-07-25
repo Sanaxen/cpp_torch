@@ -295,7 +295,9 @@ namespace tiny_dnn {
 		int x_padding,
 		int y_padding,
 		float_t mean,
-		float_t stddev) {
+		float_t stddev,
+		float_t channel_range =CHANNEL_RANGE) 
+	{
 		if (x_padding < 0 || y_padding < 0)
 			throw nn_error("padding size must not be negative");
 		if (scale_min >= scale_max)
@@ -325,7 +327,7 @@ namespace tiny_dnn {
 							img[c * w * h + (y + y_padding) * w + x + x_padding] =
 								scale_min +
 								(scale_max - scale_min) *
-								buf[c * CIFAR10_IMAGE_AREA + y * CIFAR10_IMAGE_WIDTH + x] / CHANNEL_RANGE;
+								buf[c * CIFAR10_IMAGE_AREA + y * CIFAR10_IMAGE_WIDTH + x] / channel_range;
 
 							img[c * w * h + (y + y_padding) * w + x + x_padding] = (img[c * w * h + (y + y_padding) * w + x + x_padding] - mean) / stddev;
 						}
@@ -335,7 +337,7 @@ namespace tiny_dnn {
 			else {
 				std::transform(buf.begin(), buf.end(), std::back_inserter(img),
 					[=](unsigned char c) {
-					return ((scale_min + (scale_max - scale_min) * c / CHANNEL_RANGE) - mean) / stddev;
+					return ((scale_min + (scale_max - scale_min) * c / channel_range) - mean) / stddev;
 				});
 			}
 

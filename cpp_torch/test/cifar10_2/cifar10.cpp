@@ -6,6 +6,7 @@
 	in the LICENSE file.
 */
 #include "cpp_torch.h"
+#include "test/include/data_augmentation.h"
 
 /* CIFAR-10 dataset
  * The classes are completely mutually exclusive.
@@ -25,13 +26,13 @@ const bool kDataAugment = true;
 const char* kDataRoot = "./data";
 
 // The batch size for training.
-const int64_t kTrainBatchSize = 256;
+const int64_t kTrainBatchSize = 200;
 
 // The batch size for testing.
 const int64_t kTestBatchSize = 1000;
 
 // The number of epochs to train.
-const int64_t kNumberOfEpochs = 100;
+const int64_t kNumberOfEpochs = 400;
 
 // After how many batches to log a new update with the loss value.
 const int64_t kLogInterval = 10;
@@ -43,74 +44,28 @@ std::vector<tiny_dnn::vec_t> train_images, test_images;
 
 void read_cifar10_dataset(const std::string &data_dir_path)
 {
+	const float mean = 0.4913;
+	const float stddiv = 0.247;
+
 	for (int i = 1; i <= 5; i++) {
 		if (kDataAugment)
 		{
 			tiny_dnn::parse_cifar10(data_dir_path + "/data_batch_" + std::to_string(i) + ".bin",
-				&train_images, &train_labels, 0.0, 1.0, 0, 0, 0.0, 1);
+				&train_images, &train_labels, 0.0, 1.0, 0, 0, 0, 1, 1);
 		}
 		else
 		{
 			tiny_dnn::parse_cifar10(data_dir_path + "/data_batch_" + std::to_string(i) + ".bin",
-				&train_images, &train_labels, 0.0, 1.0, 0, 0, 0.4913, 0.247);
+				&train_images, &train_labels, 0.0, 1.0, 0, 0, mean, stddiv, CHANNEL_RANGE);
 		}
 	}
 
 	tiny_dnn::parse_cifar10(data_dir_path + "/test_batch.bin", &test_images, &test_labels,
-		0.0, 1.0, 0, 0, 0.4913, 0.247);
+		0.0, 1.0, 0, 0, mean, stddiv, CHANNEL_RANGE);
 
 	if (kDataAugment)
 	{
-		std::random_device rnd;
-		std::mt19937 mt(rnd());
-		std::uniform_int_distribution<> rand(0, 5);
-		std::uniform_int_distribution<> rand_index(0, train_images.size() - 1);
-
-		const size_t sz = train_images.size();
-		for (int i = 0; i < sz * 2; i++)
-		{
-			const int index = rand_index(mt);
-			tiny_dnn::vec_t& u = train_images[index];
-
-			tiny_dnn::vec_t v(u.size());
-			transform(u.begin(), u.end(), u.begin(),
-				[=](float_t c) {return (c * CHANNEL_RANGE); }
-			);
-			std::string func = "";
-			switch (rand(mt))
-			{
-			case 0:func = "GAMMA"; break;
-			case 1:func = "RL"; break;
-			case 2:func = "COLOR_NOIZE"; break;
-			case 3:func = "NOIZE"; break;
-			case 4:func = "ROTATION"; break;
-			case 5:func = "SIFT"; break;
-			}
-			cpp_torch::ImageAugmentation(v, 32, 32, func);
-			tiny_dnn::vec_t v2(v.size());
-			transform(v.begin(), v.end(), v2.begin(),
-				[=](float_t c) {return (c / CHANNEL_RANGE); }
-			);
-			train_images.push_back(v2);
-			train_labels.push_back(train_labels[index]);
-
-			//{
-			//	Image* bmp = vec_t2image(v, 3, 32, 32);
-			//	ImageWrite("aaa.bmp", bmp);
-			//	delete bmp;
-			//	exit(0);
-			//}
-		}
-		const size_t sz2 = train_images.size();
-#pragma omp parallel for
-		for (int i = 0; i < sz2; i++)
-		{
-			for (int j = 0; j < train_images[i].size(); j++)
-			{
-				train_images[i][j] = (train_images[i][j] - 0.4913) / 0.247;
-			}
-		}
-		printf("Augmentation:%d -> %d\n", sz, sz2);
+		cpp_torch::test::Image3CannelDataAugment(train_images, train_labels, mean, stddiv, 32, 32, 2, CHANNEL_RANGE);
 	}
 }
 
@@ -139,32 +94,34 @@ void learning_and_test_cifar10_dataset(torch::Device device)
 	model.get()->add_ReLU();
 	model.get()->add_fc(10);
 #else
-	model.get()->add_conv2d(3, 32, 3, 3, 3);
+	model.get()->add_conv2d(3, 192, 5, 2, 1);
 	model.get()->add_ReLU();
-	model.get()->add_bn();
-	model.get()->add_conv2d(32, 32, 3, 3, 3);
+	model.get()->add_conv2d(192, 160, 1, 1, 1);
 	model.get()->add_ReLU();
-	model.get()->add_bn();
-	model.get()->add_maxpool2d(2);
-	model.get()->add_conv_drop(0.2);
+	model.get()->add_conv2d(160, 96, 1, 1, 1);
+	model.get()->add_ReLU();
+	model.get()->add_bn(0.1, 1.0e-5);
+	model.get()->add_maxpool2d(3, 1, 2);
+	model.get()->add_conv_drop(0.5);
 
-	model.get()->add_conv2d(32, 64, 3, 3, 3);
+	model.get()->add_conv2d(96, 192, 5, 2, 1);
 	model.get()->add_ReLU();
-	model.get()->add_bn();
-	model.get()->add_conv2d(64, 64, 3, 3, 3);
+	model.get()->add_conv2d(192, 192, 1, 1, 1);
 	model.get()->add_ReLU();
-	model.get()->add_bn();
-	model.get()->add_maxpool2d(2);
-	model.get()->add_conv_drop(0.3);
+	model.get()->add_conv2d(192, 192, 1, 1, 1);
+	model.get()->add_ReLU();
+	model.get()->add_bn(0.1, 1.0e-5);
+	model.get()->add_maxpool2d(3, 1, 2);
+	model.get()->add_conv_drop(0.5);
 
-	model.get()->add_conv2d(64, 128, 3, 3, 3);
+	model.get()->add_conv2d(192, 192, 3, 1, 1);
 	model.get()->add_ReLU();
-	model.get()->add_bn();
-	model.get()->add_conv2d(128, 128, 3, 3, 3);
+	model.get()->add_conv2d(192, 192, 1, 1, 1);
 	model.get()->add_ReLU();
-	model.get()->add_bn();
-	model.get()->add_maxpool2d(2);
-	model.get()->add_conv_drop(0.4);
+	model.get()->add_conv2d(192, 10, 1, 1, 1);
+	model.get()->add_ReLU();
+	model.get()->add_bn(0.1, 1.0e-5);
+	model.get()->add_avgpool2d(8, 0, 1);
 
 	model.get()->add_fc(10);
 #endif
@@ -176,7 +133,6 @@ void learning_and_test_cifar10_dataset(torch::Device device)
 	nn.output_dim(1, 1, 10);
 	nn.classification = true;
 	nn.batch_shuffle = true;
-	nn.pre_make_batch = true;
 
 	std::cout << "start training" << std::endl;
 
@@ -185,7 +141,7 @@ void learning_and_test_cifar10_dataset(torch::Device device)
 
 	auto optimizer =
 		torch::optim::Adam(model.get()->parameters(),
-			torch::optim::AdamOptions(0.0005));
+			torch::optim::AdamOptions(0.005));
 	//torch::optim::SGD optimizer(
 	//	model.get()->parameters(), torch::optim::SGDOptions(0.001).momentum(0.9));
 
