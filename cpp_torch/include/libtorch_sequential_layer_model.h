@@ -17,11 +17,12 @@ namespace cpp_torch
 		CONV2D = 2,
 		CONV_DROP = 3,
 		MAXPOOL2D = 4,
-		DROPOUT = 5,
-		BATCHNORMAL = 6,
-		RNN = 7,
-		LSTM = 8,
-		GRU = 9,
+		AVGPOOL2D = 5,
+		DROPOUT = 6,
+		BATCHNORMAL = 7,
+		RNN = 8,
+		LSTM = 9,
+		GRU = 10,
 
 		ReLU = 100,
 		LeakyReLU = 101,
@@ -46,6 +47,8 @@ namespace cpp_torch
 		std::vector<int> padding = { 0,0 };
 		std::vector<int> stride = { 1,1 };
 		std::vector<int> dilation = { 1,1 };
+		bool count_include_pad = true;
+		bool ceil_mode = false;
 		bool bias = true;
 
 		int rnn_seqence_length = 1;
@@ -69,6 +72,7 @@ namespace cpp_torch
 
 		int activation_count = 0;
 		int maxpool2d_count = 0;
+		int avgpool2d_count = 0;
 		int dropout_count = 0;
 
 		std::vector<torch::nn::Conv2d> conv2d;
@@ -247,6 +251,71 @@ namespace cpp_torch
 			const int i = layer.size();
 			add_maxpool2d_(layer[i - 1].out_[0], layer[i - 1].out_[0], { kernel_size, kernel_size }, { 0, 0 }, { kernel_size, kernel_size }, { 1, 1 });
 		}
+
+
+		/**
+		* applies average pooling operaton to the spatial data
+		**/
+		/**
+		* constructing average pooling 2D layer
+		*
+		* @param input_channels  [in] input image channels (grayscale=1, rgb=3)
+		* @param output_channels [in] output image channels
+		* @param kernel_size  [in] window(kernel) size of convolution
+		* @param padding      [in] padding size
+		* @param stride       [in] stride size
+		**/
+		void add_avgpool2d_(int input_channels, int output_channels, std::vector<int> kernel_size = { 1,1 }, std::vector<int> padding = { 0,0 }, std::vector<int> stride = { 1,1 }, bool ceil_mode=false, bool count_include_pad = true)
+		{
+			int id = avgpool2d_count++;
+			cpp_torch::LayerInOut inout;
+			inout.name = "avgpool2d";
+			inout.type = cpp_torch::LayerType::AVGPOOL2D;
+			inout.id = id;
+
+			const int i = layer.size();
+			inout.in_ = { input_channels, layer[i - 1].out_[1], layer[i - 1].out_[2] };
+
+			inout.out_ = {
+				output_channels,
+				(int)floor((double)(inout.in_[1] + 2 * padding[0] - kernel_size[0]) / (double)stride[0] + 1),
+				(int)floor((double)(inout.in_[2] + 2 * padding[1] - kernel_size[1]) / (double)stride[1] + 1)
+			};
+
+			inout.ceil_mode = ceil_mode;
+			inout.count_include_pad = count_include_pad;
+			inout.kernel_size = kernel_size;
+			inout.padding = padding;
+			inout.stride = stride;
+
+			layer.emplace_back(inout);
+
+			std::cout << "avgpool {" << inout.in_ << "}->{" << inout.out_ << "}" << std::endl;
+		}
+
+		/**
+		* constructing average  pooling 2D layer
+		*
+		* @param kernel_size     [in] window(kernel) size of convolution
+		* @param padding         [in] padding size
+		* @param stride       [in] specify the horizontal interval at which to apply the filters to the input
+		**/
+		void add_avgpool2d(int kernel_size, int padding, int stride = 1, int dilation = 1)
+		{
+			const int i = layer.size();
+			add_avgpool2d_(layer[i - 1].out_[0], layer[i - 1].out_[0], { kernel_size, kernel_size }, { padding,padding }, { stride, stride });
+		}
+		/**
+		* constructing average  pooling 2D layer
+		*
+		* @param kernel_size     [in] window(kernel) size of convolution
+		**/
+		void add_avgpool2d(int kernel_size)
+		{
+			const int i = layer.size();
+			add_avgpool2d_(layer[i - 1].out_[0], layer[i - 1].out_[0], { kernel_size, kernel_size }, { 0, 0 }, { kernel_size, kernel_size });
+		}
+
 
 		/**
 		* constructing FeatureDropout 2D layer
@@ -471,6 +540,18 @@ namespace cpp_torch
 					if (debug_dmp)cpp_torch::dump_dim(layer[i].name, x);
 					continue;
 				}
+				if (layer[i].type == cpp_torch::LayerType::AVGPOOL2D)
+				{
+					x = x.view({ -1, layer[i - 1].out_[0], layer[i - 1].out_[1], layer[i - 1].out_[2] });
+					x = torch::avg_pool2d(x,
+						{ layer[i].kernel_size[0],layer[i].kernel_size[1] },
+						{ layer[i].stride[0], layer[i].stride[1] },
+						{ layer[i].padding[0], layer[i].padding[1] },
+						layer[i].ceil_mode, layer[i].count_include_pad);
+					if (debug_dmp)cpp_torch::dump_dim(layer[i].name, x);
+					continue;
+				}
+
 				if (layer[i].type == cpp_torch::LayerType::CONV_DROP)
 				{
 					const int in = layer[i - 1].out_[0]*layer[i - 1].out_[1]*layer[i - 1].out_[2];
