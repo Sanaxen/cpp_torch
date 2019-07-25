@@ -213,7 +213,7 @@ namespace cpp_torch
 
 		bool classification = false;
 		bool batch_shuffle = true;
-		bool pre_make_batch = false;
+		bool pre_make_batch = true;
 
 		bool stop_training_ = false;
 		/**
@@ -226,6 +226,73 @@ namespace cpp_torch
 		 */
 		inline void stop_ongoing_training() { stop_training_ = true; }
 
+
+		/**
+		* @param images             array of input data
+		* @param labels             array of labels output
+		* @param batch_x            input data batch
+		* @param batch_y            output  data batch
+		* assume
+		*/
+		inline void generate_BATCH(
+			std::vector<torch::Tensor> &images,
+			std::vector<torch::Tensor> &labels,
+			std::vector< torch::Tensor>& batch_x,
+			std::vector< torch::Tensor>& batch_y
+		)
+		{
+			bool shuffle = batch_shuffle;
+			const int batchNum = images.size() / kTrainBatchSize; ;
+
+			batch_x = std::vector< torch::Tensor>(batchNum);
+			batch_y = std::vector< torch::Tensor>(batchNum);
+
+			std::random_device rnd;
+			std::mt19937 mt(rnd());
+			std::uniform_int_distribution<> rand_index(0, (int)images.size() - 1);
+
+#pragma omp parallel for
+			for (int batch_idx = 0; batch_idx < batchNum; batch_idx++)
+			{
+				std::vector<int> index(kTrainBatchSize);
+				if (shuffle)
+				{
+					for (int k = 0; k < kTrainBatchSize; k++)
+					{
+						index[k] = rand_index(mt);
+					}
+				}
+				else
+				{
+					for (int k = 0; k < kTrainBatchSize; k++)
+					{
+						index[k] = batch_idx*kTrainBatchSize + k;
+					}
+				}
+				get_BATCH(images, labels, batch_x[batch_idx], batch_y[batch_idx], kTrainBatchSize, index);
+
+				if (tensor_flatten_size(batch_x[batch_idx]) < kTrainBatchSize*in_channels*in_H*in_W)
+				{
+					dump_dim("batch_x", batch_x[batch_idx]);
+					std::cout << tensor_flatten_size(batch_x[batch_idx])
+						<< " < " << kTrainBatchSize << "*" << in_channels << "*" 
+						<< in_H << "* " << in_W << "=" 
+						<<kTrainBatchSize*in_channels*in_H*in_W << std::endl;
+					throw error_exception("tensor size error.");
+				}
+				if (tensor_flatten_size(batch_y[batch_idx]) < kTrainBatchSize*out_channels*out_H*out_W)
+				{
+					dump_dim("batch_y", batch_y[batch_idx]);
+					std::cout << tensor_flatten_size(batch_y[batch_idx])
+						<< " < " << kTrainBatchSize << "*" << out_channels << "*"
+						<< out_H << "* " << out_W << "="
+						<< kTrainBatchSize*out_channels*out_H*out_W << std::endl;
+					throw error_exception("tensor size error.");
+				}
+				batch_x[batch_idx] = batch_x[batch_idx].view({ kTrainBatchSize, in_channels, in_H, in_W });
+				batch_y[batch_idx] = batch_y[batch_idx].view({ kTrainBatchSize, out_channels, out_H, out_W });
+			}
+		}
 
 		/**
 		 * @param optimizer          optimizing algorithm for training
@@ -255,49 +322,15 @@ namespace cpp_torch
 			}
 
 			time_measurement.start();
-			std::random_device rnd;
-			std::mt19937 mt(rnd());
-			std::uniform_int_distribution<> rand_index(0, (int)images.size() - 1);
 
-			bool shuffle = batch_shuffle;
 			const int batchNum = images.size() / kTrainBatchSize; ;
 
-			std::vector< torch::Tensor> batch_x(batchNum);
-			std::vector< torch::Tensor> batch_y(batchNum);
+			std::vector< torch::Tensor> batch_x;
+			std::vector< torch::Tensor> batch_y;
 
 			if (pre_make_batch)
 			{
-#pragma omp parallel for
-				for (int batch_idx = 0; batch_idx < batchNum; batch_idx++)
-				{
-					std::vector<int> index(kTrainBatchSize);
-					if (shuffle)
-					{
-						for (int k = 0; k < kTrainBatchSize; k++)
-						{
-							index[k] = rand_index(mt);
-						}
-					}
-					else
-					{
-						for (int k = 0; k < kTrainBatchSize; k++)
-						{
-							index[k] = batch_idx*kTrainBatchSize + k;
-						}
-					}
-					get_BATCH(images, labels, batch_x[batch_idx], batch_y[batch_idx], kTrainBatchSize, index);
-
-					if (tensor_flatten_size(batch_x[batch_idx]) < kTrainBatchSize*in_channels*in_H*in_W)
-					{
-						throw error_exception("tensor size error.");
-					}
-					if (tensor_flatten_size(batch_y[batch_idx]) < kTrainBatchSize*out_channels*out_H*out_W)
-					{
-						throw error_exception("tensor size error.");
-					}
-					batch_x[batch_idx] = batch_x[batch_idx].view({ kTrainBatchSize, in_channels, in_H, in_W });
-					batch_y[batch_idx] = batch_y[batch_idx].view({ kTrainBatchSize, out_channels, out_H, out_W });
-				}
+				generate_BATCH(images, labels, batch_x, batch_y);
 			}
 
 			optimizer->zero_grad();
@@ -305,43 +338,15 @@ namespace cpp_torch
 			model.get()->train(true);
 			for (size_t epoch = 0; epoch < kNumberOfEpochs && !stop_training_; ++epoch)
 			{
+				if (!pre_make_batch)
+				{
+					generate_BATCH(images, labels, batch_x, batch_y);
+				}
 				loss_value = 0.0;
 
 				float loss_ave = 0.0;
 				for (int batch_idx = 0; batch_idx < batchNum && !stop_training_; batch_idx++)
 				{
-					if (!pre_make_batch)
-					{
-						std::vector<int> index(kTrainBatchSize);
-						if (shuffle)
-						{
-							for (int k = 0; k < kTrainBatchSize; k++)
-							{
-								index[k] = rand_index(mt);
-							}
-						}
-						else
-						{
-							for (int k = 0; k < kTrainBatchSize; k++)
-							{
-								index[k] = batch_idx*kTrainBatchSize + k;
-							}
-						}
-						get_BATCH(images, labels, batch_x[batch_idx], batch_y[batch_idx], kTrainBatchSize, index);
-
-						//dump_dim("batch_x[batch_idx]", batch_x[batch_idx]);
-						//dump_dim("batch_y[batch_idx]", batch_y[batch_idx]);
-						if (tensor_flatten_size(batch_x[batch_idx]) < kTrainBatchSize*in_channels*in_H*in_W)
-						{
-							throw error_exception("tensor size error.");
-						}
-						if (tensor_flatten_size(batch_y[batch_idx]) < kTrainBatchSize*out_channels*out_H*out_W)
-						{
-							throw error_exception("tensor size error.");
-						}
-						batch_x[batch_idx] = batch_x[batch_idx].view({ kTrainBatchSize, in_channels, in_W, in_H });
-						batch_y[batch_idx] = batch_y[batch_idx].view({ kTrainBatchSize, out_channels, out_W, out_H });
-					}
 					torch::Tensor& data = batch_x[batch_idx];
 					torch::Tensor& targets = batch_y[batch_idx];
 
