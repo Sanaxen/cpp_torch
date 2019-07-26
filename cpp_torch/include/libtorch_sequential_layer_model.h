@@ -409,7 +409,7 @@ namespace cpp_torch
 		* @param num_layers      [in] The number of recurrent layers (cells) to use.
 		* @param dropout         [in] If non-zero, adds dropout with the given probability to the output of each RNN layer, except the final layer.
 		**/
-		void add_recurrent(std::string& rnn_type, int sequence_length, int hidden_size, int num_layers = 1, float dropout = 0.0)
+		void add_recurrent(std::string& rnn_type, int sequence_length, int hidden_size, int num_layers = 1, float dropout = 0.0, const std::string& activatin="ReLU")
 		{
 			cpp_torch::LayerInOut inout;
 			inout.name = rnn_type;
@@ -434,6 +434,8 @@ namespace cpp_torch
 				id = rnn.size();
 				auto opt = torch::nn::RNNOptions(inout.rnn_sequence_single_size, hidden_size);
 				opt = opt.batch_first(true);
+				if (activatin == "ReLU") opt.activation(torch::nn::RNNActivation::ReLU);
+				if (activatin == "TanH") opt.activation(torch::nn::RNNActivation::Tanh);
 				opt = opt.layers(num_layers);
 				if (dropout > 0.0) opt = opt.dropout(dropout);
 
