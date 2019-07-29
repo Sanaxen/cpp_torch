@@ -7,7 +7,7 @@ in the LICENSE file.
 */
 #ifndef __IMAGE_HPP
 
-#undef __IMAGE_HPP
+#define __IMAGE_HPP
 
 #ifndef STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_IMPLEMENTATION
@@ -85,7 +85,7 @@ namespace cpp_torch
 		}
 	};
 
-	inline void ImageWrite(const char* filename, Image* img)
+	inline void ImageWrite(const char* filename, Image* img, float scale = 1.0)
 	{
 		std::vector<unsigned char> data(3 * img->height*img->width);
 
@@ -96,9 +96,9 @@ namespace cpp_torch
 			{
 				int pos = (i*img->width + j);
 
-				data[3 * pos + 0] = img->data[pos].r;
-				data[3 * pos + 1] = img->data[pos].g;
-				data[3 * pos + 2] = img->data[pos].b;
+				data[3 * pos + 0] = img->data[pos].r*scale;
+				data[3 * pos + 1] = img->data[pos].g*scale;
+				data[3 * pos + 2] = img->data[pos].b*scale;
 			}
 		}
 		stbi_write_bmp(filename, img->width, img->height, 3, (void*)&data[0]);
@@ -869,22 +869,25 @@ namespace cpp_torch
 		for (int y = 0; y < height; y++) {
 			for (int x = 0; x < width; x++) {
 				for (int c = 0; c < channel; c++) {
-					image_data[k] = img[c * height*width + y * width + x];
+					float_t d = img[c * height*width + y * width + x];
+					if (d < 0) d = 0;
+					if (d > 255) d = 255;
+					image_data[k] = d;
 					k++;
 				}
 			}
 		}
 		return ToImage(&(image_data[0]), height, width);
 	}
-	std::vector<float_t> image2vec_t(Image* img, int channel, int height, int width)
+	std::vector<float_t> image2vec_t(Image* img, int channel, int height, int width, float scale = 1.0)
 	{
 		std::vector<float_t> image_data(channel*height*width);
 		int k = 0;
 		for (int y = 0; y < height; y++) {
 			for (int x = 0; x < width; x++) {
-				image_data[0 * height*width + y * width + x] = img->data[k].r;
-				image_data[1 * height*width + y * width + x] = img->data[k].g;
-				image_data[2 * height*width + y * width + x] = img->data[k].b;
+				image_data[0 * height*width + y * width + x] = img->data[k].r* scale;
+				image_data[1 * height*width + y * width + x] = img->data[k].g* scale;
+				image_data[2 * height*width + y * width + x] = img->data[k].b* scale;
 				k++;
 			}
 		}

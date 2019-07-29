@@ -10,6 +10,9 @@
 
 #include <random>
 #include "util/utils.h"
+#ifdef USE_IMAGE_UTIL
+#include "util/Image.hpp"
+#endif
 
 namespace cpp_torch
 {
@@ -142,6 +145,50 @@ namespace cpp_torch
 		return v;
 	}
 
+	inline int get_BATCH(const std::vector<torch::Tensor>& images, torch::Tensor& batch_images, const int batchSize, std::vector<int>& index)
+	{
+		int batchNum = images.size() / batchSize;
+		if (batchNum == 0)
+		{
+			throw error_exception("input size < batch size");
+		}
+
+		batch_images = images[index[0]];
+		for (int i = 1; i < index.size(); i++)
+		{
+			batch_images = torch::cat({ batch_images, images[index[i]] }, 0);
+		}
+		return batchNum;
+	}
+
+	void TensorToImageFile(torch::Tensor image_tensor, const std::string& filename, const int scale = 1.0)
+	{
+#ifdef USE_IMAGE_UTIL
+		const int channels = image_tensor.sizes()[0];
+		const int h = image_tensor.sizes()[1];
+		const int w = image_tensor.sizes()[2];
+
+		if (channels == 0 || channels > 3)
+		{
+			dump_dim("image_tensor", image_tensor);
+			throw error_exception("tensor dimension != CxHxW");
+		}
+		tiny_dnn::tensor_t& img = toTensor_t(image_tensor.view({ channels, h,w }), channels, h, w);
+
+#pragma omp parallel for
+		for (int i = 0; i < img[0].size(); i++)
+		{
+			img[0][i] *= scale;
+		}
+		Image* rgb_img = vec_t2image(img[0], channels, h, w);
+
+		ImageWrite(filename.c_str(), rgb_img);
+		delete rgb_img;
+#else
+		throw error_exception("undefined USE_IMAGE_UTIL");
+#endif
+	}
+
 	inline int get_BATCH(const std::vector<torch::Tensor>& images, const std::vector<torch::Tensor>& labels, torch::Tensor& batch_images, torch::Tensor& batch_labels, const int batchSize, std::vector<int>& index)
 	{
 		int batchNum = images.size() / batchSize;
@@ -225,6 +272,58 @@ namespace cpp_torch
 		 * @a on_epoch_enumerate callbacks during training.
 		 */
 		inline void stop_ongoing_training() { stop_training_ = true; }
+
+		/**
+		* @param images             array of input data
+		* @param batch_x            input data batch
+		* assume
+		*/
+		inline void generate_BATCH(
+			std::vector<torch::Tensor> &images,
+			std::vector< torch::Tensor>& batch_x
+		)
+		{
+			bool shuffle = batch_shuffle;
+			const int batchNum = images.size() / kTrainBatchSize; ;
+
+			batch_x = std::vector< torch::Tensor>(batchNum);
+
+			std::random_device rnd;
+			std::mt19937 mt(rnd());
+			std::uniform_int_distribution<> rand_index(0, (int)images.size() - 1);
+
+#pragma omp parallel for
+			for (int batch_idx = 0; batch_idx < batchNum; batch_idx++)
+			{
+				std::vector<int> index(kTrainBatchSize);
+				if (shuffle)
+				{
+					for (int k = 0; k < kTrainBatchSize; k++)
+					{
+						index[k] = rand_index(mt);
+					}
+				}
+				else
+				{
+					for (int k = 0; k < kTrainBatchSize; k++)
+					{
+						index[k] = batch_idx*kTrainBatchSize + k;
+					}
+				}
+				get_BATCH(images, batch_x[batch_idx], kTrainBatchSize, index);
+
+				if (tensor_flatten_size(batch_x[batch_idx]) < kTrainBatchSize*in_channels*in_H*in_W)
+				{
+					dump_dim("batch_x", batch_x[batch_idx]);
+					std::cout << tensor_flatten_size(batch_x[batch_idx])
+						<< " < " << kTrainBatchSize << "*" << in_channels << "*"
+						<< in_H << "* " << in_W << "="
+						<< kTrainBatchSize*in_channels*in_H*in_W << std::endl;
+					throw error_exception("tensor size error.");
+				}
+				batch_x[batch_idx] = batch_x[batch_idx].view({ kTrainBatchSize, in_channels, in_H, in_W });
+			}
+		}
 
 
 		/**
