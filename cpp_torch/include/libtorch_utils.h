@@ -284,7 +284,7 @@ namespace cpp_torch
 		)
 		{
 			bool shuffle = batch_shuffle;
-			const int batchNum = images.size() / kTrainBatchSize; ;
+			const int batchNum = (int64_t)((float)images.size() / (float)kTrainBatchSize + 0.5);
 
 			batch_x = std::vector< torch::Tensor>(batchNum);
 
@@ -341,7 +341,7 @@ namespace cpp_torch
 		)
 		{
 			bool shuffle = batch_shuffle;
-			const int batchNum = images.size() / kTrainBatchSize; ;
+			const int batchNum = (int64_t)((float)images.size() / (float)kTrainBatchSize + 0.5);
 
 			batch_x = std::vector< torch::Tensor>(batchNum);
 			batch_y = std::vector< torch::Tensor>(batchNum);
@@ -422,7 +422,7 @@ namespace cpp_torch
 
 			time_measurement.start();
 
-			const int batchNum = images.size() / kTrainBatchSize; ;
+			int batchNum;
 
 			std::vector< torch::Tensor> batch_x;
 			std::vector< torch::Tensor> batch_y;
@@ -430,6 +430,7 @@ namespace cpp_torch
 			if (pre_make_batch)
 			{
 				generate_BATCH(images, labels, batch_x, batch_y);
+				batchNum = batch_x.size();
 			}
 
 			optimizer->zero_grad();
@@ -440,6 +441,7 @@ namespace cpp_torch
 				if (!pre_make_batch)
 				{
 					generate_BATCH(images, labels, batch_x, batch_y);
+					batchNum = batch_x.size();
 				}
 				loss_value = 0.0;
 

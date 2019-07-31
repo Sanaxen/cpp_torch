@@ -4,12 +4,43 @@
 
 namespace cpp_torch
 {
+	struct BCEWithLogitsLoss : torch::nn::Module {
+		BCEWithLogitsLoss() 
+		{
+		}
+
+		torch::Tensor forward(torch::Tensor o, torch::Tensor t) {
+			auto x =  -(t*torch::log(torch::sigmoid(o)) + (1 - t)*torch::log(1 - torch::sigmoid(o))).mean();
+			return x;
+		}
+	};
+	//TORCH_MODULE(Generator); // creates module holder for NetImpl
+
+//#define LOSS_FUNC	torch::binary_cross_entropy
+#define LOSS_FUNC	torch::mse_loss
+
+//	BCEWithLogitsLoss bCEWithLogitsLoss;
+//#define LOSS_FUNC	bCEWithLogitsLoss.forward
+
+	//torch::Tensor BCEWithLogitsLoss(torch::Tensor o, torch::Tensor t)
+	//{
+	//	torch::Tensor loss;
+	//	auto max_val = (-o).clamp_min_(0);
+	//	loss = (1 - t).mul_(o).add_(max_val).add_((-max_val).exp_().add_((-o - max_val).exp_()).log_());
+
+	//	return loss;
+	//	//return -(t*torch::log(torch::sigmoid(o)) + (1 - t)*torch::log(1 - torch::sigmoid(o))).mean();
+	//}
+//#define LOSS_FUNC BCEWithLogitsLoss
+
 	template <
 		typename G_Model, typename D_Model>
 	class DCGAN
 	{
 		cpp_torch::network_torch<G_Model> g_nn;
 		cpp_torch::network_torch<D_Model> d_nn;
+		torch::Tensor loss_G;
+		torch::Tensor loss_D;
 		int NZ = 100;
 		tiny_dnn::timer time_measurement;
 	public:
@@ -51,27 +82,30 @@ namespace cpp_torch
 			NZ = nz;
 			time_measurement.start();
 
+			//real
 			torch::Tensor ones = torch::ones(kTrainBatchSize).to(device);
+			
+			//fake
 			torch::Tensor zeros = torch::zeros(kTrainBatchSize).to(device);
 
-			const int batchNum = images.size() / kTrainBatchSize; ;
+			int batchNum;
 
 			std::vector< torch::Tensor> batch_x;
 
 			if (d_nn.pre_make_batch)
 			{
 				d_nn.generate_BATCH(images, batch_x);
+				batchNum = batch_x.size();
 			}
 
 			torch::Tensor check_z = torch::rand({ kTrainBatchSize, nz, 1, 1 }).to(device);
 
-			torch::Tensor loss_G;
-			torch::Tensor loss_D;
 			for (size_t epoch = 0; epoch < kNumberOfEpochs; ++epoch)
 			{
 				if (!d_nn.pre_make_batch)
 				{
 					d_nn.generate_BATCH(images, batch_x);
+					batchNum = batch_x.size();
 				}
 
 				for (int batch_idx = 0; batch_idx < batchNum; batch_idx++)
@@ -88,7 +122,8 @@ namespace cpp_torch
 
 					//cpp_torch::dump_dim("out", out);
 					//cpp_torch::dump_dim("ones", ones);
-					loss_G = torch::mse_loss(out, ones);
+					loss_G = LOSS_FUNC(out, ones);
+					AT_ASSERT(!std::isnan(loss_G.template item<float_t>()));
 
 					g_optimizer->zero_grad();
 					d_optimizer->zero_grad();
@@ -101,8 +136,11 @@ namespace cpp_torch
 
 					//	Calculate loss to distinguish real image from real image(label 1)
 					torch::Tensor real_out = d_nn.model.get()->forward(real_img);
-					torch::Tensor loss_D_real = torch::mse_loss(real_out, ones);
 
+					torch::Tensor loss_D_real = LOSS_FUNC(real_out, ones);
+					AT_ASSERT(!std::isnan(loss_D_real.template item<float_t>()));
+
+					
 					fake_img = fake_img_tensor;
 
 					//Calculate the loss so that fake images can be identified as fake images (label 0)
@@ -110,7 +148,8 @@ namespace cpp_torch
 
 					//cpp_torch::dump_dim("fake_out", fake_out);
 					//cpp_torch::dump_dim("zeros", zeros);
-					torch::Tensor loss_D_fake = torch::mse_loss(fake_out, zeros);
+					torch::Tensor loss_D_fake = LOSS_FUNC(fake_out, zeros);
+					AT_ASSERT(!std::isnan(loss_D_fake.template item<float_t>()));
 
 					//Total loss of real and fake images
 					loss_D = loss_D_real + loss_D_fake;
@@ -120,32 +159,11 @@ namespace cpp_torch
 					loss_D.backward();
 					d_optimizer->step();
 
-//					if (epoch % 10 == 0)
-//					{
-//						g_nn.model.get()->train(false);
-//						torch::Tensor generated_img = g_nn.model.get()->forward(check_z);
-//#if 10			
-//						cpp_torch::TensorToImageFile(generated_img[0], "aaa.bmp", 255.0);
-//#else
-//						//cpp_torch::dump_dim("generated_img", generated_img[0]);
-//						tiny_dnn::tensor_t& img = cpp_torch::toTensor_t(generated_img[0], 3, 64, 64);
-//
-//						for (int i = 0; i < img[0].size(); i++)
-//						{
-//							img[0][i] *= 255;
-//						}
-//						cpp_torch::Image* rgb_img = cpp_torch::vec_t2image(img[0], 3, 64, 64);
-//
-//						//printf("ImageWrite\n");
-//						cpp_torch::ImageWrite("aaa.bmp", rgb_img);
-//						delete rgb_img;
-//						//printf("ImageWrite end.\n");
-//#endif
-//					}
 					on_batch_enumerate();
 				}
 				on_epoch_enumerate();
 				g_nn.model.get()->train(true);
+				//printf("%f %f", get_generator_loss(), get_discriminator_loss());
 			}
 			time_measurement.stop();
 			return true;
@@ -189,6 +207,29 @@ namespace cpp_torch
 			generate_seed = generate_seed.to(device);
 			return g_model.get()->forward(generate_seed);
 		}
+
+		float get_generator_loss()
+		{
+			return loss_G.sum().template item<float_t>();
+			//float sum_loss = 0;
+			//const int batchNum = loss_G.sizes()[0];
+			//for (size_t i = 0; i < batchNum; i++) 
+			//{
+			//	sum_loss += loss_G[i].template item<float_t>();
+			//}
+			//return sum_loss;
+		}
+		float get_discriminator_loss()
+		{
+			return loss_D.sum().template item<float_t>();
+			//float sum_loss = 0;
+			//const int batchNum = loss_D.sizes()[0];
+			//for (size_t i = 0; i < batchNum; i++) {
+			//	sum_loss += loss_D[i].template item<float_t>();
+			//}
+			//return sum_loss;
+		}
+
 	};
 }
 #endif

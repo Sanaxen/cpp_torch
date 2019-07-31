@@ -30,6 +30,25 @@ namespace cpp_torch
 			restart(expected_count_);
 		}
 
+		void end()
+		{
+#if  defined(USE_WINDOWS) && defined(USE_COLOR_CONSOLE)
+			if (hStdout)
+			{
+				fflush(stdout);
+				std::cout << std::flush;
+				GetConsoleScreenBufferInfo(hStdout, (PCONSOLE_SCREEN_BUFFER_INFO)&current);
+				SetConsoleCursorPosition(hStdout, progress_str.dwCursorPosition);
+				printf("\r");
+				fflush(stdout);
+				console.color(console.getColorAttr("WHITE") | console.getColorAttr("WHITE", false));
+				console.printf("##################################################\n");
+				console.reset();
+				SetConsoleCursorPosition(hStdout, current.dwCursorPosition);
+			}
+#endif
+		}
+
 		void restart(size_t expected_count_, const std::string& h = "") {
 			//  Effects: display appropriate scale
 			//  Postconditions: count()==0, expected_count()==expected_count_

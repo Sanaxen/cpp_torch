@@ -20,9 +20,10 @@ namespace cpp_torch
 		AVGPOOL2D = 5,
 		DROPOUT = 6,
 		BATCHNORMAL = 7,
-		RNN = 8,
-		LSTM = 9,
-		GRU = 10,
+		CONV_TRANSPOSE2D = 8,
+		RNN = 90,
+		LSTM = 91,
+		GRU = 92,
 
 		ReLU = 100,
 		LeakyReLU = 101,
@@ -45,6 +46,7 @@ namespace cpp_torch
 
 		std::vector<int> kernel_size;
 		std::vector<int> padding = { 0,0 };
+		std::vector<int> out_padding = { 0,0 };
 		std::vector<int> stride = { 1,1 };
 		std::vector<int> dilation = { 1,1 };
 		bool count_include_pad = true;
@@ -63,11 +65,13 @@ namespace cpp_torch
 			fc(1, nullptr), conv2d(1, nullptr),
 			conv_drop(1, nullptr), bn(1, nullptr),
 			lstm(1, nullptr),gru(1, nullptr), rnn(1, nullptr),
+			conv_transpose2d(1, nullptr),
 			device(torch::kCPU)
 		{
 			fc.clear();	conv2d.clear();	
 			conv_drop.clear();	bn.clear();
-			lstm.clear();gru.clear();rnn.clear();
+			lstm.clear();gru.clear();rnn.clear(),
+			conv_transpose2d.clear();
 		}
 
 		int activation_count = 0;
@@ -76,6 +80,7 @@ namespace cpp_torch
 		int dropout_count = 0;
 
 		std::vector<torch::nn::Conv2d> conv2d;
+		std::vector<torch::nn::Conv2d> conv_transpose2d;
 		std::vector<torch::nn::Linear> fc;
 		std::vector<torch::nn::FeatureDropout> conv_drop;
 		std::vector<torch::nn::BatchNorm> bn;
@@ -187,6 +192,70 @@ namespace cpp_torch
 		void add_conv2d(int input_channels, int output_channels, int kernel_size, int padding = 0, int stride = 1, int dilation = 1, bool bias = true)
 		{
 			add_conv2d_(input_channels, output_channels, { kernel_size, kernel_size }, { padding, padding }, { stride, stride }, { dilation, dilation }, bias);
+		}
+
+		/**
+		*  2D transposed convolution layer
+		*
+		* take input as two-dimensional *image* and applying filtering operation.
+		**/
+		/**
+		* constructing transposed convolution layer
+		*
+		* @param input_channels  [in] input image channels (grayscale=1, rgb=3)
+		* @param output_channels [in] output image channels
+		* @param kernel_size  [in] window(kernel) size of convolution
+		* @param padding      [in] padding size
+		* @param out_padding  [in] out_padding size
+		* @param stride       [in] stride size
+		* @param dilation     [in] dilation
+		* @param bias         [in] whether to add a bias vector to the filter
+		**/
+		void add_conv_transpose2d_(int input_channels, int output_channels, std::vector<int> kernel_size = { 1,1 }, std::vector<int> padding = { 0,0 }, std::vector<int> out_padding = { 0,0 }, std::vector<int> stride = { 1,1 }, std::vector<int> dilation = { 1,1 }, bool bias = true)
+		{
+			int id = conv2d.size();
+			cpp_torch::LayerInOut inout;
+			inout.name = "conv_transpose2d";
+			inout.type = cpp_torch::LayerType::CONV2D;
+			inout.id = id;
+
+			const int i = layer.size();
+			inout.in_ = { input_channels,layer[i - 1].out_[1], layer[i - 1].out_[2] };
+
+			auto& l = register_module("conv_transpose2d" + std::to_string(id), torch::nn::Conv2d(torch::nn::Conv2dOptions(input_channels, output_channels, { kernel_size[0],kernel_size[1] }).with_bias(bias).padding({ padding[0],padding[1] }).stride({ stride[0],stride[1] }).dilation({ dilation[0],dilation[1] }).transposed(true)));
+			conv2d.emplace_back(l);
+
+			inout.out_ = {
+				output_channels,
+				(inout.in_[1] - 1)*stride[0] - 2 * padding[0] + dilation[0] * (kernel_size[0] - 1) + out_padding[0] + 1,
+				(inout.in_[2] - 1)*stride[1] - 2 * padding[1] + dilation[1] * (kernel_size[1] - 1) + out_padding[1] + 1
+			};
+
+			inout.bias = bias;
+			inout.dilation = dilation;
+			inout.kernel_size = kernel_size;
+			inout.padding = padding;
+			inout.out_padding = out_padding;
+			inout.stride = stride;
+			layer.emplace_back(inout);
+
+			std::cout << "conv_transpose {" << inout.in_ << "}->{" << inout.out_ << "}" << std::endl;
+		}
+		/**
+		* constructing convolutional layer
+		*
+		* @param input_channels  [in] input image channels (grayscale=1, rgb=3)
+		* @param output_channels [in] output image channels
+		* @param kernel_size     [in] window(kernel) size of convolution
+		* @param padding         [in] padding size
+		* @param out_padding  [in] out_padding size
+		* @param stride       [in] stride size
+		* @param dilation     [in] dilation
+		* @param bias         [in] whether to add a bias vector to the filter
+		**/
+		void add_conv_transpose2d(int input_channels, int output_channels, int kernel_size, int padding = 0, int out_padding = 0, int stride = 1, int dilation = 1, bool bias = true)
+		{
+			add_conv_transpose2d_(input_channels, output_channels, { kernel_size, kernel_size }, { padding, padding }, { out_padding, out_padding },  { stride, stride }, { dilation, dilation }, bias);
 		}
 
 		/**
@@ -526,6 +595,13 @@ namespace cpp_torch
 					x = x.view({ -1, layer[i - 1].out_[0], layer[i - 1].out_[1], layer[i - 1].out_[2] });
 					x = conv2d[layer[i].id]->forward(x);
 					if (debug_dmp)cpp_torch::dump_dim(conv2d[layer[i].id]->name(), x);
+					continue;
+				}
+				if (layer[i].type == cpp_torch::LayerType::CONV_TRANSPOSE2D)
+				{
+					x = x.view({ -1, layer[i - 1].out_[0], layer[i - 1].out_[1], layer[i - 1].out_[2] });
+					x = conv_transpose2d[layer[i].id]->forward(x);
+					if (debug_dmp)cpp_torch::dump_dim(conv_transpose2d[layer[i].id]->name(), x);
 					continue;
 				}
 
