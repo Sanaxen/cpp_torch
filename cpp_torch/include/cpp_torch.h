@@ -29,6 +29,10 @@ in the LICENSE file.
 #include "util/Image.hpp"
 #endif
 
+#ifdef USE_IMAGE_UTIL
+#include "util/opencv_util.h"
+#include "util/opencv_link_libs.h"
+#endif
 
 #include "libtorch_link_libs.hpp"
 

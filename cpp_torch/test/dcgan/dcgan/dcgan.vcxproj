@@ -101,12 +101,12 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>../../../../libtorch/include;../../../../libtorch/include/torch\csrc\api\include;../../../../cpp_torch/include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../../../libtorch/include;../../../../libtorch/include/torch\csrc\api\include;../../../../cpp_torch/include;C:\dev\opencv-3.4.0\build\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>../../../../libtorch/lib;../../../../cpp_torch</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>../../../../libtorch/lib;../../../../cpp_torch;C:\dev\opencv-3.4.0\build\x64\vc14\lib</AdditionalLibraryDirectories>
       <AdditionalOptions>/NODEFAULTLIB:library %(AdditionalOptions)</AdditionalOptions>
     </Link>
   </ItemDefinitionGroup>
@@ -136,7 +136,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>../../../../libtorch/include;../../../../libtorch/include/torch\csrc\api\include;../../../../cpp_torch;../../../../cpp_torch/include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../../../../libtorch/include;../../../../libtorch/include/torch\csrc\api\include;../../../../cpp_torch;../../../../cpp_torch/include;C:\dev\opencv-3.4.0\build\include</AdditionalIncludeDirectories>
       <OpenMPSupport>true</OpenMPSupport>
       <RuntimeTypeInfo>true</RuntimeTypeInfo>
     </ClCompile>
@@ -145,7 +145,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>../../../../libtorch/lib;../../../../cpp_torch</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>../../../../libtorch/lib;../../../../cpp_torch;C:\dev\opencv-3.4.0\build\x64\vc14\lib</AdditionalLibraryDirectories>
       <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>

@@ -25,13 +25,15 @@ namespace cpp_torch
 		LSTM = 91,
 		GRU = 92,
 
-		ReLU = 100,
-		LeakyReLU = 101,
-		SELU = 102,
-		Sigmoid = 103,
-		Tanh = 104,
-		Softmax = 105,
-		LogSoftmax = 106
+		ReLU = 100,				// ReLU(x)
+		ReLU_ = 101,			// ReLU(x,inplace=True) 
+		LeakyReLU = 102,
+		LeakyReLU_ = 103,		// LeakyReLU(x,inplace=True) 
+		SELU = 104,
+		Sigmoid = 105,
+		Tanh = 106,
+		Softmax = 107,
+		LogSoftmax = 108
 	};
 
 	class LayerInOut
@@ -567,7 +569,9 @@ namespace cpp_torch
 		}
 
 		ACTIVATION_LAYER(ReLU)
+		ACTIVATION_LAYER(ReLU_)
 		ACTIVATION_LAYER(LeakyReLU)
+		ACTIVATION_LAYER(LeakyReLU_)
 		ACTIVATION_LAYER(SELU)
 		ACTIVATION_LAYER(Sigmoid)
 		ACTIVATION_LAYER(Tanh)

@@ -31,3 +31,4 @@
 *.out
 *.app
 *.bak
+cpp_torch/tool/image_concat/generated_images/Thumbs.db

@@ -1,37 +1,58 @@
 #ifndef _DCGAN_H_
 
 #define _DCGAN_H_
+/*
+Copyright (c) 2019, Sanaxen
+All rights reserved.
+
+Use of this source code is governed by a MIT license that can be found
+in the LICENSE file.
+*/
+
+/* Generative Adversarial Nets
+*/
+#define USE_LOSS_BCE
+//#define USE_LOSS_MSE
 
 namespace cpp_torch
 {
-	struct BCEWithLogitsLoss : torch::nn::Module {
-		BCEWithLogitsLoss() 
-		{
-		}
-
-		torch::Tensor forward(torch::Tensor o, torch::Tensor t) {
-			auto x =  -(t*torch::log(torch::sigmoid(o)) + (1 - t)*torch::log(1 - torch::sigmoid(o))).mean();
-			return x;
-		}
-	};
-	//TORCH_MODULE(Generator); // creates module holder for NetImpl
-
-//#define LOSS_FUNC	torch::binary_cross_entropy
-#define LOSS_FUNC	torch::mse_loss
-
+#ifdef 	__Experiment
+	/*
+	Because there is no BCEWithLogitsLoss in libtorch
+	How do I define BCEWithLogitsLoss?
+	*/
+	inline torch::Tensor safe_log(torch::Tensor x)
+	{
+		return log(abs(x) + 1.0e-12);
+	}
+	//struct BCEWithLogitsLoss : torch::nn::Module {
+	//	BCEWithLogitsLoss() 
+	//	{
+	//	}
+	//
+	//	torch::Tensor forward(torch::Tensor o, torch::Tensor t) {
+	//		auto x =  -(t*safe_log(torch::sigmoid(o)) + (1 - t)*safe_log(1 - torch::sigmoid(o))).mean();
+	//		return x;
+	//	}
+	//};
 //	BCEWithLogitsLoss bCEWithLogitsLoss;
 //#define LOSS_FUNC	bCEWithLogitsLoss.forward
 
-	//torch::Tensor BCEWithLogitsLoss(torch::Tensor o, torch::Tensor t)
-	//{
-	//	torch::Tensor loss;
-	//	auto max_val = (-o).clamp_min_(0);
-	//	loss = (1 - t).mul_(o).add_(max_val).add_((-max_val).exp_().add_((-o - max_val).exp_()).log_());
-
-	//	return loss;
-	//	//return -(t*torch::log(torch::sigmoid(o)) + (1 - t)*torch::log(1 - torch::sigmoid(o))).mean();
-	//}
+//	torch::Tensor BCEWithLogitsLoss(torch::Tensor o, torch::Tensor t)
+//	{
+//		return -(t*safe_log(torch::sigmoid(o)) + (1 - t)*safe_log(1 - torch::sigmoid(o))).mean();
+//	}
 //#define LOSS_FUNC BCEWithLogitsLoss
+#endif
+
+#ifdef USE_LOSS_BCE
+#define LOSS_FUNC	torch::binary_cross_entropy
+#endif
+
+#ifdef USE_LOSS_MSE
+#define LOSS_FUNC	torch::mse_loss
+#endif
+
 
 	template <
 		typename G_Model, typename D_Model>
@@ -98,7 +119,8 @@ namespace cpp_torch
 				batchNum = batch_x.size();
 			}
 
-			torch::Tensor check_z = torch::rand({ kTrainBatchSize, nz, 1, 1 }).to(device);
+			//random numbers from a normal distribution with mean 0 and variance 1 (standard normal distribution).
+			torch::Tensor check_z = torch::randn({ kTrainBatchSize, nz, 1, 1 }).to(device);
 
 			for (size_t epoch = 0; epoch < kNumberOfEpochs; ++epoch)
 			{
@@ -112,21 +134,23 @@ namespace cpp_torch
 				{
 					// ======= Generator training =========
 					//Generate fake image
-					torch::Tensor z = torch::rand({ kTrainBatchSize, nz, 1, 1 }).to(device);
+
+					//random numbers from a normal distribution with mean 0 and variance 1 (standard normal distribution).
+					torch::Tensor z = torch::randn({ kTrainBatchSize, nz, 1, 1 }).to(device);
 					torch::Tensor fake_img = g_nn.model.get()->forward(z);
 					//cpp_torch::dump_dim("fake_img", fake_img);
-					torch::Tensor fake_img_tensor = fake_img.detach().to(device);
+					torch::Tensor fake_img_tensor = fake_img.detach();
 
 					//	Calculate loss to make fake image look like real image(label 1)
-					torch::Tensor out = d_nn.model.get()->forward(fake_img);
+					torch::Tensor out = d_nn.model.get()->forward(fake_img.to(device));
 
 					//cpp_torch::dump_dim("out", out);
 					//cpp_torch::dump_dim("ones", ones);
-					loss_G = LOSS_FUNC(out, ones);
+					loss_G = LOSS_FUNC(out.to(device), ones);
 					AT_ASSERT(!std::isnan(loss_G.template item<float_t>()));
 
-					g_optimizer->zero_grad();
 					d_optimizer->zero_grad();
+					g_optimizer->zero_grad();
 					loss_G.backward();
 					g_optimizer->step();
 
@@ -137,32 +161,32 @@ namespace cpp_torch
 					//	Calculate loss to distinguish real image from real image(label 1)
 					torch::Tensor real_out = d_nn.model.get()->forward(real_img);
 
-					torch::Tensor loss_D_real = LOSS_FUNC(real_out, ones);
+					torch::Tensor loss_D_real = LOSS_FUNC(real_out.to(device), ones);
 					AT_ASSERT(!std::isnan(loss_D_real.template item<float_t>()));
 
 					
 					fake_img = fake_img_tensor;
+					//fake_img = g_nn.model.get()->forward(z);
 
 					//Calculate the loss so that fake images can be identified as fake images (label 0)
-					torch::Tensor fake_out = d_nn.model.get()->forward(fake_img_tensor.to(device));
+					torch::Tensor fake_out = d_nn.model.get()->forward(fake_img.to(device));
 
 					//cpp_torch::dump_dim("fake_out", fake_out);
 					//cpp_torch::dump_dim("zeros", zeros);
-					torch::Tensor loss_D_fake = LOSS_FUNC(fake_out, zeros);
+					torch::Tensor loss_D_fake = LOSS_FUNC(fake_out.to(device), zeros);
 					AT_ASSERT(!std::isnan(loss_D_fake.template item<float_t>()));
 
 					//Total loss of real and fake images
 					loss_D = loss_D_real + loss_D_fake;
 
-					g_optimizer->zero_grad();
 					d_optimizer->zero_grad();
+					g_optimizer->zero_grad();
 					loss_D.backward();
 					d_optimizer->step();
 
 					on_batch_enumerate();
 				}
 				on_epoch_enumerate();
-				g_nn.model.get()->train(true);
 				//printf("%f %f", get_generator_loss(), get_discriminator_loss());
 			}
 			time_measurement.stop();

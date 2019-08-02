@@ -175,8 +175,9 @@ namespace cpp_torch
 		}
 		tiny_dnn::tensor_t& img = toTensor_t(image_tensor.view({ channels, h,w }), channels, h, w);
 
+		const int sz = img[0].size();
 #pragma omp parallel for
-		for (int i = 0; i < img[0].size(); i++)
+		for (int i = 0; i < sz; i++)
 		{
 			img[0][i] *= scale;
 		}

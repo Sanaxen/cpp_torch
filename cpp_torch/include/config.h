@@ -13,5 +13,6 @@ in the LICENSE file.
 #define USE_WINDOWS
 #define USE_ZLIB
 #define USE_IMAGE_UTIL
+//#define USE_OPENCV_UTIL
 
 #endif

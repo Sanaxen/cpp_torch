@@ -7,6 +7,7 @@
 */
 #include "cpp_torch.h"
 #include "dcgan.h"
+#include "test/include/images_mormalize.h"
 
 #define USE_CUDA
 
@@ -56,16 +57,16 @@ struct GeneratorImpl : torch::nn::Module {
 	torch::Tensor forward(torch::Tensor x) {
 
 		x = conv1->forward(x);
-		x = torch::relu(batchnml1->forward(x));
+		x = torch::relu_(batchnml1->forward(x));
 
 		x = conv2->forward(x);
-		x = torch::relu(batchnml2->forward(x));
+		x = torch::relu_(batchnml2->forward(x));
 		
 		x = conv3->forward(x);
-		x = torch::relu(batchnml3->forward(x));
+		x = torch::relu_(batchnml3->forward(x));
 
 		x = conv4->forward(x);
-		x = torch::relu(batchnml4->forward(x));
+		x = torch::relu_(batchnml4->forward(x));
 
 		x = conv5->forward(x);
 		x = torch::tanh(x);
@@ -109,25 +110,31 @@ struct DiscriminatorImpl : torch::nn::Module {
 	torch::Tensor forward(torch::Tensor x) {
 
 		x = conv1->forward(x);
-		x = torch::leaky_relu(x, 0.32);
+		x = torch::leaky_relu_(x, 0.2);
 
 		x = conv2->forward(x);
 		x = batchnml1->forward(x);
-		x = torch::leaky_relu(x, 0.32);
+		x = torch::leaky_relu_(x, 0.2);
 
 		x = conv3->forward(x);
 		x = batchnml2->forward(x);
-		x = torch::leaky_relu(x, 0.32);
+		x = torch::leaky_relu_(x, 0.2);
 
 		x = conv4->forward(x);
 		x = batchnml3->forward(x);
-		x = torch::leaky_relu(x, 0.32);
+		x = torch::leaky_relu_(x, 0.2);
+		//cpp_torch::dump_dim("x", x);
 
 		x = conv5->forward(x);
 		//cpp_torch::dump_dim("x", x);
+		//x = fc1->forward(x.view({ -1, 256 * 4 * 4 }));
+		//cpp_torch::dump_dim("x", x);
+
 		x = x.squeeze();
 		//cpp_torch::dump_dim("squeeze->x", x);
-
+#ifdef USE_LOSS_BCE
+		x = torch::sigmoid(x);
+#endif
 		return x;
 	}
 
@@ -165,6 +172,13 @@ void learning_and_test_dcgan_dataset(torch::Device device)
 		train_images.push_back(v);
 		loding += 1;
 	}
+
+	//image normalize (mean 0 and variance 1)
+	float mean = 0.0;
+	float stddiv = 0.0;
+	cpp_torch::test::images_normalize(train_images, mean, stddiv);
+	printf("mean:%f stddiv:%f\n", mean, stddiv);
+
 	loding.end();
 	printf("load images:%d\n", train_images.size());
 
@@ -186,7 +200,8 @@ void learning_and_test_dcgan_dataset(torch::Device device)
 	d_nn.classification = false;
 	d_nn.batch_shuffle = true;
 
-	torch::Tensor check_z = torch::rand({ kTrainBatchSize, nz, 1, 1 }).to(device);
+	//random numbers from a normal distribution with mean 0 and variance 1 (standard normal distribution).
+	torch::Tensor check_z = torch::randn({ kTrainBatchSize, nz, 1, 1 }).to(device);
 
 	std::cout << "start training" << std::endl;
 
@@ -195,10 +210,10 @@ void learning_and_test_dcgan_dataset(torch::Device device)
 
 	auto g_optimizer =
 		torch::optim::Adam(g_model.get()->parameters(),
-			torch::optim::AdamOptions(0.0001).beta1(0.5).beta2(0.999));
+			torch::optim::AdamOptions(0.0002).beta1(0.5).beta2(0.999));
 	auto d_optimizer =
 		torch::optim::Adam(d_model.get()->parameters(),
-			torch::optim::AdamOptions(0.0001).beta1(0.5).beta2(0.999));
+			torch::optim::AdamOptions(0.0002).beta1(0.5).beta2(0.999));
 
 
 	cpp_torch::DCGAN<Generator, Discriminator> dcgan(g_nn, d_nn, device);
@@ -223,22 +238,35 @@ void learning_and_test_dcgan_dataset(torch::Device device)
 		{
 			if (epoch == kNumberOfEpochs)
 			{
-				char fname[32];
+				//for (int i = 0; i < kTrainBatchSize; i++)
+				//{
+				//	char fname[32];
+				//	sprintf(fname, "generated_images/gen%d.bmp", i);
+				//	cv::Mat cv_mat(64, 64, CV_8UC3, generated_img[i].clamp(0,255). template data<unsigned char>());
+				//	cv::imwrite(fname, cv_mat);
+				//}
+
+#pragma omp parallel for
 				for (int i = 0; i < kTrainBatchSize; i++)
 				{
+					char fname[32];
 					sprintf(fname, "generated_images/gen%d.bmp", i);
 					cpp_torch::TensorToImageFile(generated_img[i], fname, 255.0);
 				}
-			}
-			else
-			{
-				cpp_torch::TensorToImageFile(generated_img[0], "gen0.bmp", 255.0);
+#ifdef USE_OPENCV_UTIL
+				cpp_torch::cvutil::ImageWrite("generated_images", "image_array.bmp");
+#else
+				char cmd[32];
+				sprintf(cmd, "cmd.exe /c make_image_array.bat %d", epoch);
+				system(cmd);
+#endif
 			}
 		}
 		else
 		{
 			cpp_torch::TensorToImageFile(generated_img[0], "gen0.bmp", 255.0);
 		}
+
 		if (epoch <= kNumberOfEpochs)
 		{
 			disp.restart(train_images.size());
