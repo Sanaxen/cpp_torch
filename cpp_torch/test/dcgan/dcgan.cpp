@@ -5,6 +5,7 @@
 	Use of this source code is governed by a MIT license that can be found
 	in the LICENSE file.
 */
+#define USE_OPENCV_UTIL
 #include "cpp_torch.h"
 #include "dcgan.h"
 #include "test/include/images_mormalize.h"
@@ -153,7 +154,6 @@ TORCH_MODULE(Discriminator); // creates module holder for NetImpl
 std::vector<tiny_dnn::label_t> train_labels, test_labels;
 std::vector<tiny_dnn::vec_t> train_images, test_images;
 
-
 void learning_and_test_dcgan_dataset(torch::Device device)
 {
 	train_images.clear();
@@ -166,7 +166,7 @@ void learning_and_test_dcgan_dataset(torch::Device device)
 		std::string& file = kDataRoot + std::string("/jpg/") + std::string(buf) + ".jpg";
 
 		cpp_torch::Image* img = cpp_torch::readImage(file.c_str());
-		tiny_dnn::vec_t& v = image2vec_t(img, 3, 64, 64/*, 1.0/255.0*/);
+		tiny_dnn::vec_t& v = image2vec_t(img, 3, img->height, img->width/*, 1.0/255.0*/);
 		delete img;
 
 		train_images.push_back(v);
@@ -238,14 +238,19 @@ void learning_and_test_dcgan_dataset(torch::Device device)
 		{
 			if (epoch == kNumberOfEpochs)
 			{
-				//for (int i = 0; i < kTrainBatchSize; i++)
-				//{
-				//	char fname[32];
-				//	sprintf(fname, "generated_images/gen%d.bmp", i);
-				//	cv::Mat cv_mat(64, 64, CV_8UC3, generated_img[i].clamp(0,255). template data<unsigned char>());
-				//	cv::imwrite(fname, cv_mat);
-				//}
-
+#ifdef USE_OPENCV_UTIL
+#pragma omp parallel for
+				for (int i = 0; i < kTrainBatchSize; i++)
+				{
+					char fname[32];
+					sprintf(fname, "generated_images/gen%d.bmp", i);
+					cv::Mat& cv_mat = cpp_torch::cvutil::tensorToMat(generated_img[i], 255.0);
+					cv::imwrite(fname, cv_mat);
+				}
+				cv::Mat& img = cpp_torch::cvutil::ImageWrite(generated_img, 8, 8, "image_array.bmp");
+				cv::imshow("image_array.bmp", img);
+				cv::waitKey();
+#else
 #pragma omp parallel for
 				for (int i = 0; i < kTrainBatchSize; i++)
 				{
@@ -253,9 +258,6 @@ void learning_and_test_dcgan_dataset(torch::Device device)
 					sprintf(fname, "generated_images/gen%d.bmp", i);
 					cpp_torch::TensorToImageFile(generated_img[i], fname, 255.0);
 				}
-#ifdef USE_OPENCV_UTIL
-				cpp_torch::cvutil::ImageWrite("generated_images", "image_array.bmp");
-#else
 				char cmd[32];
 				sprintf(cmd, "cmd.exe /c make_image_array.bat %d", epoch);
 				system(cmd);
@@ -264,7 +266,19 @@ void learning_and_test_dcgan_dataset(torch::Device device)
 		}
 		else
 		{
+#ifdef USE_OPENCV_UTIL
+			//cv::Mat& img = cpp_torch::cvutil::TensorToImageFile(generated_img[0], "gen0.bmp", 255.0);
+			//cv::imshow("gen0.bmp", img);
+			//cv::waitKey(500);
+
+			cv::Mat& img = cpp_torch::cvutil::ImageWrite(generated_img, 8, 8, "image_array.bmp");
+			cv::imshow("image_array.bmp", img);
+			cv::waitKey(500);
+
+#else
 			cpp_torch::TensorToImageFile(generated_img[0], "gen0.bmp", 255.0);
+#endif
+
 		}
 
 		if (epoch <= kNumberOfEpochs)
@@ -299,7 +313,6 @@ void learning_and_test_dcgan_dataset(torch::Device device)
 
 
 auto main() -> int {
-
 
 	torch::manual_seed(1);
 
