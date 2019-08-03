@@ -46,6 +46,16 @@ cpp_torch::progress_display disp(train_images.size());
 **data set download**  
 <img src="./images/url_file_download.png" width=60%>
 
+# config.h  
+|options|description|default||
+|-----|-----|----|----|
+|USE_WINDOWS||ON||
+|USE_COLOR_CONSOLE||ON||
+|USE_ZLIB||OFF||
+|USE_IMAGE_UTIL||ON||
+|USE_OPENCV_UTIL|[OpenCV](https://opencv.org/releases/) >= 2.3|OFF|ex. C:\dev\opencv-3.4.0|
+
+
 
 ## Requirements  
 visual studio 2015,2017  
