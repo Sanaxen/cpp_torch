@@ -75,43 +75,25 @@ void learning_and_test_cifar10_dataset(torch::Device device)
 	cpp_torch::Net model;
 
 	model.get()->setInput(3, 32, 32);
-#if 0
-	model.get()->add_conv2d(3, 32, 5);
-	model.get()->add_ReLU();
-	model.get()->add_maxpool2d(2);
 
-	model.get()->add_conv2d(32, 64, 5);
-	model.get()->add_ReLU();
-	model.get()->add_maxpool2d(2);
-
-	model.get()->add_fc(256);
-	model.get()->add_ReLU();
-	model.get()->add_fc(128);
-	model.get()->add_ReLU();
-	model.get()->add_fc(128);
-	model.get()->add_ReLU();
-	model.get()->add_fc(64);
-	model.get()->add_ReLU();
-	model.get()->add_fc(10);
-#else
-	model.get()->add_conv2d(3, 192, 5, 2, 1);
+	model.get()->add_conv2d(3, 192, 5, 1, 2);
 	model.get()->add_ReLU();
 	model.get()->add_conv2d(192, 160, 1, 1, 1);
 	model.get()->add_ReLU();
 	model.get()->add_conv2d(160, 96, 1, 1, 1);
 	model.get()->add_ReLU();
 	model.get()->add_bn(0.1, 1.0e-5);
-	model.get()->add_maxpool2d(3, 1, 2);
+	model.get()->add_maxpool2d(3, 2, 1);
 	model.get()->add_conv_drop(0.5);
 
-	model.get()->add_conv2d(96, 192, 5, 2, 1);
+	model.get()->add_conv2d(96, 192, 5, 1, 2);
 	model.get()->add_ReLU();
 	model.get()->add_conv2d(192, 192, 1, 1, 1);
 	model.get()->add_ReLU();
 	model.get()->add_conv2d(192, 192, 1, 1, 1);
 	model.get()->add_ReLU();
 	model.get()->add_bn(0.1, 1.0e-5);
-	model.get()->add_maxpool2d(3, 1, 2);
+	model.get()->add_maxpool2d(3, 2, 1);
 	model.get()->add_conv_drop(0.5);
 
 	model.get()->add_conv2d(192, 192, 3, 1, 1);
@@ -121,10 +103,9 @@ void learning_and_test_cifar10_dataset(torch::Device device)
 	model.get()->add_conv2d(192, 10, 1, 1, 1);
 	model.get()->add_ReLU();
 	model.get()->add_bn(0.1, 1.0e-5);
-	model.get()->add_avgpool2d(8, 0, 1);
+	model.get()->add_avgpool2d(8, 1, 0);
 
 	model.get()->add_fc(10);
-#endif
 	model.get()->add_LogSoftmax(1);
 
 	cpp_torch::network_torch<cpp_torch::Net> nn(model, device);

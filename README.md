@@ -55,7 +55,10 @@ cpp_torch::progress_display disp(train_images.size());
 |USE_IMAGE_UTIL||ON||
 |USE_OPENCV_UTIL|[OpenCV](https://opencv.org/releases/) >= 2.3|OFF|ex. C:\dev\opencv-3.4.0|
 
-
+## example
+MNIS
+CIFAR10
+[DCGAN](./cpp_torch/example/DCGAN/readme.md)
 
 ## Requirements  
 visual studio 2015,2017  

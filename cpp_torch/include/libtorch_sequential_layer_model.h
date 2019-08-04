@@ -148,12 +148,12 @@ namespace cpp_torch
 		* @param input_channels  [in] input image channels (grayscale=1, rgb=3)
 		* @param output_channels [in] output image channels
 		* @param kernel_size  [in] window(kernel) size of convolution
-		* @param padding      [in] padding size
 		* @param stride       [in] stride size
+		* @param padding      [in] padding size
 		* @param dilation     [in] dilation
 		* @param bias         [in] whether to add a bias vector to the filter
 		**/
-		void add_conv2d_(int input_channels, int output_channels, std::vector<int> kernel_size = { 1,1 }, std::vector<int> padding = { 0,0 }, std::vector<int> stride = { 1,1 }, std::vector<int> dilation = { 1,1 }, bool bias = true)
+		void add_conv2d_(int input_channels, int output_channels, std::vector<int> kernel_size = { 1,1 }, std::vector<int> stride = { 1,1 }, std::vector<int> padding = { 0,0 }, std::vector<int> dilation = { 1,1 }, bool bias = true)
 		{
 			int id = conv2d.size();
 			cpp_torch::LayerInOut inout;
@@ -188,14 +188,14 @@ namespace cpp_torch
 		* @param input_channels  [in] input image channels (grayscale=1, rgb=3)
 		* @param output_channels [in] output image channels
 		* @param kernel_size     [in] window(kernel) size of convolution
-		* @param padding         [in] padding size
 		* @param stride       [in] stride size
+		* @param padding         [in] padding size
 		* @param dilation     [in] dilation
 		* @param bias         [in] whether to add a bias vector to the filter
 		**/
-		void add_conv2d(int input_channels, int output_channels, int kernel_size, int padding = 0, int stride = 1, int dilation = 1, bool bias = true)
+		void add_conv2d(int input_channels, int output_channels, int kernel_size, int stride = 1, int padding = 0, int dilation = 1, bool bias = true)
 		{
-			add_conv2d_(input_channels, output_channels, { kernel_size, kernel_size }, { padding, padding }, { stride, stride }, { dilation, dilation }, bias);
+			add_conv2d_(input_channels, output_channels, { kernel_size, kernel_size }, { stride, stride }, { padding, padding }, { dilation, dilation }, bias);
 		}
 
 		/**
@@ -209,13 +209,13 @@ namespace cpp_torch
 		* @param input_channels  [in] input image channels (grayscale=1, rgb=3)
 		* @param output_channels [in] output image channels
 		* @param kernel_size  [in] window(kernel) size of convolution
+		* @param stride       [in] stride size
 		* @param padding      [in] padding size
 		* @param out_padding  [in] out_padding size
-		* @param stride       [in] stride size
 		* @param dilation     [in] dilation
 		* @param bias         [in] whether to add a bias vector to the filter
 		**/
-		void add_conv_transpose2d_(int input_channels, int output_channels, std::vector<int> kernel_size = { 1,1 }, std::vector<int> padding = { 0,0 }, std::vector<int> stride = { 1,1 }, std::vector<int> out_padding = { 0,0 }, std::vector<int> dilation = { 1,1 }, bool bias = true)
+		void add_conv_transpose2d_(int input_channels, int output_channels, std::vector<int> kernel_size = { 1,1 }, std::vector<int> stride = { 1,1 }, std::vector<int> padding = { 0,0 }, std::vector<int> out_padding = { 0,0 }, std::vector<int> dilation = { 1,1 }, bool bias = true)
 		{
 			int id = conv2d.size();
 			cpp_torch::LayerInOut inout;
@@ -251,15 +251,15 @@ namespace cpp_torch
 		* @param input_channels  [in] input image channels (grayscale=1, rgb=3)
 		* @param output_channels [in] output image channels
 		* @param kernel_size     [in] window(kernel) size of convolution
+		* @param stride       [in] stride size
 		* @param padding         [in] padding size
 		* @param out_padding  [in] out_padding size
-		* @param stride       [in] stride size
 		* @param dilation     [in] dilation
 		* @param bias         [in] whether to add a bias vector to the filter
 		**/
-		void add_conv_transpose2d(int input_channels, int output_channels, int kernel_size, int padding = 0,  int stride = 1, int out_padding = 0, int dilation = 1, bool bias = true)
+		void add_conv_transpose2d(int input_channels, int output_channels, int kernel_size, int stride = 1, int padding = 0, int out_padding = 0, int dilation = 1, bool bias = true)
 		{
-			add_conv_transpose2d_(input_channels, output_channels, { kernel_size, kernel_size }, { padding, padding },  { stride, stride }, { out_padding, out_padding }, { dilation, dilation }, bias);
+			add_conv_transpose2d_(input_channels, output_channels, { kernel_size, kernel_size }, { stride, stride }, { padding, padding }, { out_padding, out_padding }, { dilation, dilation }, bias);
 		}
 
 		/**
@@ -271,11 +271,11 @@ namespace cpp_torch
 		* @param input_channels  [in] input image channels (grayscale=1, rgb=3)
 		* @param output_channels [in] output image channels
 		* @param kernel_size  [in] window(kernel) size of convolution
-		* @param padding      [in] padding size
 		* @param stride       [in] stride size
+		* @param padding      [in] padding size
 		* @param dilation     [in] dilation
 		**/
-		void add_maxpool2d_(int input_channels, int output_channels, std::vector<int> kernel_size = { 1,1 }, std::vector<int> padding = { 0,0 }, std::vector<int> stride = { 1,1 }, std::vector<int> dilation = { 1,1 })
+		void add_maxpool2d_(int input_channels, int output_channels, std::vector<int> kernel_size = { 1,1 }, std::vector<int> stride = { 1,1 }, std::vector<int> padding = { 0,0 }, std::vector<int> dilation = { 1,1 })
 		{
 			int id = maxpool2d_count++;
 			cpp_torch::LayerInOut inout;
@@ -305,14 +305,14 @@ namespace cpp_torch
 		* constructing max pooling 2D layer
 		*
 		* @param kernel_size     [in] window(kernel) size of convolution
-		* @param padding         [in] padding size
 		* @param stride       [in] specify the horizontal interval at which to apply the filters to the input
+		* @param padding         [in] padding size
 		* @param dilation     [in] specify the horizontal interval to control the spacing between the kernel points
 		**/
-		void add_maxpool2d(int kernel_size, int padding, int stride = 1, int dilation = 1)
+		void add_maxpool2d(int kernel_size, int stride, int padding = 0, int dilation = 1)
 		{
 			const int i = layer.size();
-			add_maxpool2d_(layer[i - 1].out_[0], layer[i - 1].out_[0], { kernel_size, kernel_size }, { padding,padding }, { stride, stride }, { dilation, dilation });
+			add_maxpool2d_(layer[i - 1].out_[0], layer[i - 1].out_[0], { kernel_size, kernel_size }, { stride, stride }, { padding,padding }, { dilation, dilation });
 		}
 		/**
 		* constructing max pooling 2D layer
@@ -322,7 +322,7 @@ namespace cpp_torch
 		void add_maxpool2d(int kernel_size)
 		{
 			const int i = layer.size();
-			add_maxpool2d_(layer[i - 1].out_[0], layer[i - 1].out_[0], { kernel_size, kernel_size }, { 0, 0 }, { kernel_size, kernel_size }, { 1, 1 });
+			add_maxpool2d_(layer[i - 1].out_[0], layer[i - 1].out_[0], { kernel_size, kernel_size }, { kernel_size, kernel_size }, { 1, 1 }, { 0, 0 });
 		}
 
 
@@ -335,10 +335,10 @@ namespace cpp_torch
 		* @param input_channels  [in] input image channels (grayscale=1, rgb=3)
 		* @param output_channels [in] output image channels
 		* @param kernel_size  [in] window(kernel) size of convolution
-		* @param padding      [in] padding size
 		* @param stride       [in] stride size
+		* @param padding      [in] padding size
 		**/
-		void add_avgpool2d_(int input_channels, int output_channels, std::vector<int> kernel_size = { 1,1 }, std::vector<int> padding = { 0,0 }, std::vector<int> stride = { 1,1 }, bool ceil_mode=false, bool count_include_pad = true)
+		void add_avgpool2d_(int input_channels, int output_channels, std::vector<int> kernel_size = { 1,1 }, std::vector<int> stride = { 1,1 }, std::vector<int> padding = { 0,0 }, bool ceil_mode=false, bool count_include_pad = true)
 		{
 			int id = avgpool2d_count++;
 			cpp_torch::LayerInOut inout;
@@ -370,13 +370,13 @@ namespace cpp_torch
 		* constructing average  pooling 2D layer
 		*
 		* @param kernel_size     [in] window(kernel) size of convolution
-		* @param padding         [in] padding size
 		* @param stride       [in] specify the horizontal interval at which to apply the filters to the input
+		* @param padding         [in] padding size
 		**/
-		void add_avgpool2d(int kernel_size, int padding, int stride = 1, int dilation = 1)
+		void add_avgpool2d(int kernel_size, int stride = 1, int padding = 0, int dilation = 1)
 		{
 			const int i = layer.size();
-			add_avgpool2d_(layer[i - 1].out_[0], layer[i - 1].out_[0], { kernel_size, kernel_size }, { padding,padding }, { stride, stride });
+			add_avgpool2d_(layer[i - 1].out_[0], layer[i - 1].out_[0], { kernel_size, kernel_size }, { stride, stride }, { padding,padding });
 		}
 		/**
 		* constructing average  pooling 2D layer
