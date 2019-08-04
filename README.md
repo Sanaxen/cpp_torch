@@ -60,6 +60,11 @@ MNIS
 CIFAR10
 [DCGAN](./cpp_torch/example/DCGAN/readme.md)
 
+## Latest topic  
+C++ only DCGAN (train & test)
+<img src="./images/dcgan_train.gif" width=40%>  
+
+
 ## Requirements  
 visual studio 2015,2017  
 
