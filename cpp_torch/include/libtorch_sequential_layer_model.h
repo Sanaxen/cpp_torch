@@ -33,7 +33,8 @@ namespace cpp_torch
 		Sigmoid = 105,
 		Tanh = 106,
 		Softmax = 107,
-		LogSoftmax = 108
+		LogSoftmax = 108,
+		Squeeze = 109
 	};
 
 	class LayerInOut
@@ -60,6 +61,7 @@ namespace cpp_torch
 
 		int dim = 1;	//softmax, logsoftmax
 		float_t dropout_rate = 0.0;
+		float_t negative_slope = 0.01;	//LeakyReLU(negative_slope=0.01)
 	};
 
 	struct NetImpl : torch::nn::Module {
@@ -213,7 +215,7 @@ namespace cpp_torch
 		* @param dilation     [in] dilation
 		* @param bias         [in] whether to add a bias vector to the filter
 		**/
-		void add_conv_transpose2d_(int input_channels, int output_channels, std::vector<int> kernel_size = { 1,1 }, std::vector<int> padding = { 0,0 }, std::vector<int> out_padding = { 0,0 }, std::vector<int> stride = { 1,1 }, std::vector<int> dilation = { 1,1 }, bool bias = true)
+		void add_conv_transpose2d_(int input_channels, int output_channels, std::vector<int> kernel_size = { 1,1 }, std::vector<int> padding = { 0,0 }, std::vector<int> stride = { 1,1 }, std::vector<int> out_padding = { 0,0 }, std::vector<int> dilation = { 1,1 }, bool bias = true)
 		{
 			int id = conv2d.size();
 			cpp_torch::LayerInOut inout;
@@ -255,9 +257,9 @@ namespace cpp_torch
 		* @param dilation     [in] dilation
 		* @param bias         [in] whether to add a bias vector to the filter
 		**/
-		void add_conv_transpose2d(int input_channels, int output_channels, int kernel_size, int padding = 0, int out_padding = 0, int stride = 1, int dilation = 1, bool bias = true)
+		void add_conv_transpose2d(int input_channels, int output_channels, int kernel_size, int padding = 0,  int stride = 1, int out_padding = 0, int dilation = 1, bool bias = true)
 		{
-			add_conv_transpose2d_(input_channels, output_channels, { kernel_size, kernel_size }, { padding, padding }, { out_padding, out_padding },  { stride, stride }, { dilation, dilation }, bias);
+			add_conv_transpose2d_(input_channels, output_channels, { kernel_size, kernel_size }, { padding, padding },  { stride, stride }, { out_padding, out_padding }, { dilation, dilation }, bias);
 		}
 
 		/**
@@ -554,6 +556,7 @@ namespace cpp_torch
 		inout.out_ = inout.in_;							\
 		layer.push_back(inout);							\
 		}
+		
 
 #define ACTIVATION_LAYER1( id_name ) void add_##id_name(const int d)	\
 		{												\
@@ -568,15 +571,29 @@ namespace cpp_torch
 		layer.push_back(inout);							\
 		}
 
+#define ACTIVATION_LAYER2( id_name ) void add_##id_name(float_t negative_slope)	\
+		{												\
+		cpp_torch::LayerInOut inout;					\
+		inout.name = #id_name;							\
+		inout.type = cpp_torch::LayerType::##id_name;	\
+		inout.id = activation_count++;					\
+		const int i = layer.size();						\
+		inout.in_ = layer[i - 1].out_;					\
+		inout.out_ = inout.in_;							\
+		inout.negative_slope = negative_slope;			\
+		layer.push_back(inout);							\
+		}
+
 		ACTIVATION_LAYER(ReLU)
 		ACTIVATION_LAYER(ReLU_)
-		ACTIVATION_LAYER(LeakyReLU)
-		ACTIVATION_LAYER(LeakyReLU_)
+		ACTIVATION_LAYER2(LeakyReLU)
+		ACTIVATION_LAYER2(LeakyReLU_)
 		ACTIVATION_LAYER(SELU)
 		ACTIVATION_LAYER(Sigmoid)
 		ACTIVATION_LAYER(Tanh)
 		ACTIVATION_LAYER1(Softmax)
 		ACTIVATION_LAYER1(LogSoftmax)
+		ACTIVATION_LAYER(Squeeze)
 
 		int debug_dmp = 0;
 		torch::Tensor forward(torch::Tensor x)
@@ -704,10 +721,12 @@ namespace cpp_torch
 
 					switch (layer[i].type)
 					{
+					case cpp_torch::LayerType::Squeeze:
+						x = x.squeeze(); break;
 					case cpp_torch::LayerType::ReLU:
 						x = torch::relu(x); break;
 					case cpp_torch::LayerType::LeakyReLU:
-						x = torch::leaky_relu(x); break;
+						x = torch::leaky_relu(x, layer[i].negative_slope); break;
 					case cpp_torch::LayerType::SELU:
 						x = torch::selu(x); break;
 					case cpp_torch::LayerType::Sigmoid:

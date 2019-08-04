@@ -31,125 +31,6 @@ const int64_t kNumberOfTrainImages = 4256;
 //#define TEST
 
 
-
-struct GeneratorImpl : torch::nn::Module {
-	GeneratorImpl(): 
-		conv1(torch::nn::Conv2dOptions(100, 256,4).with_bias(false).transposed(true).stride(1).padding(0)),
-		batchnml1(torch::nn::BatchNormOptions(256)),
-		conv2(torch::nn::Conv2dOptions(256, 128, 4).with_bias(false).transposed(true).stride(2).padding(1)),
-		batchnml2(torch::nn::BatchNormOptions(128)),
-		conv3(torch::nn::Conv2dOptions(128, 64, 4).with_bias(false).transposed(true).stride(2).padding(1)),
-		batchnml3(torch::nn::BatchNormOptions(64)),
-		conv4(torch::nn::Conv2dOptions(64, 32, 4).with_bias(false).transposed(true).stride(2).padding(1)),
-		batchnml4(torch::nn::BatchNormOptions(32)),
-		conv5(torch::nn::Conv2dOptions(32, 3, 4).with_bias(false).transposed(true).stride(2).padding(1))
-		{
-		register_module("conv1", conv1);
-		register_module("conv2", conv2);
-		register_module("conv3", conv3);
-		register_module("conv4", conv4);
-		register_module("conv5", conv5);
-		register_module("batchnml1", batchnml1);
-		register_module("batchnml2", batchnml2);
-		register_module("batchnml3", batchnml3);
-		register_module("batchnml4", batchnml4);
-	}
-
-	torch::Tensor forward(torch::Tensor x) {
-
-		x = conv1->forward(x);
-		x = torch::relu_(batchnml1->forward(x));
-
-		x = conv2->forward(x);
-		x = torch::relu_(batchnml2->forward(x));
-		
-		x = conv3->forward(x);
-		x = torch::relu_(batchnml3->forward(x));
-
-		x = conv4->forward(x);
-		x = torch::relu_(batchnml4->forward(x));
-
-		x = conv5->forward(x);
-		x = torch::tanh(x);
-		//cpp_torch::dump_dim("x", x);
-		return x;
-	}
-
-	torch::nn::Conv2d conv1;
-	torch::nn::Conv2d conv2;
-	torch::nn::Conv2d conv3;
-	torch::nn::Conv2d conv4;
-	torch::nn::Conv2d conv5;
-	torch::nn::BatchNorm batchnml1;
-	torch::nn::BatchNorm batchnml2;
-	torch::nn::BatchNorm batchnml3;
-	torch::nn::BatchNorm batchnml4;
-};
-TORCH_MODULE(Generator); // creates module holder for NetImpl
-
-struct DiscriminatorImpl : torch::nn::Module {
-	DiscriminatorImpl() :
-		conv1(torch::nn::Conv2dOptions(3, 32, 4).with_bias(false).stride(2).padding(1)),
-		conv2(torch::nn::Conv2dOptions(32, 64, 4).with_bias(false).stride(2).padding(1)),
-		batchnml1(torch::nn::BatchNormOptions(64)),
-		conv3(torch::nn::Conv2dOptions(64, 128, 4).with_bias(false).stride(2).padding(1)),
-		batchnml2(torch::nn::BatchNormOptions(128)),
-		conv4(torch::nn::Conv2dOptions(128, 256, 4).with_bias(false).stride(2).padding(1)),
-		batchnml3(torch::nn::BatchNormOptions(256)),
-		conv5(torch::nn::Conv2dOptions(256, 1, 4).with_bias(false).stride(1).padding(0))
-	{
-		register_module("conv1", conv1);
-		register_module("conv2", conv2);
-		register_module("conv3", conv3);
-		register_module("conv4", conv4);
-		register_module("conv5", conv5);
-		register_module("batchnml1", batchnml1);
-		register_module("batchnml2", batchnml2);
-		register_module("batchnml3", batchnml3);
-	}
-
-	torch::Tensor forward(torch::Tensor x) {
-
-		x = conv1->forward(x);
-		x = torch::leaky_relu_(x, 0.2);
-
-		x = conv2->forward(x);
-		x = batchnml1->forward(x);
-		x = torch::leaky_relu_(x, 0.2);
-
-		x = conv3->forward(x);
-		x = batchnml2->forward(x);
-		x = torch::leaky_relu_(x, 0.2);
-
-		x = conv4->forward(x);
-		x = batchnml3->forward(x);
-		x = torch::leaky_relu_(x, 0.2);
-		//cpp_torch::dump_dim("x", x);
-
-		x = conv5->forward(x);
-		//cpp_torch::dump_dim("x", x);
-		//x = fc1->forward(x.view({ -1, 256 * 4 * 4 }));
-		//cpp_torch::dump_dim("x", x);
-
-		x = x.squeeze();
-		//cpp_torch::dump_dim("squeeze->x", x);
-#ifdef USE_LOSS_BCE
-		x = torch::sigmoid(x);
-#endif
-		return x;
-	}
-
-	torch::nn::Conv2d conv1;
-	torch::nn::Conv2d conv2;
-	torch::nn::Conv2d conv3;
-	torch::nn::Conv2d conv4;
-	torch::nn::Conv2d conv5;
-	torch::nn::BatchNorm batchnml1;
-	torch::nn::BatchNorm batchnml2;
-	torch::nn::BatchNorm batchnml3;
-};
-TORCH_MODULE(Discriminator); // creates module holder for NetImpl
-
 // load  dataset
 std::vector<tiny_dnn::label_t> train_labels, test_labels;
 std::vector<tiny_dnn::vec_t> train_images, test_images;
@@ -182,13 +63,47 @@ void learning_and_test_dcgan_dataset(torch::Device device)
 	loding.end();
 	printf("load images:%d\n", train_images.size());
 
-	Generator g_model;
-	Discriminator d_model;
-
-	cpp_torch::network_torch<Generator> g_nn(g_model, device);
-	cpp_torch::network_torch<Discriminator> d_nn(d_model, device);
-
 	const int nz = 100;
+
+	cpp_torch::Net  g_model;
+	g_model.get()->setInput(nz, 1, 1);
+	g_model.get()->add_conv_transpose2d(100, 256, 4, 0, 1);
+	g_model.get()->add_bn();
+	g_model.get()->add_ReLU();
+	g_model.get()->add_conv_transpose2d(256, 128, 4, 1, 2);
+	g_model.get()->add_bn();
+	g_model.get()->add_ReLU();
+	g_model.get()->add_conv_transpose2d(128, 64, 4, 1, 2);
+	g_model.get()->add_bn();
+	g_model.get()->add_ReLU();
+	g_model.get()->add_conv_transpose2d(64, 32, 4, 1, 2);
+	g_model.get()->add_bn();
+	g_model.get()->add_ReLU();
+	g_model.get()->add_conv_transpose2d(32, 3, 4, 1, 2);
+	g_model.get()->add_Tanh();
+
+	cpp_torch::Net  d_model;
+	d_model.get()->setInput(3, 64, 64);
+	d_model.get()->add_conv2d(3, 32, 4, 1, 2);
+	d_model.get()->add_bn();
+	d_model.get()->add_LeakyReLU(0.2);
+	d_model.get()->add_conv2d(32, 64, 4, 1, 2);
+	d_model.get()->add_bn();
+	d_model.get()->add_LeakyReLU(0.2);
+	d_model.get()->add_conv2d(64, 128, 4, 1, 2);
+	d_model.get()->add_bn();
+	d_model.get()->add_LeakyReLU(0.2);
+	d_model.get()->add_conv2d(128, 256, 4, 1, 2);
+	d_model.get()->add_bn();
+	d_model.get()->add_LeakyReLU(0.2);
+	d_model.get()->add_conv2d(256, 1, 4, 0, 1);
+	d_model.get()->add_Squeeze();
+#ifdef USE_LOSS_BCE
+	d_model.get()->add_Sigmoid();
+#endif
+
+	cpp_torch::network_torch<cpp_torch::Net> g_nn(g_model, device);
+	cpp_torch::network_torch<cpp_torch::Net> d_nn(d_model, device);
 
 	//Generator  100 -> 3 x 64 x 64
 	g_nn.input_dim(nz, 1, 1);
@@ -216,7 +131,7 @@ void learning_and_test_dcgan_dataset(torch::Device device)
 			torch::optim::AdamOptions(0.0002).beta1(0.5).beta2(0.999));
 
 
-	cpp_torch::DCGAN<Generator, Discriminator> dcgan(g_nn, d_nn, device);
+	cpp_torch::DCGAN<cpp_torch::Net, cpp_torch::Net> dcgan(g_nn, d_nn, device);
 
 
 	FILE* fp = fopen("loss.dat", "w");
@@ -271,8 +186,10 @@ void learning_and_test_dcgan_dataset(torch::Device device)
 			//cv::imshow("gen0.bmp", img);
 			//cv::waitKey(500);
 
-			cv::Mat& img = cpp_torch::cvutil::ImageWrite(generated_img, 8, 8, "image_array.bmp");
-			cv::imshow("image_array.bmp", img);
+			char fname[64];
+			sprintf(fname, "generated_images/image_array%d.png", epoch);
+			cv::Mat& img = cpp_torch::cvutil::ImageWrite(generated_img, 8, 8, fname);
+			cv::imshow("", img);
 			cv::waitKey(500);
 
 #else
@@ -298,17 +215,8 @@ void learning_and_test_dcgan_dataset(torch::Device device)
 	std::cout << "end training." << std::endl;
 	fclose(fp);
 
-	//nn.save(std::string("model1.pt"));
-
-	//Net model2;
-	//cpp_torch::network_torch<Net> nn2(model2, device);
-	//nn2 = nn;
-
-	//nn2.load(std::string("model1.pt"));
-	//nn2.test(test_images, test_labels, kTrainBatchSize);
-
-	//tiny_dnn::result res2 = nn2.test(test_images, test_labels);
-	//cpp_torch::print_ConfusionMatrix(res2);
+	g_nn.save(std::string("g_model.pt"));
+	d_nn.save(std::string("d_model.pt"));
 }
 
 
