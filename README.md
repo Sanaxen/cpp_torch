@@ -56,12 +56,12 @@ cpp_torch::progress_display disp(train_images.size());
 |USE_OPENCV_UTIL|[OpenCV](https://opencv.org/releases/) >= 2.3|OFF|ex. C:\dev\opencv-3.4.0|
 
 ## example
-MNIS
-CIFAR10
-[DCGAN](./cpp_torch/example/DCGAN/readme.md)
+MNIS  
+CIFAR10  
+[DCGAN](./cpp_torch/example/DCGAN/readme.md)  
 
 ## Latest topic  
-C++ only DCGAN (train & test)
+C++ only DCGAN (train & test)  
 <img src="./images/dcgan_train.gif" width=40%>  
 
 
