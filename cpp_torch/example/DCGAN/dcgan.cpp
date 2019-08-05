@@ -162,7 +162,7 @@ void learning_and_test_dcgan_dataset(torch::Device device)
 					cv::Mat& cv_mat = cpp_torch::cvutil::tensorToMat(generated_img[i], 255.0);
 					cv::imwrite(fname, cv_mat);
 				}
-				cv::Mat& img = cpp_torch::cvutil::ImageWrite(generated_img, 8, 8, "image_array.bmp");
+				cv::Mat& img = cpp_torch::cvutil::ImageWrite(generated_img, 8, 8, "image_array.bmp", 2);
 				cv::imshow("image_array.bmp", img);
 				cv::waitKey();
 #else
@@ -188,7 +188,7 @@ void learning_and_test_dcgan_dataset(torch::Device device)
 
 			char fname[64];
 			sprintf(fname, "generated_images/image_array%d.png", epoch);
-			cv::Mat& img = cpp_torch::cvutil::ImageWrite(generated_img, 8, 8, fname);
+			cv::Mat& img = cpp_torch::cvutil::ImageWrite(generated_img, 8, 8, fname, 2);
 			cv::imshow("", img);
 			cv::waitKey(500);
 
