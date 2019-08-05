@@ -20,6 +20,63 @@ namespace cpp_torch
 {
 	namespace cvutil
 	{
+		cv::Mat ImgeTocvMat(const Image* img)
+		{
+			cv::Mat cvimg(img->height, img->width, CV_8UC3);
+#pragma omp parallel for
+			for (int i = 0; i < img->height; i++)
+			{
+				for (int j = 0; j < img->width; j++)
+				{
+					cvimg.at<cv::Vec3b>(i, j)[0] = img->data[i*img->height + j].b;//Blue
+					cvimg.at<cv::Vec3b>(i, j)[1] = img->data[i*img->height + j].g; //Green
+					cvimg.at<cv::Vec3b>(i, j)[2] = img->data[i*img->height + j].r; //Red	
+				}
+			}
+			return cvimg;
+		}
+		Image* cvMatToImage(const cv::Mat& cvimg)
+		{
+			Image* im = new Image;
+			im->height = cvimg.rows;
+			im->width = cvimg.cols;
+			im->data = new Rgb[im->height*im->width];
+
+#pragma omp parallel for
+			for (int i = 0; i < im->height; i++)
+			{
+				for (int j = 0; j < im->width; j++)
+				{
+					im->data[i*im->height + j].b = cvimg.at<cv::Vec3b>(i, j)[0];//Blue
+					im->data[i*im->height + j].g = cvimg.at<cv::Vec3b>(i, j)[1]; //Green
+					im->data[i*im->height + j].r = cvimg.at<cv::Vec3b>(i, j)[2]; //Red	
+				}
+			}
+			return im;
+		}
+
+		void resize(cv::Mat& cvimg, int h, int w)
+		{
+		cv:resize(cvimg, cvimg, cv::Size(), (double)(w) / cvimg.cols, (double)(h) / cvimg.rows);
+		}
+		void resize(cv::Mat& cvimg, int padding)
+		{
+			cv:resize(cvimg, cvimg, cv::Size(), (double)(cvimg.cols + padding) / cvimg.cols, (double)(cvimg.rows + padding) / cvimg.cols);
+		}
+		cv::Mat padding_img(cv::Mat& target_mat, int padding)
+		{
+
+			cv::Mat convert_mat, work_mat;
+			work_mat = cv::Mat::zeros(cv::Size(target_mat.cols + padding, target_mat.rows + padding), CV_8UC3);
+			convert_mat = target_mat.clone();
+
+			cv::Mat Roi1(work_mat, cv::Rect((target_mat.cols + padding - convert_mat.cols) / 2.0, (target_mat.rows + padding - convert_mat.rows) / 2.0,
+				convert_mat.cols, convert_mat.rows));
+			convert_mat.copyTo(Roi1);
+
+			return work_mat.clone();
+		}
+
 		cv::Mat tensorToMat(const torch::Tensor &tensor, const int scale = 1.0)
 		{
 			auto sizes = tensor.sizes();
@@ -46,9 +103,9 @@ namespace cpp_torch
 			return cv_mat;
 		}
 
-		cv::Mat ImageWrite(const torch::Tensor batch_tensor, int M, int N, const std::string& image_file_name)
+		cv::Mat ImageWrite(const torch::Tensor batch_tensor, int M, int N, const std::string& image_file_name, int padding = 0)
 		{
-			printf("%d\n", batch_tensor.sizes()[0]);
+			//printf("%d\n", batch_tensor.sizes()[0]);
 
 			int l = batch_tensor.sizes()[0];
 			int k = 0;
@@ -61,6 +118,10 @@ namespace cpp_torch
 					if (k >= l) break;
 
 					cv::Mat	im = tensorToMat(batch_tensor[k], 255.0);
+					if (padding)
+					{
+						im = padding_img(im, padding);
+					}
 					if (j == 0) im1 = im;
 					else  cv::hconcat(im1, im, im1);
 					k += 1;
@@ -69,13 +130,17 @@ namespace cpp_torch
 				else cv::vconcat(im2, im1, im2);
 				if (k >= l) break;
 			}
+			if (padding)
+			{
+				im2 = padding_img(im2, padding);
+			}
 			//cv::cvtColor(im2, im2, cv::COLOR_BGR2RGB);
 			cv::imwrite(image_file_name, im2);
 
 			return im2;
 		} // main
 
-		cv::Mat  ImageWrite(const std::string& path, int M, int N, const std::string& image_file_name)
+		cv::Mat  ImageWrite(const std::string& path, int M, int N, const std::string& image_file_name, int padding = 0)
 		{
 			std::vector<string> flist;
 			std::tr2::sys::path p(path);
@@ -113,6 +178,10 @@ namespace cpp_torch
 					if (k >= l) break;
 
 					cv::Mat	im = imread(flist[k]);
+					if (padding)
+					{
+						im = padding_img(im, padding);
+					}
 					if (j == 0) im1 = im;
 					else  cv::hconcat(im1, im, im1);
 					k += 1;
@@ -120,6 +189,10 @@ namespace cpp_torch
 				if (i == 0) im2 = im1;
 				else cv::vconcat(im2, im1, im2);
 				if (k >= l) break;
+			}
+			if (padding)
+			{
+				im2 = padding_img(im2, padding);
 			}
 			//cv::cvtColor(im2, im2, cv::COLOR_BGR2RGB);
 			cv::imwrite(image_file_name, im2);
