@@ -153,6 +153,7 @@ namespace cpp_torch
 					if (
 						strstr(s.c_str(), ".bmp") == NULL && strstr(s.c_str(), ".BMP") == NULL &&
 						strstr(s.c_str(), ".jpg") == NULL && strstr(s.c_str(), ".JPG") == NULL &&
+						strstr(s.c_str(), ".jpeg") == NULL && strstr(s.c_str(), ".JPEG") == NULL &&
 						strstr(s.c_str(), ".png") == NULL && strstr(s.c_str(), ".PNG") == NULL
 						)
 					{

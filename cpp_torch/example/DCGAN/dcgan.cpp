@@ -27,9 +27,6 @@ const int64_t kNumberOfEpochs = 300;
 // After how many batches to log a new update with the loss value.
 const int64_t kLogInterval = 10;
 
-const int64_t kNumberOfTrainImages = 4256;
-//#define TEST
-
 
 // load  dataset
 std::vector<tiny_dnn::label_t> train_labels, test_labels;
@@ -39,20 +36,20 @@ void learning_and_test_dcgan_dataset(torch::Device device)
 {
 	train_images.clear();
 	printf("load images start\n");
-	cpp_torch::progress_display2 loding(kNumberOfTrainImages+1);
-	for (int i = 0; i <= kNumberOfTrainImages; i++)
-	{
-		char buf[32];
-		sprintf(buf, "%d", i);
-		std::string& file = kDataRoot + std::string("/jpg/") + std::string(buf) + ".jpg";
+	std::vector<std::string>& image_files = cpp_torch::getImageFiles(kDataRoot + std::string("/jpg"));
 
-		cpp_torch::Image* img = cpp_torch::readImage(file.c_str());
+	cpp_torch::progress_display2 loding(image_files.size() + 1);
+	for (int i = 0; i < image_files.size(); i++)
+	{
+		cpp_torch::Image* img = cpp_torch::readImage(image_files[i].c_str());
 		tiny_dnn::vec_t& v = image2vec_t(img, 3, img->height, img->width/*, 1.0/255.0*/);
 		delete img;
 
 		train_images.push_back(v);
 		loding += 1;
 	}
+	loding.end();
+	printf("load images:%d\n", train_images.size());
 
 	//image normalize (mean 0 and variance 1)
 	float mean = 0.0;

@@ -8,6 +8,7 @@ in the LICENSE file.
 #ifndef __IMAGE_HPP
 
 #define __IMAGE_HPP
+#include <filesystem>
 
 #ifndef STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_IMPLEMENTATION
@@ -150,6 +151,34 @@ namespace cpp_torch
 		return data;
 	}
 
+	std::vector<std::string> getImageFiles(const std::string& dir)
+	{
+		std::vector<std::string> flist;
+		std::tr2::sys::path p(dir);
+
+		for_each(std::tr2::sys::directory_iterator(p),
+			std::tr2::sys::directory_iterator(),
+			[&flist](const std::tr2::sys::path& p) {
+			if (std::tr2::sys::is_regular_file(p)) {
+				string s = p.string();
+				if (
+					strstr(s.c_str(), ".bmp") == NULL && strstr(s.c_str(), ".BMP") == NULL &&
+					strstr(s.c_str(), ".jpg") == NULL && strstr(s.c_str(), ".JPG") == NULL &&
+					strstr(s.c_str(), ".jpeg") == NULL && strstr(s.c_str(), ".JPEG") == NULL &&
+					strstr(s.c_str(), ".png") == NULL && strstr(s.c_str(), ".PNG") == NULL
+					)
+				{
+					/* skipp*/
+				}
+				else
+				{
+					flist.push_back(s);
+				}
+			}
+		});
+
+		return flist;
+	}
 	inline Image* readImage(const char *filename)
 	{
 		Image *img;

@@ -13,6 +13,7 @@ in the LICENSE file.
 */
 #define USE_LOSS_BCE
 //#define USE_LOSS_MSE
+//#define __Experiment
 
 namespace cpp_torch
 {
@@ -23,7 +24,10 @@ namespace cpp_torch
 	*/
 	inline torch::Tensor safe_log(torch::Tensor x)
 	{
-		return log(abs(x) + 1.0e-12);
+		x.options().requires_grad(true);
+		torch::Tensor y = log(abs(x) + 1.0e-12);
+		y.options().requires_grad(true);
+		return y;
 	}
 	//struct BCEWithLogitsLoss : torch::nn::Module {
 	//	BCEWithLogitsLoss() 
@@ -38,19 +42,26 @@ namespace cpp_torch
 //	BCEWithLogitsLoss bCEWithLogitsLoss;
 //#define LOSS_FUNC	bCEWithLogitsLoss.forward
 
-//	torch::Tensor BCEWithLogitsLoss(torch::Tensor o, torch::Tensor t)
-//	{
-//		return -(t*safe_log(torch::sigmoid(o)) + (1 - t)*safe_log(1 - torch::sigmoid(o))).mean();
-//	}
-//#define LOSS_FUNC BCEWithLogitsLoss
+	torch::Tensor BCEWithLogitsLoss(torch::Tensor o, torch::Tensor t)
+	{
+		o.options().requires_grad(true);
+		t.options().requires_grad(true);
+		torch::Tensor y = -(t*safe_log(torch::sigmoid(o)) + (1 - t)*safe_log(1 - torch::sigmoid(o))).mean();
+		
+		y.options().requires_grad(true);
+		return y;
+	}
+#define LOSS_FUNC BCEWithLogitsLoss
 #endif
 
+#ifndef 	__Experiment
 #ifdef USE_LOSS_BCE
 #define LOSS_FUNC	torch::binary_cross_entropy
 #endif
 
 #ifdef USE_LOSS_MSE
 #define LOSS_FUNC	torch::mse_loss
+#endif
 #endif
 
 
