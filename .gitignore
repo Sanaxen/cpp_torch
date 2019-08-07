@@ -32,3 +32,4 @@
 *.app
 *.bak
 cpp_torch/tool/image_concat/generated_images/Thumbs.db
+cpp_torch/tool/image_concat/images/Thumbs.db

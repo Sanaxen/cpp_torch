@@ -64,7 +64,7 @@ CIFAR10
 C++ only DCGAN (train & test)  
 <img src="./images/dcgan_train.gif" width=40%>  
 It was not possible with ** tiny-dnn **, but it became possible with ** cpp_torch(libtorch) **.
-
+<img src="./images/image_array.png" width=40%>  
 ## Requirements  
 visual studio 2015,2017  
 

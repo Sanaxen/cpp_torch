@@ -84,7 +84,7 @@ namespace cpp_torch
 			torch::Tensor out_tensor = tensor.detach();
 			out_tensor.to(torch::kCPU);
 			out_tensor = out_tensor.squeeze().detach().permute({ 1,2,0 });
-			out_tensor = out_tensor.mul(scale).clamp(0, scale).to(torch::kU8);
+			out_tensor = out_tensor.mul(scale).clamp(0, 255).to(torch::kU8);
 			out_tensor = out_tensor.to(torch::kCPU);
 
 			cv::Mat resultImg(sizes[1], sizes[2], CV_8UC3);
@@ -117,7 +117,7 @@ namespace cpp_torch
 				{
 					if (k >= l) break;
 
-					cv::Mat	im = tensorToMat(batch_tensor[k], 255.0);
+					cv::Mat	im = tensorToMat(batch_tensor[k], 1.0);
 					if (padding)
 					{
 						im = padding_img(im, padding);

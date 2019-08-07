@@ -117,13 +117,16 @@ struct DiscriminatorImpl : torch::nn::Module {
 		x = conv3->forward(x);
 		x = batchnml2->forward(x);
 		x = torch::leaky_relu_(x, 0.2);
+		x = torch::dropout(x, 0.2, is_training());
 
 		x = conv4->forward(x);
 		x = batchnml3->forward(x);
 		x = torch::leaky_relu_(x, 0.2);
+		x = torch::dropout(x, 0.2, is_training());
 		//cpp_torch::dump_dim("x", x);
 
 		x = conv5->forward(x);
+		x = torch::dropout(x, 0.2, is_training());
 		//cpp_torch::dump_dim("x", x);
 		//x = fc1->forward(x.view({ -1, 256 * 4 * 4 }));
 		//cpp_torch::dump_dim("x", x);
@@ -155,7 +158,7 @@ void learning_and_test_dcgan_dataset(torch::Device device)
 {
 	train_images.clear();
 	printf("load images start\n");
-	std::vector<std::string>& image_files = cpp_torch::getImageFiles(kDataRoot + std::string("/jpg"));
+	std::vector<std::string>& image_files = cpp_torch::getImageFiles(kDataRoot + std::string("/image"));
 
 	cpp_torch::progress_display2 loding(image_files.size() + 1);
 	for (int i = 0; i < image_files.size(); i++)
@@ -170,14 +173,16 @@ void learning_and_test_dcgan_dataset(torch::Device device)
 	loding.end();
 	printf("load images:%d\n", train_images.size());
 
+#if 0
 	//image normalize (mean 0 and variance 1)
 	float mean = 0.0;
 	float stddiv = 0.0;
 	cpp_torch::test::images_normalize(train_images, mean, stddiv);
 	printf("mean:%f stddiv:%f\n", mean, stddiv);
-
-	loding.end();
-	printf("load images:%d\n", train_images.size());
+#else
+	//image normalize [-1, 1]
+	cpp_torch::test::images_normalize_11(train_images);
+#endif
 
 	Generator g_model;
 	Discriminator d_model;
@@ -231,6 +236,8 @@ void learning_and_test_dcgan_dataset(torch::Device device)
 		torch::Tensor generated_img = g_nn.model.get()->forward(check_z);
 		g_nn.model.get()->train(true);
 
+		//generated_img = (mean + generated_img.mul(stddiv)).clamp(0, 255);
+		generated_img = ((1+generated_img).mul(128)).clamp(0, 255);
 		if (epoch % kLogInterval == 0)
 		{
 			if (epoch == kNumberOfEpochs)
@@ -241,7 +248,7 @@ void learning_and_test_dcgan_dataset(torch::Device device)
 				{
 					char fname[32];
 					sprintf(fname, "generated_images/gen%d.bmp", i);
-					cv::Mat& cv_mat = cpp_torch::cvutil::tensorToMat(generated_img[i], 255.0);
+					cv::Mat& cv_mat = cpp_torch::cvutil::tensorToMat(generated_img[i], 1);
 					cv::imwrite(fname, cv_mat);
 				}
 				cv::Mat& img = cpp_torch::cvutil::ImageWrite(generated_img, 8, 8, "image_array.bmp", 2);
