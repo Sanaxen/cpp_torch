@@ -74,15 +74,23 @@ namespace cpp_torch
 	public:
 		unsigned int height;
 		unsigned int width;
-		Rgb *data;
+		std::vector<Rgb> data;
 
 		Image()
 		{
-			data = 0;
 		}
 		~Image()
 		{
-			if (data) delete[] data;
+		}
+
+		inline Image clone()
+		{
+			Image im;
+			im.height = this->height;
+			im.width = this->width;
+			im.data = this->data;
+
+			return im;
 		}
 	};
 
@@ -106,15 +114,13 @@ namespace cpp_torch
 	}
 
 	template<class T>
-	inline Image* ToImage(T* data, int x, int y)
+	inline Image ToImage(T* data, int x, int y, int channel = 3)
 	{
-		Image *img = 0;
+		Image img;
 
-		img = new Image;
-		img->data = new Rgb[x*y];
-		memset(img->data, '\0', sizeof(Rgb)*x*y);
-		img->height = y;
-		img->width = x;
+		img.data.resize(x*y);
+		img.height = y;
+		img.width = x;
 
 #pragma omp parallel for
 		for (int i = 0; i < y; i++)
@@ -123,9 +129,24 @@ namespace cpp_torch
 			{
 				int pos = i * x + j;
 
-				img->data[pos].r = data[3 * pos + 0];
-				img->data[pos].g = data[3 * pos + 1];
-				img->data[pos].b = data[3 * pos + 2];
+				if (channel == 3)
+				{
+					img.data[pos].r = data[3 * pos + 0];
+					img.data[pos].g = data[3 * pos + 1];
+					img.data[pos].b = data[3 * pos + 2];
+				}
+				if (channel == 2)
+				{
+					img.data[pos].r = data[2 * pos + 0];
+					img.data[pos].g = data[2 * pos + 1];
+					//img.data[pos].b = data[2 * pos + 1];
+				}
+				if (channel == 1)
+				{
+					img.data[pos].r = data[1 * pos + 0];
+					//img.data[pos].g = data[1 * pos + 0];
+					//img.data[pos].b = data[1 * pos + 0];
+				}
 			}
 		}
 		return img;
@@ -179,9 +200,9 @@ namespace cpp_torch
 
 		return flist;
 	}
-	inline Image* readImage(const char *filename)
+	inline Image readImage(const char *filename)
 	{
-		Image *img;
+		Image img;
 
 		unsigned char *data = 0;
 		int x, y;
@@ -190,15 +211,13 @@ namespace cpp_torch
 		if (data == NULL)
 		{
 			printf("image file[%s] read error.\n", filename);
-			return NULL;
+			return img;
 		}
 		//printf("height %d   width %d \n", y, x);
 
-		img = new Image;
-		img->data = new Rgb[x*y];
-		memset(img->data, '\0', sizeof(Rgb)*x*y);
-		img->height = y;
-		img->width = x;
+		img.data.resize(x*y);
+		img.height = y;
+		img.width = x;
 
 #pragma omp parallel for
 		for (int i = 0; i < y; ++i) {
@@ -206,34 +225,34 @@ namespace cpp_torch
 				if (nbit == 1)	//8bit
 				{
 					int pos = (i*x + j);
-					img->data[pos].r = data[pos];
-					img->data[pos].g = data[pos];
-					img->data[pos].b = data[pos];
-					img->data[pos].alp = 255;
+					img.data[pos].r = data[pos];
+					img.data[pos].g = data[pos];
+					img.data[pos].b = data[pos];
+					img.data[pos].alp = 255;
 				}
 				if (nbit == 2)	//16bit
 				{
 					int pos = (i*x + j);
-					img->data[pos].r = data[pos * 2 + 0];
-					img->data[pos].g = data[pos * 2 + 0];
-					img->data[pos].b = data[pos * 2 + 0];
-					img->data[pos].alp = data[pos * 2 + 1];
+					img.data[pos].r = data[pos * 2 + 0];
+					img.data[pos].g = data[pos * 2 + 0];
+					img.data[pos].b = data[pos * 2 + 0];
+					img.data[pos].alp = data[pos * 2 + 1];
 				}
 				if (nbit == 3)	//24
 				{
 					int pos = (i*x + j);
-					img->data[pos].r = data[pos * 3 + 0];
-					img->data[pos].g = data[pos * 3 + 1];
-					img->data[pos].b = data[pos * 3 + 2];
-					img->data[pos].alp = 255;
+					img.data[pos].r = data[pos * 3 + 0];
+					img.data[pos].g = data[pos * 3 + 1];
+					img.data[pos].b = data[pos * 3 + 2];
+					img.data[pos].alp = 255;
 				}
 				if (nbit == 4)	//32
 				{
 					int pos = (i*x + j);
-					img->data[pos].r = data[pos * 4 + 0];
-					img->data[pos].g = data[pos * 4 + 1];
-					img->data[pos].b = data[pos * 4 + 2];
-					img->data[pos].alp = data[pos * 4 + 3];
+					img.data[pos].r = data[pos * 4 + 0];
+					img.data[pos].g = data[pos * 4 + 1];
+					img.data[pos].b = data[pos * 4 + 2];
+					img.data[pos].alp = data[pos * 4 + 3];
 				}
 			}
 		}
@@ -352,9 +371,9 @@ namespace cpp_torch
 #pragma omp parallel for
 			for (int i = 0; i < img->height*img->width; i++)
 			{
-				img->data[i].r = (unsigned char)(std::min((float_t)255.0, LUT_HC[(unsigned char)img->data[i].r] * img->data->r));
-				img->data[i].g = (unsigned char)(std::min((float_t)255.0, LUT_HC[(unsigned char)img->data[i].g] * img->data->r));
-				img->data[i].b = (unsigned char)(std::min((float_t)255.0, LUT_HC[(unsigned char)img->data[i].b] * img->data->r));
+				img->data[i].r = (unsigned char)(std::min((float_t)255.0, LUT_HC[(unsigned char)img->data[i].r] * img->data[i].r));
+				img->data[i].g = (unsigned char)(std::min((float_t)255.0, LUT_HC[(unsigned char)img->data[i].g] * img->data[i].g));
+				img->data[i].b = (unsigned char)(std::min((float_t)255.0, LUT_HC[(unsigned char)img->data[i].b] * img->data[i].b));
 			}
 		}
 		void high(double* data, int x, int y)
@@ -382,9 +401,9 @@ namespace cpp_torch
 #pragma omp parallel for
 			for (int i = 0; i < img->height*img->width; i++)
 			{
-				img->data[i].r = (unsigned char)(std::min((float_t)255.0, LUT_LC[(unsigned char)img->data[i].r] * img->data->r));
-				img->data[i].g = (unsigned char)(std::min((float_t)255.0, LUT_LC[(unsigned char)img->data[i].g] * img->data->g));
-				img->data[i].b = (unsigned char)(std::min((float_t)255.0, LUT_LC[(unsigned char)img->data[i].b] * img->data->b));
+				img->data[i].r = (unsigned char)(std::min((float_t)255.0, LUT_LC[(unsigned char)img->data[i].r] * img->data[i].r));
+				img->data[i].g = (unsigned char)(std::min((float_t)255.0, LUT_LC[(unsigned char)img->data[i].g] * img->data[i].g));
+				img->data[i].b = (unsigned char)(std::min((float_t)255.0, LUT_LC[(unsigned char)img->data[i].b] * img->data[i].b));
 			}
 		}
 		void low(double* data, int x, int y)
@@ -524,48 +543,46 @@ namespace cpp_torch
 						{
 							int pos = ((i + ii)*x + (j + jj));
 							if (pos >= x * y) continue;
-							r += img[pos].data->r * weight[ii][jj];
-							g += img[pos].data->g * weight[ii][jj];
-							b += img[pos].data->b * weight[ii][jj];
+							r += img->data[pos].r * weight[ii][jj];
+							g += img->data[pos].g * weight[ii][jj];
+							b += img->data[pos].b * weight[ii][jj];
 						}
 					}
 					r /= 9.0;
 					g /= 9.0;
 					b /= 9.0;
 					int pos = i * x + j;
-					img[pos].data->r = (unsigned char)std::min(255.0, r);
-					img[pos].data->g = (unsigned char)std::min(255.0, g);
-					img[pos].data->b = (unsigned char)std::min(255.0, b);
+					img->data[pos].r = (unsigned char)std::min(255.0, r);
+					img->data[pos].g = (unsigned char)std::min(255.0, g);
+					img->data[pos].b = (unsigned char)std::min(255.0, b);
 				}
 			}
 		}
 		void filter(double* data, int x, int y)
 		{
-			Image* img = ToImage(data, x, y);
-			filter(img);
+			Image img = ToImage(data, x, y);
+			filter(&img);
 
-			double* data2 = ImageTo<double>(img);
+			double* data2 = ImageTo<double>(&img);
 #pragma omp parallel for
 			for (int i = 0; i < x*y * 3; i++)
 			{
 				data[i] = data2[i];
 			}
 			delete[] data2;
-			delete img;
 		}
 		void filter(unsigned char* data, int x, int y)
 		{
-			Image* img = ToImage(data, x, y);
-			filter(img);
+			Image img = ToImage(data, x, y);
+			filter(&img);
 
-			unsigned char* data2 = ImageTo<unsigned char>(img);
+			unsigned char* data2 = ImageTo<unsigned char>(&img);
 #pragma omp parallel for
 			for (int i = 0; i < x*y * 3; i++)
 			{
 				data[i] = data2[i];
 			}
 			delete[] data2;
-			delete img;
 		}
 	};
 
@@ -594,10 +611,10 @@ namespace cpp_torch
 
 			int Rx = x + 2 * fx;
 			int Ry = y + 2 * fy;
-			Image* RimgI = new Image;
-			RimgI->data = new Rgb[Rx*Ry];
-			RimgI->height = Ry;
-			RimgI->width = Rx;
+			Image RimgI;
+			RimgI.data.resize(Rx*Ry);
+			RimgI.height = Ry;
+			RimgI.width = Rx;
 
 			//Šg‘å—Ìˆæ‚É•¡ŽÊ
 #pragma omp parallel for
@@ -608,7 +625,7 @@ namespace cpp_torch
 					int pos = i * Rx + j;
 					if (i - fy >= 0 && i - fy < y && j - fx >= 0 && j - fx < x)
 					{
-						RimgI->data[pos] = img->data[(i - fy) * x + (j - fx)];
+						RimgI.data[pos] = img->data[(i - fy) * x + (j - fx)];
 					}
 					else
 					{
@@ -625,14 +642,13 @@ namespace cpp_torch
 						if (jj < 0) jj = 0;
 
 						pos = i * Rx + j;
-						RimgI->data[pos] = img->data[ii * x + jj];
+						RimgI.data[pos] = img->data[ii * x + jj];
 					}
 				}
 			}
 
 			//‰ñ“]‚³‚¹‚é‚½‚ß‚Ì•¡»
-			Rgb* data = new Rgb[Rx*Ry];
-			memcpy(data, RimgI->data, sizeof(Rgb)*Rx*Ry);
+			std::vector<Rgb> data = RimgI.data;
 
 			centerX = Rx / 2.0;
 			centerY = Ry / 2.0;
@@ -648,10 +664,10 @@ namespace cpp_torch
 
 					// poiuntX, pointY‚ª“ü—Í‰æ‘œ‚Ì—LŒø”ÍˆÍ‚É‚ ‚ê‚Îo—Í‰æ‘œ‚Ö‘ã“ü‚·‚é
 					if (pointX >= 0 && pointX < Rx && pointY >= 0 && pointY < Ry) {
-						RimgI->data[pos] = data[pointY * Rx + pointX];
+						RimgI.data[pos] = data[pointY * Rx + pointX];
 					}
 					else {
-						RimgI->data[pos] = Rgb(0, 0, 0);
+						RimgI.data[pos] = Rgb(0, 0, 0);
 					}
 				}
 			}
@@ -665,41 +681,37 @@ namespace cpp_torch
 					int pos = i * Rx + j;
 					if (i - fy >= 0 && i - fy < y && j - fx >= 0 && j - fx < x)
 					{
-						img->data[(i - fy) * x + (j - fx)] = RimgI->data[pos];
+						img->data[(i - fy) * x + (j - fx)] = RimgI.data[pos];
 					}
 				}
 			}
-			delete[] data;
-			delete RimgI;
 		}
 
 		void rotation(double* data, int x, int y, const double rad)
 		{
-			Image* img = ToImage(data, x, y);
-			rotation(img, rad);
+			Image img = ToImage(data, x, y);
+			rotation(&img, rad);
 
-			double* data2 = ImageTo<double>(img);
+			double* data2 = ImageTo<double>(&img);
 #pragma omp parallel for
 			for (int i = 0; i < x*y * 3; i++)
 			{
 				data[i] = data2[i];
 			}
-			delete img;
 			delete[] data2;
 		}
 
 		void rotation(unsigned char* data, int x, int y, const double rad)
 		{
-			Image* img = ToImage(data, x, y);
-			rotation(img, rad);
+			Image img = ToImage(data, x, y);
+			rotation(&img, rad);
 
-			unsigned char* data2 = ImageTo<unsigned char>(img);
+			unsigned char* data2 = ImageTo<unsigned char>(&img);
 #pragma omp parallel for
 			for (int i = 0; i < x*y * 3; i++)
 			{
 				data[i] = data2[i];
 			}
-			delete img;
 			delete[] data2;
 		}
 	};
@@ -713,8 +725,7 @@ namespace cpp_torch
 			const int x = img->width;
 			const int y = img->height;
 
-			Rgb* data = new Rgb[x*y];
-			memcpy(data, img->data, sizeof(Rgb)*x*y);
+			std::vector<Rgb> data = img->data;
 
 			if (axis == 1)
 			{
@@ -795,37 +806,34 @@ namespace cpp_torch
 					}
 				}
 			}
-			delete[] data;
 		}
 
 		void sift(double* data, int x, int y, const int axis, const int delta)
 		{
-			Image* img = ToImage(data, x, y);
-			sift(img, axis, delta);
+			Image img = ToImage(data, x, y);
+			sift(&img, axis, delta);
 
-			double* data2 = ImageTo<double>(img);
+			double* data2 = ImageTo<double>(&img);
 #pragma omp parallel for
 			for (int i = 0; i < x*y * 3; i++)
 			{
 				data[i] = data2[i];
 			}
 			delete[] data2;
-			delete img;
 		}
 
 		void sift(unsigned char* data, int x, int y, const int axis, const int delta)
 		{
-			Image* img = ToImage(data, x, y);
-			sift(img, axis, delta);
+			Image img = ToImage(data, x, y);
+			sift(&img, axis, delta);
 
-			unsigned char* data2 = ImageTo<unsigned char>(img);
+			unsigned char* data2 = ImageTo<unsigned char>(&img);
 #pragma omp parallel for
 			for (int i = 0; i < x*y * 3; i++)
 			{
 				data[i] = data2[i];
 			}
 			delete[] data2;
-			delete img;
 		}
 	};
 
@@ -842,10 +850,10 @@ namespace cpp_torch
 			int Rx = x + 2 * padding_sz;
 			int Ry = y + 2 * padding_sz;
 
-			Image* RimgI = new Image;
-			RimgI->data = new Rgb[Rx*Ry];
-			RimgI->height = Ry;
-			RimgI->width = Rx;
+			Image RimgI;
+			RimgI.data.resize(Rx*Ry);
+			RimgI.height = Ry;
+			RimgI.width = Rx;
 
 #pragma omp parallel for
 			for (int i = 0; i < Ry; i++)
@@ -855,45 +863,44 @@ namespace cpp_torch
 					int pos = i * Rx + j;
 					if (i - padding_sz >= 0 && i - padding_sz < y && j - padding_sz >= 0 && j - padding_sz < x)
 					{
-						RimgI->data[pos] = img->data[(i - padding_sz) * x + (j - padding_sz)];
+						RimgI.data[pos] = img->data[(i - padding_sz) * x + (j - padding_sz)];
 					}
 					else
 					{
 						//Šg‘å‚µ‚ÄL‚°‚½‚Æ‚±‚ë‚Ípadding_value
 						pos = i * Rx + j;
-						RimgI->data[pos] = Rgb(padding_value, padding_value, padding_value);
+						RimgI.data[pos] = Rgb(padding_value, padding_value, padding_value);
 					}
 				}
 			}
-			delete[] img->data;
-			img->data = RimgI->data;
-			img->height = RimgI->height;
-			img->width = RimgI->width;
+			img->data = RimgI.data;
+			img->height = RimgI.height;
+			img->width = RimgI.width;
 		}
 
 		void padding(double** data, int x, int y, const int padding_sz, const float padding_value)
 		{
-			Image* img = ToImage<double>(*data, x, y);
-			padding(img, padding_sz, padding_value);
+			Image img = ToImage<double>(*data, x, y);
+			padding(&img, padding_sz, padding_value);
 
 			delete[] * data;
-			*data = ImageTo<double>(img);
+			*data = ImageTo<double>(&img);
 		}
 
 		void padding(unsigned char** data, int x, int y, const int padding_sz, const float padding_value)
 		{
-			Image* img = ToImage<unsigned char>(*data, x, y);
-			padding(img, padding_sz, padding_value);
+			Image img = ToImage<unsigned char>(*data, x, y);
+			padding(&img, padding_sz, padding_value);
 
 			delete[] * data;
-			*data = ImageTo<unsigned char>(img);
+			*data = ImageTo<unsigned char>(&img);
 		}
 	};
 
 
-	Image* vec_t2image(std::vector<float_t>& img, int channel, int height, int width)
+	Image vec_t2image(std::vector<float_t>& img, int channel, int height, int width)
 	{
-		std::vector<unsigned char> image_data(channel*height*width);
+		std::vector<float_t> image_data(channel*height*width);
 		int k = 0;
 		for (int y = 0; y < height; y++) {
 			for (int x = 0; x < width; x++) {
@@ -906,17 +913,48 @@ namespace cpp_torch
 				}
 			}
 		}
-		return ToImage(&(image_data[0]), height, width);
+		return ToImage(&(image_data[0]), height, width, channel);
 	}
-	std::vector<float_t> image2vec_t(Image* img, int channel, int height, int width, float scale = 1.0)
+	std::vector<float_t> image2vec_t(Image* img, int in_channel, int height, int width, float scale = 1.0)
 	{
-		std::vector<float_t> image_data(channel*height*width);
+		std::vector<float_t> image_data(in_channel*height*width);
 		int k = 0;
 		for (int y = 0; y < height; y++) {
 			for (int x = 0; x < width; x++) {
 				image_data[0 * height*width + y * width + x] = img->data[k].r* scale;
-				image_data[1 * height*width + y * width + x] = img->data[k].g* scale;
-				image_data[2 * height*width + y * width + x] = img->data[k].b* scale;
+				if (in_channel >= 2)
+				{
+					image_data[1 * height*width + y * width + x] = img->data[k].g* scale;
+					if (in_channel == 3)
+					{
+						image_data[2 * height*width + y * width + x] = img->data[k].b* scale;
+					}
+				}
+				k++;
+			}
+		}
+		return image_data;
+	}
+
+	std::vector<float_t> image_channel2vec_t(Image* img, int get_channel, int height, int width, float scale = 1.0)
+	{
+		std::vector<float_t> image_data(1*height*width);
+
+		int k = 0;
+		for (int y = 0; y < height; y++) {
+			for (int x = 0; x < width; x++) {
+				if (get_channel == 1)
+				{
+					image_data[y * width + x] = img->data[k].r* scale;
+				}
+				if (get_channel == 2)
+				{
+					image_data[y * width + x] = img->data[k].g* scale;
+				}
+				if (get_channel == 3)
+				{
+					image_data[y * width + x] = img->data[k].b* scale;
+				}
 				k++;
 			}
 		}
@@ -930,9 +968,8 @@ namespace cpp_torch
 		std::mt19937 mt(rnd());
 		std::uniform_real_distribution<> rand(0.0, 1.0);
 
-		Image* img = vec_t2image(vec, 3, y, x);
-		unsigned char* data_p = ImageTo<unsigned char>(img);
-		delete img;
+		Image img = vec_t2image(vec, 3, y, x);
+		unsigned char* data_p = ImageTo<unsigned char>(&img);
 
 		std::vector<unsigned char> data;
 		data.assign(data_p, data_p + 3 * y*x);
@@ -952,9 +989,8 @@ namespace cpp_torch
 					data2[i * 3 + 2] = 255 * pow(data[i * 3 + 2] / 255.0, 1.0 / g);
 				}
 			}
-			Image* img2 = ToImage<unsigned char>(&data2[0], x, y);
-			vec = image2vec_t(img2, 3, y, x);
-			delete img2;
+			Image img2 = ToImage<unsigned char>(&data2[0], x, y);
+			vec = image2vec_t(&img2, 3, y, x);
 			return;
 		}
 
@@ -973,9 +1009,8 @@ namespace cpp_torch
 					data2[pos * 3 + 2] = data[pos2 * 3 + 2];
 				}
 			}
-			Image* img2 = ToImage<unsigned char>(&data2[0], x, y);
-			vec = image2vec_t(img2, 3, y, x);
-			delete img2;
+			Image img2 = ToImage<unsigned char>(&data2[0], x, y);
+			vec = image2vec_t(&img2, 3, y, x);
 			return;
 		}
 
@@ -994,9 +1029,8 @@ namespace cpp_torch
 				data2[i * 3 + 1] = data[i * 3 + 1] * gg;
 				data2[i * 3 + 2] = data[i * 3 + 2] * bb;
 			}
-			Image* img2 = ToImage<unsigned char>(&data2[0], x, y);
-			vec = image2vec_t(img2, 3, y, x);
-			delete img2;
+			Image img2 = ToImage<unsigned char>(&data2[0], x, y);
+			vec = image2vec_t(&img2, 3, y, x);
 			return;
 		}
 
@@ -1009,9 +1043,8 @@ namespace cpp_torch
 			img_noize nz(15.0, rand(mt));
 			nz.noize(&data2[0], x, y);
 
-			Image* img2 = ToImage<unsigned char>(&data2[0], x, y);
-			vec = image2vec_t(img2, 3, y, x);
-			delete img2;
+			Image img2 = ToImage<unsigned char>(&data2[0], x, y);
+			vec = image2vec_t(&img2, 3, y, x);
 			return;
 		}
 		//double g;
@@ -1024,9 +1057,8 @@ namespace cpp_torch
 			img_rotation rot;
 			rot.rotation(&data2[0], x, y, (rand(mt) < 0.5 ? 1.0 : -1.0)*(std::max(0.1, rand(mt))*M_PI / 180.0));
 
-			Image* img2 = ToImage<unsigned char>(&data2[0], x, y);
-			vec = image2vec_t(img2, 3, y, x);
-			delete img2;
+			Image img2 = ToImage<unsigned char>(&data2[0], x, y);
+			vec = image2vec_t(&img2, 3, y, x);
 			return;
 		}
 
@@ -1061,13 +1093,136 @@ namespace cpp_torch
 				}
 			}
 
-			Image* img2 = ToImage<unsigned char>(&data2[0], x, y);
-			vec = image2vec_t(img2, 3, y, x);
-			delete img2;
+			Image img2 = ToImage<unsigned char>(&data2[0], x, y);
+			vec = image2vec_t(&img2, 3, y, x);
 			return;
 		}
 		return;
 	}
+
+	inline void clump(float& x, float min_, float max_)
+	{
+		if (x < min_) x = min_;
+		if (x > max_) x = max_;
+	}
+	inline void RGB2YCbCr(float R, float G, float B, float& Y, float& Cb, float& Cr)
+	{
+		Y = 0.257*R + 0.504*G + 0.098*B + 16;
+		Cb = -0.148*R - 0.291*G + 0.439*B + 128;
+		Cr = 0.439*R - 0.368*G - 0.071*B + 128;
+		//Y = 0.299*R + 0.587*G + 0.114*B;
+		//Cr = 0.500*R - 0.419*G - 0.081*B;
+		//Cb = -0.169*R - 0.332*G + 0.500*B;
+
+		clump(Y, 0, 255);
+		clump(Cr, 0, 255);
+		clump(Cb, 0, 255);
+	}
+	inline void YCbCr2RGB(float Y, float Cb, float Cr, float& R, float& G, float& B)
+	{
+		R = 1.164*(Y - 16) + 1.596*(Cr - 128);
+		G = 1.164*(Y - 16) - 0.391*(Cb - 128) - 0.813*(Cr - 128);
+		B = 1.164*(Y - 16) + 2.018*(Cb - 128);
+		//R = Y + 1.402*Cr;
+		//G = Y - 0.714*Cr - 0.344*Cb;
+		//B = Y + 1.772*Cb;
+
+		clump(R, 0, 255);
+		clump(G, 0, 255);
+		clump(B, 0, 255);
+	}
+
+	inline void ImageRGB2YCbCr(cpp_torch::Image* image)
+	{
+		std::vector<cpp_torch::Rgb> data = std::vector<cpp_torch::Rgb>(image->height*image->width);
+
+#pragma omp parallel for
+		for (int i = 0; i < image->height; i++)
+		{
+			for (int j = 0; j < image->width; j++)
+			{
+				RGB2YCbCr(
+					image->data[i*image->width + j].r,
+					image->data[i*image->width + j].g,
+					image->data[i*image->width + j].b,
+					data[i*image->width + j].r,
+					data[i*image->width + j].g,
+					data[i*image->width + j].b);
+			}
+		}
+		image->data = data;
+	}
+
+	inline void ImageYCbCr2RGB(cpp_torch::Image* image)
+	{
+		std::vector<cpp_torch::Rgb> data = std::vector<cpp_torch::Rgb>(image->height*image->width);
+
+#pragma omp parallel for
+		for (int i = 0; i < image->height; i++)
+		{
+			for (int j = 0; j < image->width; j++)
+			{
+				YCbCr2RGB(
+					image->data[i*image->width + j].r,
+					image->data[i*image->width + j].g,
+					image->data[i*image->width + j].b,
+					data[i*image->width + j].r,
+					data[i*image->width + j].g,
+					data[i*image->width + j].b);
+			}
+		}
+		image->data = data;
+	}
+
+	inline void ImageChgChannel(cpp_torch::Image* imageY, cpp_torch::Image* imageYCbCr, int channel)
+	{
+#pragma omp parallel for
+		for (int i = 0; i < imageY->height; i++)
+		{
+			for (int j = 0; j < imageY->width; j++)
+			{
+				if (channel == 1)
+				{
+					imageY->data[i*imageY->width + j].r = imageYCbCr->data[i*imageY->width + j].r;
+				}
+				if (channel == 2)
+				{
+					imageY->data[i*imageY->width + j].g = imageYCbCr->data[i*imageY->width + j].g;
+				}
+				if (channel == 3)
+				{
+					imageY->data[i*imageY->width + j].b = imageYCbCr->data[i*imageY->width + j].b;
+				}
+			}
+		}
+	}
+
+	inline void ImageGetChannel(cpp_torch::Image* image, int channel)
+	{
+#pragma omp parallel for
+		for (int i = 0; i < image->height; i++)
+		{
+			for (int j = 0; j < image->width; j++)
+			{
+				if (channel == 1)
+				{
+					image->data[i*image->width + j].g = 0;
+					image->data[i*image->width + j].b = 0;
+				}
+				if (channel == 2)
+				{
+					image->data[i*image->width + j].r = 0;
+					image->data[i*image->width + j].b = 0;
+				}
+				if (channel == 3)
+				{
+					image->data[i*image->width + j].r = 0;
+					image->data[i*image->width + j].g = 0;
+				}
+			}
+		}
+	}
+
 }
 //#undef STB_IMAGE_IMPLEMENTATION
 

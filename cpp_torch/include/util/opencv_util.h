@@ -28,28 +28,28 @@ namespace cpp_torch
 			{
 				for (int j = 0; j < img->width; j++)
 				{
-					cvimg.at<cv::Vec3b>(i, j)[0] = img->data[i*img->height + j].b;//Blue
-					cvimg.at<cv::Vec3b>(i, j)[1] = img->data[i*img->height + j].g; //Green
-					cvimg.at<cv::Vec3b>(i, j)[2] = img->data[i*img->height + j].r; //Red	
+					cvimg.at<cv::Vec3b>(i, j)[0] = img->data[i*img->width + j].b;//Blue
+					cvimg.at<cv::Vec3b>(i, j)[1] = img->data[i*img->width + j].g; //Green
+					cvimg.at<cv::Vec3b>(i, j)[2] = img->data[i*img->width + j].r; //Red	
 				}
 			}
 			return cvimg;
 		}
-		Image* cvMatToImage(const cv::Mat& cvimg)
+		Image cvMatToImage(const cv::Mat& cvimg)
 		{
-			Image* im = new Image;
-			im->height = cvimg.rows;
-			im->width = cvimg.cols;
-			im->data = new Rgb[im->height*im->width];
+			Image im;
+			im.height = cvimg.rows;
+			im.width = cvimg.cols;
+			im.data.resize(im.height*im.width);
 
 #pragma omp parallel for
-			for (int i = 0; i < im->height; i++)
+			for (int i = 0; i < im.height; i++)
 			{
-				for (int j = 0; j < im->width; j++)
+				for (int j = 0; j < im.width; j++)
 				{
-					im->data[i*im->height + j].b = cvimg.at<cv::Vec3b>(i, j)[0];//Blue
-					im->data[i*im->height + j].g = cvimg.at<cv::Vec3b>(i, j)[1]; //Green
-					im->data[i*im->height + j].r = cvimg.at<cv::Vec3b>(i, j)[2]; //Red	
+					im.data[i*im.width + j].b = cvimg.at<cv::Vec3b>(i, j)[0];//Blue
+					im.data[i*im.width + j].g = cvimg.at<cv::Vec3b>(i, j)[1]; //Green
+					im.data[i*im.width + j].r = cvimg.at<cv::Vec3b>(i, j)[2]; //Red	
 				}
 			}
 			return im;
@@ -81,6 +81,11 @@ namespace cpp_torch
 		{
 			auto sizes = tensor.sizes();
 			//printf("%d %d %d\n", sizes[0], sizes[1], sizes[2]);
+			if (sizes.size() > 3)
+			{
+				printf("%d %d %d\n", sizes[0], sizes[1], sizes[2]);
+				throw error_exception("tensorToMat input size error.");
+			}
 			torch::Tensor out_tensor = tensor.detach();
 			out_tensor.to(torch::kCPU);
 			out_tensor = out_tensor.squeeze().detach().permute({ 1,2,0 });

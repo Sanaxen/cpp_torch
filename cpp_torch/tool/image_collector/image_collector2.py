@@ -11,5 +11,5 @@ if not os.path.isdir(argv[1]):
 
 
 crawler = GoogleImageCrawler(storage = {"root_dir" : argv[1]})
-crawler.crawl(keyword = argv[2], max_num = 10000)
+crawler.crawl(keyword = argv[2], max_num = 1000)
 #

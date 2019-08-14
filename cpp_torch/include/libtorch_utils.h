@@ -181,10 +181,9 @@ namespace cpp_torch
 		{
 			img[0][i] *= scale;
 		}
-		Image* rgb_img = vec_t2image(img[0], channels, h, w);
+		Image rgb_img = vec_t2image(img[0], channels, h, w);
 
-		ImageWrite(filename.c_str(), rgb_img);
-		delete rgb_img;
+		ImageWrite(filename.c_str(), &rgb_img);
 #else
 		throw error_exception("undefined USE_IMAGE_UTIL");
 #endif
@@ -493,6 +492,7 @@ namespace cpp_torch
 		/**
 		 * @param optimizer          optimizing algorithm for training
 		 * @param images             array of input data
+		 * @param labels             array of labels output
 		 * @param kTrainBatchSize    number of mini-batch
 		 * @param kNumberOfEpochs    number of training epochs
 		 * @param on_batch_enumerate callback for each mini-batch enumerate

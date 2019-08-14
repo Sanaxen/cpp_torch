@@ -9,6 +9,9 @@ in the LICENSE file.
 
 #define _CONFIG_H
 
+//#define USE_LIBTORCH_110
+#define USE_LIBTORCH_120
+
 #define USE_COLOR_CONSOLE
 #define USE_WINDOWS
 #define USE_ZLIB
