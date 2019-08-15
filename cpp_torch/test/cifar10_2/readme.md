@@ -8,5 +8,5 @@
 [CIFAR-10 binary version (suitable for C programs)](https://www.cs.toronto.edu/~kriz/cifar-10-binary.tar.gz)
 
 accuracy:**83.29%**  
-data augmet 50000 -> 250000  
+data augment 50000 -> 250000  
 kaggle Top **20%** 46/231 teams  
