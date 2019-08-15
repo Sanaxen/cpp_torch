@@ -59,6 +59,7 @@ namespace cpp_torch
 			}
 			printf("%d\n", t.sizes()[t.sizes().size() - 1]);
 		}
+		fflush(stdout);
 	}
 	inline void dump_dim(char* s, torch::Tensor& t)
 	{
@@ -307,7 +308,7 @@ namespace cpp_torch
 				{
 					for (int k = 0; k < kTrainBatchSize; k++)
 					{
-						index[k] = batch_idx*kTrainBatchSize + k;
+						index[k] = (batch_idx*kTrainBatchSize + k) % images.size();
 					}
 				}
 				get_BATCH(images, batch_x[batch_idx], kTrainBatchSize, index);
@@ -365,7 +366,7 @@ namespace cpp_torch
 				{
 					for (int k = 0; k < kTrainBatchSize; k++)
 					{
-						index[k] = batch_idx*kTrainBatchSize + k;
+						index[k] = (batch_idx*kTrainBatchSize + k) % images.size();
 					}
 				}
 				get_BATCH(images, labels, batch_x[batch_idx], batch_y[batch_idx], kTrainBatchSize, index);
@@ -431,6 +432,12 @@ namespace cpp_torch
 			{
 				generate_BATCH(images, labels, batch_x, batch_y);
 				batchNum = batch_x.size();
+
+				for (int i = 0; i < batchNum; i++)
+				{
+					batch_x[i] = batch_x[i].to(device);
+					batch_y[i] = batch_y[i].to(device);
+				}
 			}
 
 			optimizer->zero_grad();
@@ -442,6 +449,11 @@ namespace cpp_torch
 				{
 					generate_BATCH(images, labels, batch_x, batch_y);
 					batchNum = batch_x.size();
+					for (int i = 0; i < batchNum; i++)
+					{
+						batch_x[i] = batch_x[i].to(device);
+						batch_y[i] = batch_y[i].to(device);
+					}
 				}
 				loss_value = 0.0;
 
@@ -451,8 +463,8 @@ namespace cpp_torch
 					torch::Tensor& data = batch_x[batch_idx];
 					torch::Tensor& targets = batch_y[batch_idx];
 
-					data = data.to(device);
-					targets = targets.to(device);
+					//data = data.to(device);
+					//targets = targets.to(device);
 
 					optimizer->zero_grad();
 					auto output = model.get()->forward(data);
@@ -576,7 +588,7 @@ namespace cpp_torch
 				std::vector<int> index(kTestBatchSize);
 				for (int k = 0; k < kTestBatchSize; k++)
 				{
-					index[k] = kTestBatchSize * test + k;
+					index[k] = (kTestBatchSize * test + k) % images.size();
 				}
 				get_BATCH(images, labels, batch_x, batch_y, kTestBatchSize, index);
 
@@ -815,7 +827,7 @@ namespace cpp_torch
 					std::vector<int> index(BatchSize);
 					for (int k = 0; k < BatchSize; k++)
 					{
-						index[k] = i* BatchSize + k;
+						index[k] = (i* BatchSize + k) % images.size();
 					}
 					get_BATCH(images, labels, batch_x[i], batch_y[i], BatchSize, index);
 

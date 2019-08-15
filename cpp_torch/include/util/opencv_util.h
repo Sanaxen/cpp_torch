@@ -23,15 +23,16 @@ namespace cpp_torch
 		cv::Mat ImgeTocvMat(const Image* img)
 		{
 			cv::Mat cvimg(img->height, img->width, CV_8UC3);
+
+			const size_t sz = img->height*img->width;
 #pragma omp parallel for
-			for (int i = 0; i < img->height; i++)
+			for (int k = 0; k < sz; k++)
 			{
-				for (int j = 0; j < img->width; j++)
-				{
-					cvimg.at<cv::Vec3b>(i, j)[0] = img->data[i*img->width + j].b;//Blue
-					cvimg.at<cv::Vec3b>(i, j)[1] = img->data[i*img->width + j].g; //Green
-					cvimg.at<cv::Vec3b>(i, j)[2] = img->data[i*img->width + j].r; //Red	
-				}
+				const int i = k / img->width;
+				const int j = k % img->width;
+				cvimg.at<cv::Vec3b>(i, j)[0] = img->data[k].b;//Blue
+				cvimg.at<cv::Vec3b>(i, j)[1] = img->data[k].g; //Green
+				cvimg.at<cv::Vec3b>(i, j)[2] = img->data[k].r; //Red	
 			}
 			return cvimg;
 		}
@@ -42,22 +43,22 @@ namespace cpp_torch
 			im.width = cvimg.cols;
 			im.data.resize(im.height*im.width);
 
+			const size_t sz = im.height*im.width;
 #pragma omp parallel for
-			for (int i = 0; i < im.height; i++)
+			for (int k = 0; k < sz; k++)
 			{
-				for (int j = 0; j < im.width; j++)
-				{
-					im.data[i*im.width + j].b = cvimg.at<cv::Vec3b>(i, j)[0];//Blue
-					im.data[i*im.width + j].g = cvimg.at<cv::Vec3b>(i, j)[1]; //Green
-					im.data[i*im.width + j].r = cvimg.at<cv::Vec3b>(i, j)[2]; //Red	
-				}
+				const int i = k / im.width;
+				const int j = k % im.width;
+				im.data[k].b = cvimg.at<cv::Vec3b>(i, j)[0];//Blue
+				im.data[k].g = cvimg.at<cv::Vec3b>(i, j)[1]; //Green
+				im.data[k].r = cvimg.at<cv::Vec3b>(i, j)[2]; //Red	
 			}
 			return im;
 		}
 
 		void resize(cv::Mat& cvimg, int h, int w)
 		{
-		cv:resize(cvimg, cvimg, cv::Size(), (double)(w) / cvimg.cols, (double)(h) / cvimg.rows);
+			cv:resize(cvimg, cvimg, cv::Size(), (double)(w) / cvimg.cols, (double)(h) / cvimg.rows);
 		}
 		void resize(cv::Mat& cvimg, int padding)
 		{

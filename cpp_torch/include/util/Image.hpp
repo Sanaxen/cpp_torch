@@ -98,17 +98,13 @@ namespace cpp_torch
 	{
 		std::vector<unsigned char> data(3 * img->height*img->width);
 
+		const size_t sz = img->height*img->width;
 #pragma omp parallel for
-		for (int i = 0; i < img->height; i++)
+		for (int i = 0; i < sz; i++)
 		{
-			for (int j = 0; j < img->width; j++)
-			{
-				int pos = (i*img->width + j);
-
-				data[3 * pos + 0] = img->data[pos].r*scale;
-				data[3 * pos + 1] = img->data[pos].g*scale;
-				data[3 * pos + 2] = img->data[pos].b*scale;
-			}
+			data[3 * i + 0] = img->data[i].r*scale;
+			data[3 * i + 1] = img->data[i].g*scale;
+			data[3 * i + 2] = img->data[i].b*scale;
 		}
 		stbi_write_bmp(filename, img->width, img->height, 3, (void*)&data[0]);
 	}
@@ -122,31 +118,27 @@ namespace cpp_torch
 		img.height = y;
 		img.width = x;
 
+		const size_t sz = x * y;
 #pragma omp parallel for
-		for (int i = 0; i < y; i++)
+		for (int i = 0; i < sz; i++)
 		{
-			for (int j = 0; j < x; j++)
+			if (channel == 3)
 			{
-				int pos = i * x + j;
-
-				if (channel == 3)
-				{
-					img.data[pos].r = data[3 * pos + 0];
-					img.data[pos].g = data[3 * pos + 1];
-					img.data[pos].b = data[3 * pos + 2];
-				}
-				if (channel == 2)
-				{
-					img.data[pos].r = data[2 * pos + 0];
-					img.data[pos].g = data[2 * pos + 1];
-					//img.data[pos].b = data[2 * pos + 1];
-				}
-				if (channel == 1)
-				{
-					img.data[pos].r = data[1 * pos + 0];
-					//img.data[pos].g = data[1 * pos + 0];
-					//img.data[pos].b = data[1 * pos + 0];
-				}
+				img.data[i].r = data[3 * i + 0];
+				img.data[i].g = data[3 * i + 1];
+				img.data[i].b = data[3 * i + 2];
+			}
+			if (channel == 2)
+			{
+				img.data[i].r = data[2 * i + 0];
+				img.data[i].g = data[2 * i + 1];
+				//img.data[i].b = data[2 * i + 1];
+			}
+			if (channel == 1)
+			{
+				img.data[i].r = data[1 * i + 0];
+				//img.data[i].g = data[1 * i + 0];
+				//img.data[i].b = data[1 * i + 0];
 			}
 		}
 		return img;
@@ -157,17 +149,13 @@ namespace cpp_torch
 	{
 		T* data = new T[img->width*img->height * 3];
 
+		const size_t sz = img->height*img->width;
 #pragma omp parallel for
-		for (int i = 0; i < img->height; i++)
+		for (int i = 0; i < sz; i++)
 		{
-			for (int j = 0; j < img->width; j++)
-			{
-				int pos = (i*img->width + j);
-
-				data[3 * pos + 0] = img->data[pos].r;
-				data[3 * pos + 1] = img->data[pos].g;
-				data[3 * pos + 2] = img->data[pos].b;
-			}
+			data[3 * i + 0] = img->data[i].r;
+			data[3 * i + 1] = img->data[i].g;
+			data[3 * i + 2] = img->data[i].b;
 		}
 		return data;
 	}
@@ -219,41 +207,36 @@ namespace cpp_torch
 		img.height = y;
 		img.width = x;
 
+		const size_t sz = x * y;
 #pragma omp parallel for
-		for (int i = 0; i < y; ++i) {
-			for (int j = 0; j < x; ++j) {
-				if (nbit == 1)	//8bit
-				{
-					int pos = (i*x + j);
-					img.data[pos].r = data[pos];
-					img.data[pos].g = data[pos];
-					img.data[pos].b = data[pos];
-					img.data[pos].alp = 255;
-				}
-				if (nbit == 2)	//16bit
-				{
-					int pos = (i*x + j);
-					img.data[pos].r = data[pos * 2 + 0];
-					img.data[pos].g = data[pos * 2 + 0];
-					img.data[pos].b = data[pos * 2 + 0];
-					img.data[pos].alp = data[pos * 2 + 1];
-				}
-				if (nbit == 3)	//24
-				{
-					int pos = (i*x + j);
-					img.data[pos].r = data[pos * 3 + 0];
-					img.data[pos].g = data[pos * 3 + 1];
-					img.data[pos].b = data[pos * 3 + 2];
-					img.data[pos].alp = 255;
-				}
-				if (nbit == 4)	//32
-				{
-					int pos = (i*x + j);
-					img.data[pos].r = data[pos * 4 + 0];
-					img.data[pos].g = data[pos * 4 + 1];
-					img.data[pos].b = data[pos * 4 + 2];
-					img.data[pos].alp = data[pos * 4 + 3];
-				}
+		for (int i = 0; i < sz; ++i) {
+			if (nbit == 1)	//8bit
+			{
+				img.data[i].r = data[i];
+				img.data[i].g = data[i];
+				img.data[i].b = data[i];
+				img.data[i].alp = 255;
+			}
+			if (nbit == 2)	//16bit
+			{
+				img.data[i].r = data[i * 2 + 0];
+				img.data[i].g = data[i * 2 + 0];
+				img.data[i].b = data[i * 2 + 0];
+				img.data[i].alp = data[i * 2 + 1];
+			}
+			if (nbit == 3)	//24
+			{
+				img.data[i].r = data[i * 3 + 0];
+				img.data[i].g = data[i * 3 + 1];
+				img.data[i].b = data[i * 3 + 2];
+				img.data[i].alp = 255;
+			}
+			if (nbit == 4)	//32
+			{
+				img.data[i].r = data[i * 4 + 0];
+				img.data[i].g = data[i * 4 + 1];
+				img.data[i].b = data[i * 4 + 2];
+				img.data[i].alp = data[i * 4 + 3];
 			}
 		}
 		stbi_image_free(data);
@@ -901,16 +884,16 @@ namespace cpp_torch
 	Image vec_t2image(std::vector<float_t>& img, int channel, int height, int width)
 	{
 		std::vector<float_t> image_data(channel*height*width);
-		int k = 0;
-		for (int y = 0; y < height; y++) {
-			for (int x = 0; x < width; x++) {
-				for (int c = 0; c < channel; c++) {
-					float_t d = img[c * height*width + y * width + x];
-					if (d < 0) d = 0;
-					if (d > 255) d = 255;
-					image_data[k] = d;
-					k++;
-				}
+
+		const size_t sz = height * width;
+
+#pragma omp parallel for
+		for (int i = 0; i < sz; i++) {
+			for (int c = 0; c < channel; c++) {
+				float_t d = img[c * height*width + i];
+				if (d < 0) d = 0;
+				if (d > 255) d = 255;
+				image_data[i] = d;
 			}
 		}
 		return ToImage(&(image_data[0]), height, width, channel);
@@ -918,19 +901,19 @@ namespace cpp_torch
 	std::vector<float_t> image2vec_t(Image* img, int in_channel, int height, int width, float scale = 1.0)
 	{
 		std::vector<float_t> image_data(in_channel*height*width);
-		int k = 0;
-		for (int y = 0; y < height; y++) {
-			for (int x = 0; x < width; x++) {
-				image_data[0 * height*width + y * width + x] = img->data[k].r* scale;
-				if (in_channel >= 2)
+		
+		const size_t sz = height * width;
+
+#pragma omp parallel for
+		for (int i = 0; i < sz; i++) {
+			image_data[0 * height*width + i] = img->data[i].r* scale;
+			if (in_channel >= 2)
+			{
+				image_data[1 * height*width + i] = img->data[i].g* scale;
+				if (in_channel == 3)
 				{
-					image_data[1 * height*width + y * width + x] = img->data[k].g* scale;
-					if (in_channel == 3)
-					{
-						image_data[2 * height*width + y * width + x] = img->data[k].b* scale;
-					}
+					image_data[2 * height*width + i] = img->data[i].b* scale;
 				}
-				k++;
 			}
 		}
 		return image_data;
@@ -940,22 +923,20 @@ namespace cpp_torch
 	{
 		std::vector<float_t> image_data(1*height*width);
 
-		int k = 0;
-		for (int y = 0; y < height; y++) {
-			for (int x = 0; x < width; x++) {
-				if (get_channel == 1)
-				{
-					image_data[y * width + x] = img->data[k].r* scale;
-				}
-				if (get_channel == 2)
-				{
-					image_data[y * width + x] = img->data[k].g* scale;
-				}
-				if (get_channel == 3)
-				{
-					image_data[y * width + x] = img->data[k].b* scale;
-				}
-				k++;
+		const size_t sz = height * width;
+#pragma omp parallel for
+		for (int i = 0; i < sz; i++) {
+			if (get_channel == 1)
+			{
+				image_data[i] = img->data[i].r* scale;
+			}
+			if (get_channel == 2)
+			{
+				image_data[i] = img->data[i].g* scale;
+			}
+			if (get_channel == 3)
+			{
+				image_data[i] = img->data[i].b* scale;
 			}
 		}
 		return image_data;
@@ -1136,19 +1117,17 @@ namespace cpp_torch
 	{
 		std::vector<cpp_torch::Rgb> data = std::vector<cpp_torch::Rgb>(image->height*image->width);
 
+		const size_t sz = image->height * image->width;
 #pragma omp parallel for
-		for (int i = 0; i < image->height; i++)
+		for (int i = 0; i < sz; i++)
 		{
-			for (int j = 0; j < image->width; j++)
-			{
-				RGB2YCbCr(
-					image->data[i*image->width + j].r,
-					image->data[i*image->width + j].g,
-					image->data[i*image->width + j].b,
-					data[i*image->width + j].r,
-					data[i*image->width + j].g,
-					data[i*image->width + j].b);
-			}
+			RGB2YCbCr(
+				image->data[i].r,
+				image->data[i].g,
+				image->data[i].b,
+				data[i].r,
+				data[i].g,
+				data[i].b);
 		}
 		image->data = data;
 	}
@@ -1157,68 +1136,62 @@ namespace cpp_torch
 	{
 		std::vector<cpp_torch::Rgb> data = std::vector<cpp_torch::Rgb>(image->height*image->width);
 
+		const size_t sz = image->height * image->width;
 #pragma omp parallel for
-		for (int i = 0; i < image->height; i++)
+		for (int i = 0; i < sz; i++)
 		{
-			for (int j = 0; j < image->width; j++)
-			{
-				YCbCr2RGB(
-					image->data[i*image->width + j].r,
-					image->data[i*image->width + j].g,
-					image->data[i*image->width + j].b,
-					data[i*image->width + j].r,
-					data[i*image->width + j].g,
-					data[i*image->width + j].b);
-			}
+			YCbCr2RGB(
+				image->data[i].r,
+				image->data[i].g,
+				image->data[i].b,
+				data[i].r,
+				data[i].g,
+				data[i].b);
 		}
 		image->data = data;
 	}
 
 	inline void ImageChgChannel(cpp_torch::Image* imageY, cpp_torch::Image* imageYCbCr, int channel)
 	{
+		const size_t sz = imageY->height * imageY->width;
 #pragma omp parallel for
-		for (int i = 0; i < imageY->height; i++)
+		for (int i = 0; i < sz; i++)
 		{
-			for (int j = 0; j < imageY->width; j++)
+			if (channel == 1)
 			{
-				if (channel == 1)
-				{
-					imageY->data[i*imageY->width + j].r = imageYCbCr->data[i*imageY->width + j].r;
-				}
-				if (channel == 2)
-				{
-					imageY->data[i*imageY->width + j].g = imageYCbCr->data[i*imageY->width + j].g;
-				}
-				if (channel == 3)
-				{
-					imageY->data[i*imageY->width + j].b = imageYCbCr->data[i*imageY->width + j].b;
-				}
+				imageY->data[i].r = imageYCbCr->data[i].r;
+			}
+			if (channel == 2)
+			{
+				imageY->data[i].g = imageYCbCr->data[i].g;
+			}
+			if (channel == 3)
+			{
+				imageY->data[i].b = imageYCbCr->data[i].b;
 			}
 		}
 	}
 
 	inline void ImageGetChannel(cpp_torch::Image* image, int channel)
 	{
+		const size_t sz = image->height * image->width;
 #pragma omp parallel for
-		for (int i = 0; i < image->height; i++)
+		for (int i = 0; i < sz; i++)
 		{
-			for (int j = 0; j < image->width; j++)
+			if (channel == 1)
 			{
-				if (channel == 1)
-				{
-					image->data[i*image->width + j].g = 0;
-					image->data[i*image->width + j].b = 0;
-				}
-				if (channel == 2)
-				{
-					image->data[i*image->width + j].r = 0;
-					image->data[i*image->width + j].b = 0;
-				}
-				if (channel == 3)
-				{
-					image->data[i*image->width + j].r = 0;
-					image->data[i*image->width + j].g = 0;
-				}
+				image->data[i].g = 0;
+				image->data[i].b = 0;
+			}
+			if (channel == 2)
+			{
+				image->data[i].r = 0;
+				image->data[i].b = 0;
+			}
+			if (channel == 3)
+			{
+				image->data[i].r = 0;
+				image->data[i].g = 0;
 			}
 		}
 	}

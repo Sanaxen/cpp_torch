@@ -21,14 +21,15 @@ const int64_t kTrainBatchSize = 64;
 const int64_t kTestBatchSize = 1000;
 
 // The number of epochs to train.
-const int64_t kNumberOfEpochs = 300;
+const int64_t kNumberOfEpochs = 60;
 
 // After how many batches to log a new update with the loss value.
 const int64_t kLogInterval = 10;
 
-const int64_t kImage_size = 120;
+const int64_t kImage_size = 256;
 
-const int upscale_factor = 2;
+const int kDataAugment_crop_num_factor = 10;
+const int upscale_factor = 3;
 struct NetImpl : torch::nn::Module {
 	NetImpl() :
 		conv1(torch::nn::Conv2dOptions(1, 64, 5).with_bias(false).stride(1).padding(2)),
@@ -96,8 +97,6 @@ int calculate_valid_crop_size(const int crop_size, const int upscale_factor)
 // load  dataset
 std::vector<tiny_dnn::vec_t> train_labels, test_labels;
 std::vector<tiny_dnn::vec_t> train_images, test_images;
-std::vector<cv::Mat> TestImagesX;
-std::vector<cv::Mat> TestImagesY;
 
 int input_image_size;
 void learning_and_test_super_resolution_dataset(torch::Device device)
@@ -112,13 +111,12 @@ void learning_and_test_super_resolution_dataset(torch::Device device)
 
 	cpp_torch::progress_display2 loding(image_train_files.size() + image_test_files.size() + 1);
 
-#if 10	
 	std::random_device rnd;
 	std::mt19937 mt(rnd());
 
 	for (int i = 0; i < image_train_files.size(); i++)
 	{
-		cpp_torch::Image img = cpp_torch::readImage(image_train_files[i].c_str());
+		cpp_torch::Image& img = cpp_torch::readImage(image_train_files[i].c_str());
 
 		cv::Mat cvmat = cpp_torch::cvutil::ImgeTocvMat(&img);
 
@@ -128,7 +126,7 @@ void learning_and_test_super_resolution_dataset(torch::Device device)
 		}
 		std::uniform_int_distribution<> rand_w(0, (int)cvmat.size().width - input_image_size - 1);
 		std::uniform_int_distribution<> rand_h(0, (int)cvmat.size().height - input_image_size - 1);
-		for (int k = 0; k < 50; k++)
+		for (int k = 0; k < kDataAugment_crop_num_factor; k++)
 		{
 			int w = 0;
 			int h = 0;
@@ -141,7 +139,7 @@ void learning_and_test_super_resolution_dataset(torch::Device device)
 				w = rand_w(mt);
 				h = rand_h(mt);
 				count++;
-				if (count == 1000)
+				if (count == 20)
 				{
 					w = 0;
 					h = 0;
@@ -159,8 +157,8 @@ void learning_and_test_super_resolution_dataset(torch::Device device)
 			//std::cout << "size " << cvmat.size() << std::endl;
 
 
-			cpp_torch::Image imgx = cpp_torch::cvutil::cvMatToImage(cut_img);
-			cpp_torch::Image imgy = cpp_torch::cvutil::cvMatToImage(traget_image);
+			cpp_torch::Image& imgx = cpp_torch::cvutil::cvMatToImage(cut_img);
+			cpp_torch::Image& imgy = cpp_torch::cvutil::cvMatToImage(traget_image);
 
 			ImageRGB2YCbCr(&imgx);
 			ImageRGB2YCbCr(&imgy);
@@ -180,14 +178,14 @@ void learning_and_test_super_resolution_dataset(torch::Device device)
 
 			train_images.push_back(vx);
 			train_labels.push_back(vy);
-			if (count == 1000) break;
+			if (count == 20) break;
 		}
 		loding += 1;
 	}
 
 	for (int i = 0; i < image_test_files.size(); i++)
 	{
-		cpp_torch::Image img = cpp_torch::readImage(image_test_files[i].c_str());
+		cpp_torch::Image& img = cpp_torch::readImage(image_test_files[i].c_str());
 
 		cv::Mat cvmat = cpp_torch::cvutil::ImgeTocvMat(&img);
 
@@ -199,11 +197,8 @@ void learning_and_test_super_resolution_dataset(torch::Device device)
 		cv::resize(cvmat, cvmat, cv::Size(input_image_size / upscale_factor, input_image_size / upscale_factor), 0, 0, INTER_CUBIC);
 		//std::cout << "size " << cvmat.size() << std::endl;
 
-		TestImagesY.push_back(traget_image);
-		TestImagesX.push_back(cvmat);
-
-		cpp_torch::Image imgx = cpp_torch::cvutil::cvMatToImage(cvmat);
-		cpp_torch::Image imgy = cpp_torch::cvutil::cvMatToImage(traget_image);
+		cpp_torch::Image& imgx = cpp_torch::cvutil::cvMatToImage(cvmat);
+		cpp_torch::Image& imgy = cpp_torch::cvutil::cvMatToImage(traget_image);
 		ImageRGB2YCbCr(&imgx);
 		ImageRGB2YCbCr(&imgy);
 
@@ -224,96 +219,6 @@ void learning_and_test_super_resolution_dataset(torch::Device device)
 	}
 	loding.end();
 	printf("load images:%d %d\n", train_images.size(), test_images.size());
-
-
-#else
-	cpp_torch::progress_display2 loding(image_train_files.size()+ image_test_files.size()+1);
-	for (int i = 0; i < image_train_files.size(); i++)
-	{
-		cpp_torch::Image* img = cpp_torch::readImage(image_train_files[i].c_str());
-
-		cv::Mat cvmat = cpp_torch::cvutil::ImgeTocvMat(img);
-		delete img;
-
-		cv::resize(cvmat, cvmat, cv::Size(input_image_size, input_image_size), 0, 0, INTER_CUBIC);
-		//std::cout << "size " << cvmat.size() << std::endl;
-
-		cv::Mat traget_image = cvmat.clone();
-
-		cv::resize(cvmat, cvmat, cv::Size(input_image_size/ upscale_factor, input_image_size / upscale_factor), 0, 0, INTER_CUBIC);
-		//std::cout << "size " << cvmat.size() << std::endl;
-
-
-		cpp_torch::Image* imgx = cpp_torch::cvutil::cvMatToImage(cvmat);
-		cpp_torch::Image* imgy = cpp_torch::cvutil::cvMatToImage(traget_image);
-		
-		ImageRGB2YCbCr(imgx);
-		ImageRGB2YCbCr(imgy);
-
-		cpp_torch::Image* ycbcr[2];
-		ycbcr[0] = imgx->clone();
-		cpp_torch::ImageGetChannel(ycbcr[0], 1);
-
-		ycbcr[1] = imgy->clone();
-		cpp_torch::ImageGetChannel(ycbcr[1], 1);
-
-		tiny_dnn::vec_t& vx = image_channel2vec_t(ycbcr[0], 1, input_image_size / upscale_factor, input_image_size / upscale_factor);
-		tiny_dnn::vec_t& vy = image_channel2vec_t(ycbcr[1], 1, input_image_size, input_image_size);
-		delete imgx;
-		delete imgy;
-		delete ycbcr[0];
-		delete ycbcr[1];
-
-		train_images.push_back(vx);
-		train_labels.push_back(vy);
-		loding += 1;
-	}
-	for (int i = 0; i < image_test_files.size(); i++)
-	{
-		cpp_torch::Image* img = cpp_torch::readImage(image_test_files[i].c_str());
-
-		cv::Mat cvmat = cpp_torch::cvutil::ImgeTocvMat(img);
-		delete img;
-
-
-		cv::resize(cvmat, cvmat, cv::Size(input_image_size, input_image_size), 0, 0, INTER_CUBIC);
-		//std::cout << "size " << cvmat.size() << std::endl;
-
-		cv::Mat traget_image = cvmat.clone();
-
-		cv::resize(cvmat, cvmat, cv::Size(), input_image_size / upscale_factor, input_image_size / upscale_factor, INTER_CUBIC);
-		//std::cout << "size " << cvmat.size() << std::endl;
-
-		TestImagesY.push_back(traget_image);
-		TestImagesX.push_back(cvmat);
-
-		cpp_torch::Image* imgx = cpp_torch::cvutil::cvMatToImage(cvmat);
-		cpp_torch::Image* imgy = cpp_torch::cvutil::cvMatToImage(traget_image);
-		ImageRGB2YCbCr(imgx);
-		ImageRGB2YCbCr(imgy);
-
-
-		cpp_torch::Image* ycbcr[2];
-		ycbcr[0] = imgx->clone();
-		cpp_torch::ImageGetChannel(ycbcr[0], 1);
-
-		ycbcr[1] = imgy->clone();
-		cpp_torch::ImageGetChannel(ycbcr[1], 1);
-
-		tiny_dnn::vec_t& vx = image_channel2vec_t(ycbcr[0], 1, input_image_size / upscale_factor, input_image_size / upscale_factor);
-		tiny_dnn::vec_t& vy = image_channel2vec_t(ycbcr[1], 1, input_image_size, input_image_size);
-		delete imgx;
-		delete imgy;
-		delete ycbcr[0];
-		delete ycbcr[1];
-
-		test_images.push_back(vx);
-		test_labels.push_back(vy);
-		loding += 1;
-	}
-	loding.end();
-	printf("load images:%d %d\n", train_images.size(), test_images.size());
-#endif
 
 #if 0
 	//image normalize (mean 0 and variance 1)
@@ -377,37 +282,49 @@ void learning_and_test_super_resolution_dataset(torch::Device device)
 		printf("loss %.4f\n", loss); fflush(stdout);
 
 
-		const int test_idx = 0;
-		cpp_torch::Image imgx = cpp_torch::cvutil::cvMatToImage(TestImagesX[test_idx]);
-		cpp_torch::ImageWrite("www1.bmp", &imgx);
+		std::vector<std::string>& image_files = cpp_torch::getImageFiles(kDataRoot + std::string("/Set5"));
 
-		ImageRGB2YCbCr(&imgx);
-		tiny_dnn::vec_t& vx = image_channel2vec_t(&imgx, 1, input_image_size / upscale_factor, input_image_size / upscale_factor);
 
-		cpp_torch::ImageWrite("www2.bmp", &imgx);
-
-		torch::Tensor x = cpp_torch::toTorchTensors(vx).view({ 1,1,input_image_size / upscale_factor,input_image_size / upscale_factor });
-		
-		tiny_dnn::vec_t vv = cpp_torch::toTensor_t(x, (input_image_size / upscale_factor)*(input_image_size / upscale_factor));
-		cpp_torch::Image tttt = cpp_torch::vec_t2image(vv, 1, input_image_size / upscale_factor, input_image_size / upscale_factor);
-		cpp_torch::ImageWrite("www.bmp", &tttt);
-
-		torch::Tensor generated_img = nn.model.get()->forward(x.to(device));
-		//cpp_torch::dump_dim("x1", x);
-		//cpp_torch::dump_dim("x1", generated_img);
-
-		nn.model.get()->train(true);
-
-#ifdef USE_OPENCV_UTIL
+		float mse_loss = 0;
+		float psnr = 0;
+		for (int i = 0; i < image_files.size(); i++)
 		{
-			cv::imwrite("super_resolution_befor.bmp", TestImagesX[test_idx]);
-			cv::imwrite("super_resolution_ref.bmp", TestImagesY[test_idx]);
+			char imgfname[256];
+
+			cv::Mat org_image = cv::imread(image_files[i].c_str());
+			cv::resize(org_image, org_image, cv::Size(input_image_size, input_image_size), 0, 0, INTER_CUBIC);
+			sprintf(imgfname, "super_resolution_ref_%03d.png", i);
+			cv::imwrite(imgfname, org_image);
+
+			cv::Mat input;
+			cv::resize(org_image, input, cv::Size(input_image_size / upscale_factor, input_image_size / upscale_factor), 0, 0, INTER_CUBIC);
+			sprintf(imgfname, "super_resolution_befor_%03d.png", i);
+			cv::imwrite(imgfname, input);
+
+			cpp_torch::Image& imgx = cpp_torch::cvutil::cvMatToImage(input);
+			ImageRGB2YCbCr(&imgx);
+			tiny_dnn::vec_t& vx = image_channel2vec_t(&imgx, 1, input_image_size / upscale_factor, input_image_size / upscale_factor);
+			//cpp_torch::ImageWrite("www2.bmp", &imgx);
+
+			torch::Tensor x = cpp_torch::toTorchTensors(vx).view({ 1,1,input_image_size / upscale_factor,input_image_size / upscale_factor });
+
+			//tiny_dnn::vec_t& vv = cpp_torch::toTensor_t(x, (input_image_size / upscale_factor)*(input_image_size / upscale_factor));
+			//cpp_torch::Image tttt = cpp_torch::vec_t2image(vv, 1, input_image_size / upscale_factor, input_image_size / upscale_factor);
+			//cpp_torch::ImageWrite("www.bmp", &tttt);
+
+			torch::Tensor generated_img = nn.model.get()->forward(x.to(device));
+			//cpp_torch::dump_dim("x1", x);
+			//cpp_torch::dump_dim("x1", generated_img);
+
+			nn.model.get()->train(true);
 
 			cv::Mat resizeImage;
-			cv::resize(TestImagesX[test_idx], resizeImage, cv::Size(input_image_size, input_image_size), 0, 0, INTER_CUBIC);
-			
+			cv::resize(input, resizeImage, cv::Size(input_image_size, input_image_size), 0, 0, INTER_CUBIC);
+			sprintf(imgfname, "super_resolution_bicubic_%03d.png", i);
+			cv::imwrite(imgfname, resizeImage);
+
 			//cv::imwrite("aaa.bmp", resizeImage);
-			cpp_torch::Image image_CbCr = cpp_torch::cvutil::cvMatToImage(resizeImage);
+			cpp_torch::Image& image_CbCr = cpp_torch::cvutil::cvMatToImage(resizeImage);
 
 			//cpp_torch::ImageWrite("ddd.bmp", image_CbCr);
 			cpp_torch::ImageRGB2YCbCr(&image_CbCr);
@@ -428,7 +345,7 @@ void learning_and_test_super_resolution_dataset(torch::Device device)
 			//tiny_dnn::tensor_t& xx = cpp_torch::toTensor_t((generated_img[0] * (max_v -min_v) + min_v), 1, input_image_size, input_image_size);
 			//tiny_dnn::tensor_t& xx = cpp_torch::toTensor_t((generated_img[0]+1)*128, 1, input_image_size, input_image_size);
 			tiny_dnn::vec_t& xx = cpp_torch::toTensor_t(generated_img[0], input_image_size*input_image_size);
-			
+
 			//cpp_torch::Image* tmp = cpp_torch::cvutil::cvMatToImage(TestImagesY[0]);
 			//cpp_torch::ImageWrite("eee.bmp", tmp);
 			//tiny_dnn::vec_t tmptmp = cpp_torch::image_channel2vec_t(tmp, 1, 64, 64);
@@ -436,26 +353,26 @@ void learning_and_test_super_resolution_dataset(torch::Device device)
 
 			//tiny_dnn::tensor_t& xx = cpp_torch::toTensor_t(xxx, 1, input_image_size, input_image_size);
 
-			cpp_torch::Image predict_Y = cpp_torch::ToImage(&xx[0], input_image_size, input_image_size, 1);
-			cpp_torch::ImageWrite("fff.bmp", &predict_Y);
+			cpp_torch::Image& predict_Y = cpp_torch::ToImage(&xx[0], input_image_size, input_image_size, 1);
+			//cpp_torch::ImageWrite("fff.bmp", &predict_Y);
 
 			cpp_torch::ImageGetChannel(&predict_Y, 1);
-			cpp_torch::ImageWrite("ggg.bmp", &predict_Y);
+			//cpp_torch::ImageWrite("ggg.bmp", &predict_Y);
 			//cpp_torch::ImageChgChannel(predict_Y, ycbcr[0], 1);
 			cpp_torch::ImageChgChannel(&predict_Y, &ycbcr[1], 2);
 			cpp_torch::ImageChgChannel(&predict_Y, &ycbcr[2], 3);
-			cpp_torch::ImageWrite("hhh.bmp", &predict_Y);
+			//cpp_torch::ImageWrite("hhh.bmp", &predict_Y);
 			cpp_torch::ImageYCbCr2RGB(&predict_Y);
-			cpp_torch::ImageWrite("iii.bmp", &predict_Y);
+			//cpp_torch::ImageWrite("iii.bmp", &predict_Y);
 			cv::Mat output = cpp_torch::cvutil::ImgeTocvMat(&predict_Y);
-			cv::imwrite("super_resolution_test.bmp", output);
+			sprintf(imgfname, "super_resolution_test_%03d.png", i);
+			cv::imwrite(imgfname, output);
 
-			float mse_loss = cv::norm((TestImagesY[test_idx] - output).mul((TestImagesY[test_idx] - output))/(input_image_size*input_image_size));
-			float psnr = 10.0*log10(1.0 / mse_loss);
-			printf("psnr:%.4f  dB\n", psnr);
-
+			float loss = cv::norm((org_image - output)) / (input_image_size*input_image_size);
+			mse_loss += loss;
+			psnr += 10.0*log10(1.0 / loss);
 		}
-#endif
+		printf("psnr:%.4f  %.4fdB\n", psnr / image_files.size(), mse_loss / image_files.size());
 
 		if (epoch <= kNumberOfEpochs)
 		{

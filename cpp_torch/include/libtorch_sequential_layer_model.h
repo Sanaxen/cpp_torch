@@ -322,7 +322,7 @@ namespace cpp_torch
 		void add_maxpool2d(int kernel_size)
 		{
 			const int i = layer.size();
-			add_maxpool2d_(layer[i - 1].out_[0], layer[i - 1].out_[0], { kernel_size, kernel_size }, { kernel_size, kernel_size }, { 1, 1 }, { 0, 0 });
+			add_maxpool2d_(layer[i - 1].out_[0], layer[i - 1].out_[0], { kernel_size, kernel_size }, { kernel_size, kernel_size }, { 0, 0 }, { 1, 1 });
 		}
 
 
@@ -386,7 +386,7 @@ namespace cpp_torch
 		void add_avgpool2d(int kernel_size)
 		{
 			const int i = layer.size();
-			add_avgpool2d_(layer[i - 1].out_[0], layer[i - 1].out_[0], { kernel_size, kernel_size }, { 0, 0 }, { kernel_size, kernel_size });
+			add_avgpool2d_(layer[i - 1].out_[0], layer[i - 1].out_[0], { kernel_size, kernel_size },  { kernel_size, kernel_size }, { 0, 0 } );
 		}
 
 
