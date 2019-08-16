@@ -87,6 +87,7 @@ namespace cpp_torch
 		if (ext == NULL) ext = strstr(file, ".GZ");
 		if (ext == NULL) ext = strstr(file, ".zip");
 		if (ext == NULL) ext = strstr(file, ".ZIP");
+		if (ext == NULL) ext = strstr(file, ".tar");
 
 		char exten[8];
 		if (ext)

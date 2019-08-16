@@ -88,7 +88,25 @@ namespace cpp_torch
 				}
 			}
 		}
-		
+		// mean 0 and variance 1 
+		/*
+		 * @param image [in/out] image data vector
+		 * @param image [in] image data vector mean
+		 * @param stddiv [in] image data vector variance
+		 */
+		void images_normalize_(std::vector<tiny_dnn::vec_t>& images, const float mean, const float stddiv)
+		{
+			//printf("mean:%f stddiv:%f\n", mean, stddiv);
+#pragma omp parallel for
+			for (int i = 0; i < images.size(); i++)
+			{
+				for (int k = 0; k < images[i].size(); k++)
+				{
+					images[i][k] = (images[i][k] - mean) / (stddiv + 1.0e-12);
+				}
+			}
+		}
+
 		// [-1, 1]
 		/*
 		* @param image [in/out]  image data vector
@@ -104,6 +122,90 @@ namespace cpp_torch
 				}
 			}
 		}
+
+		// [-1, 1]
+		/*
+		* @param image [in/out]  image data vector
+		*/
+		void images_normalize_11(std::vector<tiny_dnn::vec_t>& images,  float& max_, float& min_)
+		{
+			max_ = -9999999.0;
+			min_ = 9999999.0;
+			for (int i = 0; i < images.size(); i++)
+			{
+				for (int k = 0; k < images[i].size(); k++)
+				{
+					if (min_ > images[i][k]) min_ = images[i][k];
+					if (max_ < images[i][k]) max_ = images[i][k];
+				}
+			}
+
+#pragma omp parallel for
+			for (int i = 0; i < images.size(); i++)
+			{
+				for (int k = 0; k < images[i].size(); k++)
+				{
+					images[i][k] = 2.0*(images[i][k] - min_)/ (max_ - min_) - 1.0;
+				}
+			}
+		}
+		// [-1, 1]
+		/*
+		* @param image [in/out]  image data vector
+		*/
+		void images_normalize_11_(std::vector<tiny_dnn::vec_t>& images, const float max_, const float min_)
+		{
+#pragma omp parallel for
+			for (int i = 0; i < images.size(); i++)
+			{
+				for (int k = 0; k < images[i].size(); k++)
+				{
+					images[i][k] = 2.0*(images[i][k] - min_) / (max_ - min_) - 1.0;
+				}
+			}
+		}
+		// [0, 1]
+		/*
+		* @param image [in/out]  image data vector
+		*/
+		void images_normalize_01(std::vector<tiny_dnn::vec_t>& images, float& max_, float& min_)
+		{
+			max_ = -9999999.0;
+			min_ = 9999999.0;
+			for (int i = 0; i < images.size(); i++)
+			{
+				for (int k = 0; k < images[i].size(); k++)
+				{
+					if (min_ > images[i][k]) min_ = images[i][k];
+					if (max_ < images[i][k]) max_ = images[i][k];
+				}
+			}
+
+#pragma omp parallel for
+			for (int i = 0; i < images.size(); i++)
+			{
+				for (int k = 0; k < images[i].size(); k++)
+				{
+					images[i][k] = (images[i][k] - min_) / (max_ - min_);
+				}
+			}
+		}
+		// [0, 1]
+		/*
+		* @param image [in/out]  image data vector
+		*/
+		void images_normalize_01_(std::vector<tiny_dnn::vec_t>& images, const float max_, const float min_)
+		{
+#pragma omp parallel for
+			for (int i = 0; i < images.size(); i++)
+			{
+				for (int k = 0; k < images[i].size(); k++)
+				{
+					images[i][k] = (images[i][k] - min_) / (max_ - min_);
+				}
+			}
+		}
+
 	}
 }
 #endif

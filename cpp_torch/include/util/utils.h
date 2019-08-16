@@ -9,11 +9,12 @@
 	in the LICENSE file.
 */
 #pragma once
-
+#include <string.h>
 #include <cstdint>
 #include <fstream>
 #include <string>
 #include <vector>
+#include <filesystem>
 
 #include "display.h"
 #if 0
@@ -23,6 +24,33 @@ namespace tiny_dnn {
 	typedef std::vector<vec_t> tensor_t;
 }  // namespace tiny_dnn
 #endif
+
+inline bool isfile_exist(const std::string file)
+{
+	char fname[640];
+	strcpy(fname, (char*)file.c_str());
+	char* p = fname;
+	while (*p)
+	{
+		if (*p == '/') *p = '\\';
+		p++;
+	}
+#if 10
+	FILE* fp = fopen(fname, "r");
+	if (fp == NULL) return false;
+	fclose(fp);
+	return true;
+#else
+	std::string file_ = fname;
+#ifdef USE_VS2015
+	return std::experimental::filesystem::exists(file_);
+#endif
+#ifdef USE_VS2017
+	return std::filesystem::exists(file_);
+#endif
+#endif
+	return false;
+}
 
 template <typename T>
 T *reverse_endian(T *p) {

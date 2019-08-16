@@ -128,7 +128,7 @@ namespace cpp_torch
 			const int i = layer.size();
 			in = layer[i - 1].out_[0] * layer[i - 1].out_[1] * layer[i - 1].out_[2];
 
-			std::cout << layer[i - 1].out_ << std::endl;
+			//std::cout << layer[i - 1].out_ << std::endl;
 			inout.in_ = layer[i - 1].out_;
 			fc.emplace_back(register_module("fc" + std::to_string(id), torch::nn::Linear(torch::nn::LinearOptions(in, out).with_bias(bias))));
 			inout.out_ = { 1,1, out };
@@ -386,7 +386,7 @@ namespace cpp_torch
 		void add_avgpool2d(int kernel_size)
 		{
 			const int i = layer.size();
-			add_avgpool2d_(layer[i - 1].out_[0], layer[i - 1].out_[0], { kernel_size, kernel_size },  { kernel_size, kernel_size }, { 0, 0 } );
+			add_avgpool2d_(layer[i - 1].out_[0], layer[i - 1].out_[0], { kernel_size, kernel_size }, { kernel_size, kernel_size }, { 0, 0 } );
 		}
 
 

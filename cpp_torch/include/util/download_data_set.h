@@ -28,7 +28,13 @@ namespace cpp_torch
 		std::cout << "download...";
 		for (auto file : files)
 		{
-			if ( url != "" ) cpp_torch::url_download(url + file, dir + file);
+			if (isfile_exist(dir + file))
+			{
+				std::cout << "file exist download skipp[" << dir + file << "]" << std::endl;
+				continue;
+			}
+
+			if ( url != "" ) cpp_torch::url_download(url + file, dir + file);		
 			cpp_torch::file_uncompress(dir + file, true);
 
 			if (strstr(file.c_str(), ".tar.gz") || strstr(file.c_str(), "TAR.GZ") || strstr(file.c_str(), ".tgz") || strstr(file.c_str(), "TGZ"))

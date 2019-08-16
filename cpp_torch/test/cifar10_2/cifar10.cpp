@@ -20,7 +20,7 @@
 #define USE_CUDA
 
 //Data Augment
-const bool kDataAugment = true;
+const bool kDataAugment = false;// true;
 
 // Where to find the CIFAR10 dataset.
 const char* kDataRoot = "./data";
@@ -78,9 +78,9 @@ void learning_and_test_cifar10_dataset(torch::Device device)
 
 	model.get()->add_conv2d(3, 192, 5, 1, 2);
 	model.get()->add_ReLU();
-	model.get()->add_conv2d(192, 160, 1, 1, 1);
+	model.get()->add_conv2d(192, 160, 1, 1, 0);
 	model.get()->add_ReLU();
-	model.get()->add_conv2d(160, 96, 1, 1, 1);
+	model.get()->add_conv2d(160, 96, 1, 1, 0);
 	model.get()->add_ReLU();
 	model.get()->add_bn(0.1, 1.0e-5);
 	model.get()->add_maxpool2d(3, 2, 1);
@@ -88,9 +88,9 @@ void learning_and_test_cifar10_dataset(torch::Device device)
 
 	model.get()->add_conv2d(96, 192, 5, 1, 2);
 	model.get()->add_ReLU();
-	model.get()->add_conv2d(192, 192, 1, 1, 1);
+	model.get()->add_conv2d(192, 192, 1, 1, 0);
 	model.get()->add_ReLU();
-	model.get()->add_conv2d(192, 192, 1, 1, 1);
+	model.get()->add_conv2d(192, 192, 1, 1, 0);
 	model.get()->add_ReLU();
 	model.get()->add_bn(0.1, 1.0e-5);
 	model.get()->add_maxpool2d(3, 2, 1);
@@ -98,9 +98,9 @@ void learning_and_test_cifar10_dataset(torch::Device device)
 
 	model.get()->add_conv2d(192, 192, 3, 1, 1);
 	model.get()->add_ReLU();
-	model.get()->add_conv2d(192, 192, 1, 1, 1);
+	model.get()->add_conv2d(192, 192, 1, 1, 0);
 	model.get()->add_ReLU();
-	model.get()->add_conv2d(192, 10, 1, 1, 1);
+	model.get()->add_conv2d(192, 10, 1, 1, 0);
 	model.get()->add_ReLU();
 	model.get()->add_bn(0.1, 1.0e-5);
 	model.get()->add_avgpool2d(8, 1, 0);
@@ -122,7 +122,7 @@ void learning_and_test_cifar10_dataset(torch::Device device)
 
 	auto optimizer =
 		torch::optim::Adam(model.get()->parameters(),
-			torch::optim::AdamOptions(0.005));
+			torch::optim::AdamOptions(0.0025));
 	//torch::optim::SGD optimizer(
 	//	model.get()->parameters(), torch::optim::SGDOptions(0.001).momentum(0.9));
 

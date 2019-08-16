@@ -94,6 +94,7 @@ namespace cpp_torch
 		}
 	};
 
+
 	inline void ImageWrite(const char* filename, Image* img, float scale = 1.0)
 	{
 		std::vector<unsigned char> data(3 * img->height*img->width);
@@ -1086,6 +1087,9 @@ namespace cpp_torch
 		if (x < min_) x = min_;
 		if (x > max_) x = max_;
 	}
+	/*
+	RGB -> YCbCr
+	*/
 	inline void RGB2YCbCr(float R, float G, float B, float& Y, float& Cb, float& Cr)
 	{
 		Y = 0.257*R + 0.504*G + 0.098*B + 16;
@@ -1099,6 +1103,9 @@ namespace cpp_torch
 		clump(Cr, 0, 255);
 		clump(Cb, 0, 255);
 	}
+	/*
+	YCbCr -> RGB
+	*/
 	inline void YCbCr2RGB(float Y, float Cb, float Cr, float& R, float& G, float& B)
 	{
 		R = 1.164*(Y - 16) + 1.596*(Cr - 128);
@@ -1113,6 +1120,9 @@ namespace cpp_torch
 		clump(B, 0, 255);
 	}
 
+	/*
+	* @param [IN/OUT] image		RGB -> YCbCr
+	*/
 	inline void ImageRGB2YCbCr(cpp_torch::Image* image)
 	{
 		std::vector<cpp_torch::Rgb> data = std::vector<cpp_torch::Rgb>(image->height*image->width);
@@ -1132,6 +1142,9 @@ namespace cpp_torch
 		image->data = data;
 	}
 
+	/*
+	* @param [IN/OUT] image		YCbCr -> RGB
+	*/
 	inline void ImageYCbCr2RGB(cpp_torch::Image* image)
 	{
 		std::vector<cpp_torch::Rgb> data = std::vector<cpp_torch::Rgb>(image->height*image->width);
@@ -1151,6 +1164,11 @@ namespace cpp_torch
 		image->data = data;
 	}
 
+	/*
+	* @param [IN/OUT] imageY  channel =1 -> imageYCbCr(R),imageY(G),imageY(B)
+	* @param [IN] imageYCbCr
+	* @param [IN] channel channel=(1,2,3)
+	*/
 	inline void ImageChgChannel(cpp_torch::Image* imageY, cpp_torch::Image* imageYCbCr, int channel)
 	{
 		const size_t sz = imageY->height * imageY->width;
@@ -1172,6 +1190,9 @@ namespace cpp_torch
 		}
 	}
 
+	/*
+	 * @param [IN/OUT] image  channel =1 -> image(R,G,B) -> image(R)
+	 */
 	inline void ImageGetChannel(cpp_torch::Image* image, int channel)
 	{
 		const size_t sz = image->height * image->width;
