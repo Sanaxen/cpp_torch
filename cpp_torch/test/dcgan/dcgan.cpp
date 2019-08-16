@@ -158,15 +158,13 @@ void learning_and_test_dcgan_dataset(torch::Device device)
 {
 	train_images.clear();
 	printf("load images start\n");
-	std::vector<std::string>& image_files = cpp_torch::getImageFiles(kDataRoot + std::string("/image"));
+	std::vector<std::string>& image_files = cpp_torch::getImageFiles(kDataRoot + std::string("/jpg"));
 
 	cpp_torch::progress_display2 loding(image_files.size() + 1);
 	for (int i = 0; i < image_files.size(); i++)
 	{
-		cpp_torch::Image* img = cpp_torch::readImage(image_files[i].c_str());
-		tiny_dnn::vec_t& v = image2vec_t(img, 3, img->height, img->width/*, 1.0/255.0*/);
-		delete img;
-
+		cpp_torch::Image img = cpp_torch::readImage(image_files[i].c_str());
+		tiny_dnn::vec_t& v = image2vec_t(&img, 3, img.height, img.width/*, 1.0/255.0*/);
 		train_images.push_back(v);
 		loding += 1;
 	}
