@@ -226,6 +226,7 @@ void learning_and_test_mnist_dataset(torch::Device device)
 
 auto main() -> int {
 
+#if 0
 	cpp_torch::url_download("http://yann.lecun.com/exdb/mnist/train-images-idx3-ubyte.gz", "./data/train-images-idx3-ubyte.gz");
 	cpp_torch::url_download("http://yann.lecun.com/exdb/mnist/train-labels-idx1-ubyte.gz", "./data/train-labels-idx1-ubyte.gz");
 	cpp_torch::url_download("http://yann.lecun.com/exdb/mnist/t10k-images-idx3-ubyte.gz", "./data/t10k-images-idx3-ubyte.gz");
@@ -235,7 +236,7 @@ auto main() -> int {
 	cpp_torch::file_uncompress("./data/train-labels-idx1-ubyte.gz", true);
 	cpp_torch::file_uncompress("./data/t10k-images-idx3-ubyte.gz", true);
 	cpp_torch::file_uncompress("./data/t10k-labels-idx1-ubyte.gz", true);
-
+#else
 	std::string url = "http://yann.lecun.com/exdb/mnist/";
 	std::vector<std::string> files = {
 			"train-images-idx3-ubyte.gz",
@@ -246,6 +247,7 @@ auto main() -> int {
 	std::string dir = std::string(kDataRoot) + std::string("/");
 
 	cpp_torch::url_download_dataSet(url, files, dir );
+#endif
 
 	torch::manual_seed(1);
 
