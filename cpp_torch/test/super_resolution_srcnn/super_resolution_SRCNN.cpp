@@ -125,7 +125,7 @@ void learning_and_test_super_resolution_dataset(torch::Device device)
 
 			cv::Mat traget_image = cut_img.clone();
 
-			cv::resize(cut_img, cut_img, cv::Size(input_image_size * upscale_factor, input_image_size * upscale_factor), 0, 0, INTER_CUBIC);
+			cv::resize(cut_img, cut_img, cv::Size(input_image_size / 3, input_image_size / 3), 0, 0, INTER_CUBIC);
 			cv::resize(cut_img, cut_img, cv::Size(input_image_size , input_image_size ), 0, 0, INTER_CUBIC);
 			//std::cout << "size " << cvmat.size() << std::endl;
 
@@ -220,8 +220,7 @@ void learning_and_test_super_resolution_dataset(torch::Device device)
 		fflush(fp);
 		printf("loss %.4f\n", loss); fflush(stdout);
 
-		std::vector<std::string>& image_files = cpp_torch::getImageFiles(kDataRoot + std::string("/Set5"));
-
+		const std::vector<std::string>& image_files = cpp_torch::getImageFiles(kDataRoot + std::string("/Set5"));
 
 		float mse_loss = 0;
 		float psnr = 0;
