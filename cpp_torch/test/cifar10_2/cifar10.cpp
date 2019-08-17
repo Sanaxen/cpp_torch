@@ -29,7 +29,7 @@ const char* kDataRoot = "./data";
 const int64_t kTrainBatchSize = 200;
 
 // The batch size for testing.
-const int64_t kTestBatchSize = 1000;
+const int64_t kTestBatchSize = 10;
 
 // The number of epochs to train.
 const int64_t kNumberOfEpochs = 400;
