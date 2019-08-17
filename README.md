@@ -52,7 +52,7 @@ What you can do is still limited.
 |-----|-----|----|----|
 |USE_WINDOWS||ON||
 |USE_COLOR_CONSOLE||ON||
-|USE_ZLIB||OFF||
+|USE_ZLIB||ON||
 |USE_IMAGE_UTIL||ON||
 |USE_OPENCV_UTIL|[OpenCV](https://opencv.org/releases/) >= 2.3|OFF|ex. C:\dev\opencv-3.4.0|
 
