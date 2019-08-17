@@ -61,10 +61,12 @@ CIFAR10
 [DCGAN](./cpp_torch/example/DCGAN/readme.md)  
 
 ## Latest topic  
-C++ only DCGAN (train & test)  
-<img src="./images/dcgan_train.gif" width=40%>  
+``C++`` only **super_resolution**  (train & test)  
+<img src="./images/super_resolution.png" width=90%>  
+``C++``  only **DCGAN** (train & test)  
+<img src="./images/dcgan_train.gif" width=60%>  
 It was not possible with **tiny-dnn**, but it became possible with **cpp_torch(libtorch)**.
-<img src="./images/image_array.png" width=40%>  
+<img src="./images/image_array.png" width=60%>  
 ## Requirements  
 visual studio 2015,2017  
 
