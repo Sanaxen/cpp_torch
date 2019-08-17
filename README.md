@@ -64,8 +64,8 @@ CIFAR10
 ``C++`` only **super_resolution**  (train & test)  
 <img src="./images/super_resolution.png" width=90%>  
 It's still being verified  
-[ESPCN](./cpp_torch/test/super_resolution_espcn/readme.md)__
-[SRCNN](./cpp_torch/test/super_resolution_srcnn/readme.md)__
+[ESPCN](./cpp_torch/test/super_resolution_espcn/readme.md)  
+[SRCNN](./cpp_torch/test/super_resolution_srcnn/readme.md)  
 
 
 ``C++``  only **DCGAN** (train & test)  
