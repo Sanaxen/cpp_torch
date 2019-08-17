@@ -63,9 +63,9 @@ CIFAR10
 ## Latest topic  
 ``C++`` only **super_resolution**  (train & test)  
 <img src="./images/super_resolution.png" width=90%>  
-It's still being verified
-[ESPCN](./cpp_torch/test/super_resolution_espcn/README.md)__
-[SRCNN](./cpp_torch/test/super_resolution_SRCNN/README.md)__
+It's still being verified  
+[ESPCN](./cpp_torch/test/super_resolution_espcn/readme.md)__
+[SRCNN](./cpp_torch/test/super_resolution_srcnn/readme.md)__
 
 
 ``C++``  only **DCGAN** (train & test)  
