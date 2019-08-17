@@ -63,7 +63,7 @@ CIFAR10
 
 ## Latest topic  
 ``C++`` only **super_resolution**  (train & test)  
-<img src="./images/super_resolution.png" width=90%>  
+60epochs<img src="./images/super_resolution.png" width=90%>  
 It's still being verified  
 **[ESPCN(Efficient SubPixel Convolutional Neural Network)](./cpp_torch/test/super_resolution_espcn/readme.md)**  
 **[SRCNN(Super-Resolution Convolutional Neural Network)](./cpp_torch/test/super_resolution_srcnn/readme.md)**  
