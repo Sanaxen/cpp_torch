@@ -44,6 +44,7 @@ cpp_torch::progress_display disp(train_images.size());
 <img src="./images/colored_progress.png"/>  
 
 **data set download**  
+What you can do is still limited.  
 <img src="./images/url_file_download.png" width=60%>
 
 # config.h  
