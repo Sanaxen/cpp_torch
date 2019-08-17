@@ -835,8 +835,8 @@ namespace cpp_torch
 					batch_y[i] = batch_y[i].view({ BatchSize, out_channels, out_H, out_W });
 				}
 
-				torch::Tensor input = batch_x[i].to(device);
-				torch::Tensor targets = batch_y[i].to(device);
+				torch::Tensor& input = batch_x[i].to(device);
+				torch::Tensor& targets = batch_y[i].to(device);
 
 				torch::Tensor predicted = predict(input).to(device);
 
