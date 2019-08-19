@@ -94,6 +94,17 @@ namespace cpp_torch
 		}
 	};
 
+	inline void clump(float_t& x, float_t min_, float_t max_)
+	{
+		if (x < min_) x = min_;
+		if (x > max_) x = max_;
+	}
+	inline float_t Clump(float x, float_t min_, float_t max_)
+	{
+		if (x < min_) x = min_;
+		if (x > max_) x = max_;
+		return x;
+	}
 
 	inline void ImageWrite(const char* filename, Image* img, float scale = 1.0)
 	{
@@ -886,15 +897,13 @@ namespace cpp_torch
 	{
 		std::vector<float_t> image_data(channel*height*width);
 
-		const size_t sz = height * width;
-
+		const size_t sz = height* width;
 #pragma omp parallel for
-		for (int i = 0; i < sz; i++) {
-			for (int c = 0; c < channel; c++) {
-				float_t d = img[c * height*width + i];
-				if (d < 0) d = 0;
-				if (d > 255) d = 255;
-				image_data[i] = d;
+		for (int i = 0; i < sz; i++) 
+		{
+			for (int c = 0; c < channel; c++)
+			{
+				image_data[channel * i + c] = Clump(img[c * height*width + i], 0.0, 255.0);
 			}
 		}
 		return ToImage(&(image_data[0]), height, width, channel);
@@ -1082,11 +1091,7 @@ namespace cpp_torch
 		return;
 	}
 
-	inline void clump(float& x, float min_, float max_)
-	{
-		if (x < min_) x = min_;
-		if (x > max_) x = max_;
-	}
+
 	/*
 	RGB -> YCbCr
 	*/
