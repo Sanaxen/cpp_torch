@@ -21,6 +21,7 @@ namespace cpp_torch
 		DROPOUT = 6,
 		BATCHNORMAL = 7,
 		CONV_TRANSPOSE2D = 8,
+		PIXEL_SHUFFLE = 9,
 		RNN = 90,
 		LSTM = 91,
 		GRU = 92,
@@ -62,6 +63,7 @@ namespace cpp_torch
 		int dim = 1;	//softmax, logsoftmax
 		float_t dropout_rate = 0.0;
 		float_t negative_slope = 0.01;	//LeakyReLU(negative_slope=0.01)
+		int upscale_factor = 1;	//pixel_shuffle
 	};
 
 	struct NetImpl : torch::nn::Module {
@@ -82,6 +84,7 @@ namespace cpp_torch
 		int maxpool2d_count = 0;
 		int avgpool2d_count = 0;
 		int dropout_count = 0;
+		int pixel_shuffle_count = 0;
 
 		std::vector<torch::nn::Conv2d> conv2d;
 		std::vector<torch::nn::Conv2d> conv_transpose2d;
@@ -447,6 +450,35 @@ namespace cpp_torch
 			std::cout << "drop {" << inout.in_ << "}->{" << inout.out_ << "}" << std::endl;
 		}
 
+		//PIXEL_SHUFFLE
+		/*
+		 * This is useful for implementing efficient sub-pixel convolution with a stride of 1/r .
+		 * Look at the paper: Real-Time Single Image and Video Super-Resolution 
+		 * Using an Efficient Sub-Pixel Convolutional Neural Network by Shi et. al (2016) for more details.
+		 *
+		 * @param upscale_factor     [in] factor to increase spatial resolution by.
+		 */
+		void add_pixel_shuffle(int upscale_factor)
+		{
+			cpp_torch::LayerInOut inout;
+			inout.name = "pixel_shuffle";
+			inout.type = cpp_torch::LayerType::PIXEL_SHUFFLE;
+			inout.id = pixel_shuffle_count++;
+			inout.upscale_factor = upscale_factor;
+
+			const int i = layer.size();
+			inout.in_ = layer[i - 1].out_;
+			inout.out_ = inout.in_;
+			float r = sqrt(inout.in_[0]);
+			inout.out_[0] = 1;
+			inout.out_[1] = inout.in_[1] * r;
+			inout.out_[2] = inout.in_[2] * r;
+
+			layer.emplace_back(inout);
+
+			std::cout << "pixel_shuffle {" << inout.in_ << "}->{" << inout.out_ << "}" << std::endl;
+		}
+
 		/**
 		* constructing Batch Normalization layer
 		* @param momentum        [in] momentum in the computation of the exponential
@@ -673,6 +705,14 @@ namespace cpp_torch
 					if (debug_dmp)cpp_torch::dump_dim(bn[layer[i].id]->name(), x);
 					continue;
 				}
+				if (layer[i].type == cpp_torch::LayerType::PIXEL_SHUFFLE)
+				{
+					x = x.view({ -1, layer[i - 1].out_[0], layer[i - 1].out_[1], layer[i - 1].out_[2] });
+					x = torch::pixel_shuffle(x, layer[i].upscale_factor);
+					if (debug_dmp)cpp_torch::dump_dim(bn[layer[i].id]->name(), x);
+					continue;
+				}
+
 				if (layer[i].type == cpp_torch::LayerType::LSTM ||
 					layer[i].type == cpp_torch::LayerType::GRU  ||
 					layer[i].type == cpp_torch::LayerType::RNN
