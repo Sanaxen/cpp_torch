@@ -27,9 +27,8 @@ namespace cpp_torch
 				tiny_dnn::vec_t& u = train_images[index];
 
 				//{
-				//	cpp_torch::Image* bmp = cpp_torch::vec_t2image(u, 3, image_height, image_width);
-				//	cpp_torch::ImageWrite("aaa.bmp", bmp);
-				//	delete bmp;
+				//	cpp_torch::Image& bmp = cpp_torch::vec_t2image(u, 3, image_height, image_width);
+				//	cpp_torch::ImageWrite("aaa.bmp", &bmp);
 				//	//exit(0);
 				//}
 
@@ -57,9 +56,8 @@ namespace cpp_torch
 				//	transform(v.begin(), v.end(), v2.begin(),
 				//		[=](float_t c) {return (c * channel_range); }
 				//	);
-				//	cpp_torch::Image* bmp = cpp_torch::vec_t2image(v2, 3, image_height, image_width);
-				//	cpp_torch::ImageWrite("bbb.bmp", bmp);
-				//	delete bmp;
+				//	cpp_torch::Image& bmp = cpp_torch::vec_t2image(v2, 3, image_height, image_width);
+				//	cpp_torch::ImageWrite("bbb.bmp", &bmp);
 				//	exit(0);
 				//}
 			}
