@@ -20,7 +20,7 @@
 #define USE_CUDA
 
 //Data Augment
-const bool kDataAugment = false;// true;
+const bool kDataAugment = true;
 
 // Where to find the CIFAR10 dataset.
 const char* kDataRoot = "./data";
@@ -65,7 +65,7 @@ void read_cifar10_dataset(const std::string &data_dir_path)
 
 	if (kDataAugment)
 	{
-		cpp_torch::test::Image3CannelDataAugment(train_images, train_labels, mean, stddiv, 32, 32, 2, CHANNEL_RANGE);
+		cpp_torch::test::Image3CannelDataAugment(train_images, train_labels, mean, stddiv, 32, 32, 1, CHANNEL_RANGE);
 	}
 }
 
