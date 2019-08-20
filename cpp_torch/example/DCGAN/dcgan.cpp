@@ -22,7 +22,7 @@ const int64_t kTrainBatchSize = 64;
 const int64_t kTestBatchSize = 1000;
 
 // The number of epochs to train.
-const int64_t kNumberOfEpochs = 300;
+const int64_t kNumberOfEpochs = 600;
 
 // After how many batches to log a new update with the loss value.
 const int64_t kLogInterval = 10;
@@ -36,7 +36,7 @@ void learning_and_test_dcgan_dataset(torch::Device device)
 {
 	train_images.clear();
 	printf("load images start\n");
-	std::vector<std::string>& image_files = cpp_torch::getImageFiles(kDataRoot + std::string("/jpg"));
+	std::vector<std::string>& image_files = cpp_torch::getImageFiles(kDataRoot + std::string("/image"));
 
 	cpp_torch::progress_display2 loding(image_files.size() + 1);
 	for (int i = 0; i < image_files.size(); i++)
