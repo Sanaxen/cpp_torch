@@ -1,9 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 14
-VisualStudioVersion = 14.0.25420.1
+# Visual Studio 15
+VisualStudioVersion = 15.0.28307.757
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "dcgan", "dcgan.vcxproj", "{24A8ED0E-CB22-423A-A4CE-2156E7F572AF}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "dcgan_generate_test", "dcgan_generate_test.vcxproj", "{3CF9404F-4014-49AE-A832-4A8CE3D52C28}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,8 +23,19 @@ Global
 		{24A8ED0E-CB22-423A-A4CE-2156E7F572AF}.Release|x64.Build.0 = Release|x64
 		{24A8ED0E-CB22-423A-A4CE-2156E7F572AF}.Release|x86.ActiveCfg = Release|Win32
 		{24A8ED0E-CB22-423A-A4CE-2156E7F572AF}.Release|x86.Build.0 = Release|Win32
+		{3CF9404F-4014-49AE-A832-4A8CE3D52C28}.Debug|x64.ActiveCfg = Debug|x64
+		{3CF9404F-4014-49AE-A832-4A8CE3D52C28}.Debug|x64.Build.0 = Debug|x64
+		{3CF9404F-4014-49AE-A832-4A8CE3D52C28}.Debug|x86.ActiveCfg = Debug|Win32
+		{3CF9404F-4014-49AE-A832-4A8CE3D52C28}.Debug|x86.Build.0 = Debug|Win32
+		{3CF9404F-4014-49AE-A832-4A8CE3D52C28}.Release|x64.ActiveCfg = Release|x64
+		{3CF9404F-4014-49AE-A832-4A8CE3D52C28}.Release|x64.Build.0 = Release|x64
+		{3CF9404F-4014-49AE-A832-4A8CE3D52C28}.Release|x86.ActiveCfg = Release|Win32
+		{3CF9404F-4014-49AE-A832-4A8CE3D52C28}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {CE23D7A0-6FF8-4871-84BC-9BCE225518C8}
 	EndGlobalSection
 EndGlobal
