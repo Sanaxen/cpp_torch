@@ -72,7 +72,7 @@ It's still being verified
 ``C++``  only **DCGAN(Deep Convolutional Generative Adversarial Network)** (train & test) [reference](https://qiita.com/hokuto_HIRANO/items/7381095aaee668513487)
 <img src="./images/dcgan_train.gif" width=60%>  
 It was not possible with **tiny-dnn**, but it became possible with **cpp_torch(libtorch)**.
-<img src="./images/image_array.png" width=60%>  
+<img src="./images/image_array2.png" width=60%>  
 ## Requirements  
 visual studio 2015,2017  
 
