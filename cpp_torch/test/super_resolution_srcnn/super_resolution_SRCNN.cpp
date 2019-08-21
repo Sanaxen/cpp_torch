@@ -9,6 +9,28 @@
 #include "cpp_torch.h"
 #include "test/include/images_mormalize.h"
 
+bool file_copy(const std::string& from, const std::string& to)
+{
+	constexpr std::size_t BUFSIZE = 4096;
+	auto src = fopen(from.c_str(), "rb");
+	if (!src)
+	{
+		printf("open error[%s]\n", from.c_str());
+		return false;
+	}
+	auto dst = fopen(to.c_str(), "wb");
+	if (!dst)
+	{
+		printf("open error[%s]\n", to.c_str());
+		return false;
+	}
+	for (char buf[BUFSIZE]; auto size = fread(buf, 1, BUFSIZE, src);) 
+	{
+		fwrite(buf, 1, size, dst);
+	}
+	fclose(dst);
+	fclose(src);
+}
 #define USE_CUDA
 
 // Where to find the MNIST dataset.

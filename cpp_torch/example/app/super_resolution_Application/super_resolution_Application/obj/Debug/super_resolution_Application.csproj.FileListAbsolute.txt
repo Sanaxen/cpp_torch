@@ -1,0 +1,9 @@
+C:\Users\neutral\Desktop\libtorch\cpp_torch-master\cpp_torch\example\app\super_resolution_Application\super_resolution_Application\bin\Debug\super_resolution_Application.exe.config
+C:\Users\neutral\Desktop\libtorch\cpp_torch-master\cpp_torch\example\app\super_resolution_Application\super_resolution_Application\bin\Debug\super_resolution_Application.exe
+C:\Users\neutral\Desktop\libtorch\cpp_torch-master\cpp_torch\example\app\super_resolution_Application\super_resolution_Application\bin\Debug\super_resolution_Application.pdb
+C:\Users\neutral\Desktop\libtorch\cpp_torch-master\cpp_torch\example\app\super_resolution_Application\super_resolution_Application\obj\Debug\super_resolution_Application.csprojResolveAssemblyReference.cache
+C:\Users\neutral\Desktop\libtorch\cpp_torch-master\cpp_torch\example\app\super_resolution_Application\super_resolution_Application\obj\Debug\super_resolution_Application.Form1.resources
+C:\Users\neutral\Desktop\libtorch\cpp_torch-master\cpp_torch\example\app\super_resolution_Application\super_resolution_Application\obj\Debug\super_resolution_Application.Properties.Resources.resources
+C:\Users\neutral\Desktop\libtorch\cpp_torch-master\cpp_torch\example\app\super_resolution_Application\super_resolution_Application\obj\Debug\super_resolution_Application.csproj.GenerateResource.Cache
+C:\Users\neutral\Desktop\libtorch\cpp_torch-master\cpp_torch\example\app\super_resolution_Application\super_resolution_Application\obj\Debug\super_resolution_Application.exe
+C:\Users\neutral\Desktop\libtorch\cpp_torch-master\cpp_torch\example\app\super_resolution_Application\super_resolution_Application\obj\Debug\super_resolution_Application.pdb
