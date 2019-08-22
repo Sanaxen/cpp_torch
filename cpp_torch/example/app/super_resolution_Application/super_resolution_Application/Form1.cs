@@ -40,6 +40,14 @@ namespace super_resolution_Application
             app.FileName = "super_resolution_espcn_test.exe";
             app.UseShellExecute = true;
             app.Arguments = "\"" + openFileDialog1.FileName + "\"";
+            if ( radioButton1.Checked)
+            {
+                app.Arguments += " 2";
+            }
+            if (radioButton2.Checked)
+            {
+                app.Arguments += " 3";
+            }
 
             string directoryName = System.IO.Path.GetDirectoryName(openFileDialog1.FileName);
             string fileName = System.IO.Path.GetFileNameWithoutExtension(openFileDialog1.FileName);
@@ -65,6 +73,11 @@ namespace super_resolution_Application
             app2.Arguments = "\"" + outfile + "\"";
             app2.UseShellExecute = true;
             System.Diagnostics.Process.Start(app2);
+        }
+
+        private void pictureBox1_Click(object sender, EventArgs e)
+        {
+
         }
     }
 }

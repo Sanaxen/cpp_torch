@@ -14,20 +14,7 @@
 // Where to find the MNIST dataset.
 const char* kDataRoot = "./data";
 
-// The batch size for training.
-const int64_t kTrainBatchSize = 64;
-
-// The batch size for testing.
-const int64_t kTestBatchSize = 1000;
-
-// The number of epochs to train.
-const int64_t kNumberOfEpochs = 60;
-
-// After how many batches to log a new update with the loss value.
-const int64_t kLogInterval = 10;
-
-const int kDataAugment_crop_num_factor = 10;
-const int upscale_factor = 3;
+int upscale_factor = 3;
 
 int calculate_valid_crop_size(const int crop_size, const int upscale_factor)
 {
@@ -36,8 +23,10 @@ int calculate_valid_crop_size(const int crop_size, const int upscale_factor)
 
 
 int input_image_size;
-void test_super_resolution_dataset(torch::Device device, const std::string& test_image)
+void test_super_resolution_dataset(torch::Device device, const std::string& test_image, const int scale)
 {
+	upscale_factor = scale;
+
 	printf("input[%s]\n", test_image.c_str());
 	cv::Mat org_image = cv::imread(test_image.c_str());
 
@@ -62,10 +51,16 @@ void test_super_resolution_dataset(torch::Device device, const std::string& test
 	nn.input_dim(1, input_image_size, input_image_size);
 	nn.output_dim(1, input_image_size * upscale_factor, input_image_size * upscale_factor);
 
-	nn.load(std::string("model.pt"));
-
-
 	nn.model.get()->train(false);
+	if (upscale_factor == 2)
+	{
+		nn.load(std::string("model_scale2.pt"));
+	}
+	if (upscale_factor == 3)
+	{
+		nn.load(std::string("model_scale3.pt"));
+	}
+
 
 	char imgfname[256];
 
@@ -112,12 +107,35 @@ void test_super_resolution_dataset(torch::Device device, const std::string& test
 
 	float loss = cv::norm((resizeImage - output)) / (input_image_size* upscale_factor*input_image_size* upscale_factor);
 	float psnr = 10.0*log10(1.0 / loss);
-	printf("psnr:%.4f dB  %.4f\n", psnr , loss);
+	printf("psnr:%.4f dB  %.4f\n", psnr, loss);
+	//getc(stdin);
 }
 
 
 int main(int argc, char** argv)
 {
+	if (argc < 2)
+	{
+		printf("super_resolution_test.exe image_file upscale\n");
+	}
+
+	int  upscale = 2;
+	if (argc == 3)
+	{
+		upscale = atoi(argv[2]);
+	}
+	if (upscale < 2)
+	{
+		printf("error [upscale < 2] -> upscale = 2\n");
+		upscale = 2;
+	}
+	if (upscale > 3)
+	{
+		printf("error [upscale > 3] -> upscale = 3\n");
+		upscale = 3;
+	}
+	printf("%s -> upscale:%d\n", argv[1], upscale);
+
 
 	torch::manual_seed(1);
 
@@ -135,7 +153,7 @@ int main(int argc, char** argv)
 	}
 	torch::Device device(device_type);
 
-	test_super_resolution_dataset(device, argv[1]);
+	test_super_resolution_dataset(device, argv[1], upscale);
 
 	return 0;
 }

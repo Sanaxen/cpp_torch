@@ -999,7 +999,14 @@ namespace cpp_torch
 		}
 		inline void load(std::string& filename)
 		{
-			torch::load(model, filename);
+			try
+			{
+				torch::load(model, filename);
+			}
+			catch (c10::Error& err)
+			{
+				printf("load error[%s]\n", err.what());
+			}
 		}
 	};
 
