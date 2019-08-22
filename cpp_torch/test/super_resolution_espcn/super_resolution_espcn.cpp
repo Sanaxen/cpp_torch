@@ -372,7 +372,7 @@ void learning_and_test_super_resolution_dataset(torch::Device device)
 			mse_loss += loss;
 			psnr += 10.0*log10(1.0 / loss);
 		}
-		printf("psnr:%.4f  %.4fdB\n", psnr / image_files.size(), mse_loss / image_files.size());
+		printf("psnr:%.4fdB  %.4f\n", psnr / image_files.size(), mse_loss / image_files.size());
 
 		if (epoch <= kNumberOfEpochs)
 		{
