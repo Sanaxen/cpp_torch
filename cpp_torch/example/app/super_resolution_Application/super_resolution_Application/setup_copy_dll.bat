@@ -5,3 +5,4 @@ copy .\bin\Release\super_resolution_Application*.* Application /v /y
 copy .\pretrained_model\*.* Application /v /y
 
 copy ..\..\..\SUPER_RESOLUTION_ESPCN\\super_resolution_espcn\x64\Release\*.exe Application /v /y
+copy ..\..\..\SUPER_RESOLUTION_ESPCN\\super_resolution_espcn\run\*.pt .\bin\Application /v /y

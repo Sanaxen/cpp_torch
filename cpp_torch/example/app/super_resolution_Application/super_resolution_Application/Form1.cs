@@ -21,6 +21,7 @@ namespace super_resolution_Application
             {
                 openFileDialog1.FileName = cmds[1];
                 pictureBox1.Image = System.Drawing.Image.FromFile(cmds[1]);
+                textBox1.Text = pictureBox1.Image.Width.ToString() + " X " + pictureBox1.Image.Height.ToString();
             }
         }
 
@@ -32,6 +33,7 @@ namespace super_resolution_Application
         private void openFileDialog1_FileOk(object sender, CancelEventArgs e)
         {
             pictureBox1.Image = System.Drawing.Image.FromFile(openFileDialog1.FileName);
+            textBox1.Text = pictureBox1.Image.Width.ToString() + " X " + pictureBox1.Image.Height.ToString();
         }
 
         private void button2_Click(object sender, EventArgs e)

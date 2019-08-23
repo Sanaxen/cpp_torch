@@ -391,7 +391,7 @@ void learning_and_test_super_resolution_dataset(torch::Device device)
 	std::cout << "end training." << std::endl;
 	fclose(fp);
 
-	//nn.save(std::string("model1.pt"));
+	nn.save(std::string("model.pt"));
 
 	//Net model2;
 	//cpp_torch::network_torch<Net> nn2(model2, device);

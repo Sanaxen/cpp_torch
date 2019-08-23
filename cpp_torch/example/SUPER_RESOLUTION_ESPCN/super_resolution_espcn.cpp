@@ -9,7 +9,7 @@
 #include "cpp_torch.h"
 #include "test/include/images_mormalize.h"
 
-//#define USE_CUDA
+#define USE_CUDA
 
 // Where to find the MNIST dataset.
 const char* kDataRoot = "./data";
@@ -258,7 +258,10 @@ void learning_and_test_super_resolution_dataset(torch::Device device)
 			}
 			printf("psnr:%.4fdB  %.4f\n", psnr / image_files.size(), mse_loss / image_files.size());
 			
-			nn.save(std::string("model.pt"));
+			char save_model[256];
+			sprintf(save_model, "model_scale%d.pt", upscale_factor);
+			nn.save(std::string(save_model));
+			//nn.load(std::string(save_model));
 		}
 
 		if (epoch <= kNumberOfEpochs)

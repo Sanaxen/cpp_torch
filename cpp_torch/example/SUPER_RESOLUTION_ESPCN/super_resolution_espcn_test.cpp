@@ -46,22 +46,18 @@ void test_super_resolution_dataset(torch::Device device, const std::string& test
 	model.get()->add_ReLU();
 	model.get()->add_pixel_shuffle(upscale_factor);
 
+	char load_model[256];
+	sprintf(load_model, "model_scale%d.pt", upscale_factor);
+	torch::load(model, load_model);
+
 	cpp_torch::network_torch<cpp_torch::Net> nn(model, device);
 
 	nn.input_dim(1, input_image_size, input_image_size);
 	nn.output_dim(1, input_image_size * upscale_factor, input_image_size * upscale_factor);
 
+	//nn.load(std::string(load_model));
+
 	nn.model.get()->train(false);
-	if (upscale_factor == 2)
-	{
-		nn.load(std::string("model_scale2.pt"));
-	}
-	if (upscale_factor == 3)
-	{
-		nn.load(std::string("model_scale3.pt"));
-	}
-
-
 	char imgfname[256];
 
 	cv::resize(org_image, org_image, cv::Size(input_image_size, input_image_size), 0, 0, INTER_CUBIC);
