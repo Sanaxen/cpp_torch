@@ -24,31 +24,18 @@ namespace cpp_torch
 	*/
 	inline torch::Tensor safe_log(torch::Tensor x)
 	{
-		x.options().requires_grad(true);
 		torch::Tensor y = log(abs(x) + 1.0e-12);
-		y.options().requires_grad(true);
 		return y;
 	}
-	//struct BCEWithLogitsLoss : torch::nn::Module {
-	//	BCEWithLogitsLoss() 
-	//	{
-	//	}
-	//
-	//	torch::Tensor forward(torch::Tensor o, torch::Tensor t) {
-	//		auto x =  -(t*safe_log(torch::sigmoid(o)) + (1 - t)*safe_log(1 - torch::sigmoid(o))).mean();
-	//		return x;
-	//	}
-	//};
-//	BCEWithLogitsLoss bCEWithLogitsLoss;
-//#define LOSS_FUNC	bCEWithLogitsLoss.forward
 
 	torch::Tensor BCEWithLogitsLoss(torch::Tensor o, torch::Tensor t)
 	{
-		o.options().requires_grad(true);
-		t.options().requires_grad(true);
+		//Specify the target of automatic differentiation with True
+		if (!o.requires_grad()) o.set_requires_grad(true);
+		//o.options().requires_grad(true);
+
 		torch::Tensor y = -(t*safe_log(torch::sigmoid(o)) + (1 - t)*safe_log(1 - torch::sigmoid(o))).mean();
 		
-		y.options().requires_grad(true);
 		return y;
 	}
 #define LOSS_FUNC BCEWithLogitsLoss
