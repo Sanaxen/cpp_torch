@@ -13,8 +13,9 @@
 #define USE_CUDA
 
 // The batch size for testing.
-const int64_t kTestBatchSize = 64;
+int64_t kTestBatchSize = 64;
 
+int  seed = -1;
 void test_dcgan(torch::Device device)
 {
 	const int nz = 100;
@@ -58,16 +59,30 @@ void test_dcgan(torch::Device device)
 
 	char fname[64];
 	sprintf(fname, "generated_images/image_array%d.png", 99999);
-	cv::Mat& img = cpp_torch::cvutil::ImageWrite(generated_img, 8, 8, fname, 2);
-	cv::imshow("", img);
-	cv::waitKey();
+	int r = (int)(sqrt((float)kTestBatchSize));
+
+	cv::Mat& img = cpp_torch::cvutil::ImageWrite(generated_img, r, r, fname, 2);
+	if (seed < 0)
+	{
+		cv::imshow("", img);
+		cv::waitKey();
+	}
 
 }
 
 
-auto main() -> int {
+auto main(int argc, char** argv) -> int {
 
-	torch::manual_seed(1);
+	if (argc < 1)
+	{
+		printf("dcgan_generate_test.exe seed num\n");
+	}
+	if (argc > 1) seed = atoi(argv[1]);
+	if (argc > 2) kTestBatchSize = atoi(argv[2]);
+
+	printf("kTestBatchSize:%d\n", kTestBatchSize);
+
+	torch::manual_seed( abs(seed));
 
 	torch::DeviceType device_type;
 #ifdef USE_CUDA

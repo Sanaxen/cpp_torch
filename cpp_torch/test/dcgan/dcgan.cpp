@@ -265,6 +265,12 @@ void learning_and_test_dcgan_dataset(torch::Device device)
 				system(cmd);
 #endif
 			}
+			char model_name[256];
+			sprintf(model_name, "generate_model%03d.pt", epoch - 1);
+			g_nn.save(std::string(model_name));
+
+			sprintf(model_name, "discriminator_model%03d.pt", epoch - 1);
+			d_nn.save(std::string(model_name));
 		}
 		else
 		{
@@ -300,17 +306,8 @@ void learning_and_test_dcgan_dataset(torch::Device device)
 	std::cout << "end training." << std::endl;
 	fclose(fp);
 
-	//nn.save(std::string("model1.pt"));
-
-	//Net model2;
-	//cpp_torch::network_torch<Net> nn2(model2, device);
-	//nn2 = nn;
-
-	//nn2.load(std::string("model1.pt"));
-	//nn2.test(test_images, test_labels, kTrainBatchSize);
-
-	//tiny_dnn::result res2 = nn2.test(test_images, test_labels);
-	//cpp_torch::print_ConfusionMatrix(res2);
+	g_nn.save(std::string("generate_model.pt"));
+	d_nn.save(std::string("discriminator_model.pt"));
 }
 
 

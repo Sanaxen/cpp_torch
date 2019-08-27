@@ -22,7 +22,7 @@ const int64_t kTrainBatchSize = 64;
 const int64_t kTestBatchSize = 1000;
 
 // The number of epochs to train.
-const int64_t kNumberOfEpochs = 600;
+const int64_t kNumberOfEpochs = 300;
 
 // After how many batches to log a new update with the loss value.
 const int64_t kLogInterval = 10;
@@ -189,6 +189,13 @@ void learning_and_test_dcgan_dataset(torch::Device device)
 				system(cmd);
 #endif
 			}
+
+			char model_name[256];
+			sprintf(model_name, "generate_model%03d.pt", epoch - 1);
+			g_nn.save(std::string(model_name));
+
+			sprintf(model_name, "discriminator_model%03d.pt", epoch - 1);
+			d_nn.save(std::string(model_name));
 		}
 		else
 		{

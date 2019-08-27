@@ -29,7 +29,7 @@ const int64_t kLogInterval = 10;
 const int64_t kImage_size = 256;
 
 const int kDataAugment_crop_num_factor = 10;
-const int upscale_factor = 2;
+const int upscale_factor = 3;
 struct NetImpl : torch::nn::Module {
 	NetImpl() :
 		conv1(torch::nn::Conv2dOptions(1, 64, 5).with_bias(false).stride(1).padding(2)),
