@@ -27,6 +27,7 @@ const int64_t kNumberOfEpochs = 300;
 // After how many batches to log a new update with the loss value.
 const int64_t kLogInterval = 10;
 
+const int kRndArraySize = 100;
 
 // load  dataset
 std::vector<tiny_dnn::label_t> train_labels, test_labels;
@@ -64,11 +65,11 @@ void learning_and_test_dcgan_dataset(torch::Device device)
 	loding.end();
 	printf("load images:%d\n", train_images.size());
 
-	const int nz = 100;
+	const int nz = kRndArraySize;
 
 	cpp_torch::Net  g_model;
 	g_model.get()->setInput(nz, 1, 1);
-	g_model.get()->add_conv_transpose2d(100, 256, 4, 1, 0);
+	g_model.get()->add_conv_transpose2d(nz, 256, 4, 1, 0);
 	g_model.get()->add_bn();
 	g_model.get()->add_ReLU();
 	g_model.get()->add_conv_transpose2d(256, 128, 4, 2, 1);

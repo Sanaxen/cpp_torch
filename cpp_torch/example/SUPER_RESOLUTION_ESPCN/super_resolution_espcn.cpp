@@ -18,7 +18,7 @@ const char* kDataRoot = "./data";
 const int64_t kTrainBatchSize = 64;
 
 // The batch size for testing.
-const int64_t kTestBatchSize = 1000;
+const int64_t kTestBatchSize = 32;
 
 // The number of epochs to train.
 const int64_t kNumberOfEpochs = 60;
@@ -164,6 +164,10 @@ void learning_and_test_super_resolution_dataset(torch::Device device)
 	model.get()->add_ReLU();
 	model.get()->add_pixel_shuffle(upscale_factor);
 
+	for (auto w : model.get()->conv2d)
+	{
+		torch::nn::init::orthogonal_(w->weight, torch::nn::init::calculate_gain(torch::nn::init::Nonlinearity::ReLU));
+	}
 	cpp_torch::network_torch<cpp_torch::Net> nn(model, device);
 
 	nn.input_dim(1, input_image_size / upscale_factor, input_image_size / upscale_factor);
@@ -192,8 +196,8 @@ void learning_and_test_super_resolution_dataset(torch::Device device)
 
 		nn.model.get()->train(false);
 
-		float loss = nn.get_loss(test_images, test_labels, 1);
-		fprintf(fp, "%f %f\n", loss/ test_images.size());
+		float loss = nn.get_loss(test_images, test_labels, kTestBatchSize);
+		fprintf(fp, "%f %f\n", loss/ kTestBatchSize);
 		fflush(fp);
 		printf("loss %.4f\n", loss); fflush(stdout);
 

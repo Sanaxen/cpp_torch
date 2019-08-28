@@ -15,14 +15,16 @@
 // The batch size for testing.
 int64_t kTestBatchSize = 64;
 
+const int kRndArraySize = 100;
+
 int  seed = -1;
 void test_dcgan(torch::Device device)
 {
-	const int nz = 100;
+	const int nz = kRndArraySize;
 
 	cpp_torch::Net  g_model;
 	g_model.get()->setInput(nz, 1, 1);
-	g_model.get()->add_conv_transpose2d(100, 256, 4, 1, 0);
+	g_model.get()->add_conv_transpose2d(nz, 256, 4, 1, 0);
 	g_model.get()->add_bn();
 	g_model.get()->add_ReLU();
 	g_model.get()->add_conv_transpose2d(256, 128, 4, 2, 1);
