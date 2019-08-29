@@ -763,8 +763,12 @@ namespace cpp_torch
 					{
 					case cpp_torch::LayerType::Squeeze:
 						x = x.squeeze(); break;
+					case cpp_torch::LayerType::ReLU_:
+						x = torch::relu_(x); break;
 					case cpp_torch::LayerType::ReLU:
 						x = torch::relu(x); break;
+					case cpp_torch::LayerType::LeakyReLU_:
+						x = torch::leaky_relu_(x, layer[i].negative_slope); break;
 					case cpp_torch::LayerType::LeakyReLU:
 						x = torch::leaky_relu(x, layer[i].negative_slope); break;
 					case cpp_torch::LayerType::SELU:

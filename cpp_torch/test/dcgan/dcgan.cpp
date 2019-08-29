@@ -27,11 +27,12 @@ const int64_t kNumberOfEpochs = 300;
 // After how many batches to log a new update with the loss value.
 const int64_t kLogInterval = 10;
 
+const int kRndArraySize = 100;
 
 
 struct GeneratorImpl : torch::nn::Module {
 	GeneratorImpl(): 
-		conv1(torch::nn::Conv2dOptions(100, 256,4).with_bias(false).transposed(true).stride(1).padding(0)),
+		conv1(torch::nn::Conv2dOptions(kRndArraySize, 256,4).with_bias(false).transposed(true).stride(1).padding(0)),
 		batchnml1(torch::nn::BatchNormOptions(256)),
 		conv2(torch::nn::Conv2dOptions(256, 128, 4).with_bias(false).transposed(true).stride(2).padding(1)),
 		batchnml2(torch::nn::BatchNormOptions(128)),
@@ -188,7 +189,7 @@ void learning_and_test_dcgan_dataset(torch::Device device)
 	cpp_torch::network_torch<Generator> g_nn(g_model, device);
 	cpp_torch::network_torch<Discriminator> d_nn(d_model, device);
 
-	const int nz = 100;
+	const int nz = kRndArraySize;
 
 	//Generator  100 -> 3 x 64 x 64
 	g_nn.input_dim(nz, 1, 1);

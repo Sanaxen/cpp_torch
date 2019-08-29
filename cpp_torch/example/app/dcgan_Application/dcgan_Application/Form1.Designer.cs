@@ -40,6 +40,7 @@
             this.radioButton1 = new System.Windows.Forms.RadioButton();
             this.button2 = new System.Windows.Forms.Button();
             this.pictureBox1 = new System.Windows.Forms.PictureBox();
+            this.radioButton3 = new System.Windows.Forms.RadioButton();
             this.panel2.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown1)).BeginInit();
             this.panel1.SuspendLayout();
@@ -72,7 +73,7 @@
             this.panel2.Location = new System.Drawing.Point(0, 0);
             this.panel2.Margin = new System.Windows.Forms.Padding(4);
             this.panel2.Name = "panel2";
-            this.panel2.Size = new System.Drawing.Size(812, 58);
+            this.panel2.Size = new System.Drawing.Size(986, 58);
             this.panel2.TabIndex = 2;
             // 
             // button3
@@ -90,7 +91,7 @@
             // label2
             // 
             this.label2.AutoSize = true;
-            this.label2.Location = new System.Drawing.Point(788, 16);
+            this.label2.Location = new System.Drawing.Point(881, 14);
             this.label2.Name = "label2";
             this.label2.Size = new System.Drawing.Size(21, 15);
             this.label2.TabIndex = 8;
@@ -99,7 +100,7 @@
             // label1
             // 
             this.label1.AutoSize = true;
-            this.label1.Location = new System.Drawing.Point(686, 18);
+            this.label1.Location = new System.Drawing.Point(779, 16);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(36, 15);
             this.label1.TabIndex = 7;
@@ -107,7 +108,7 @@
             // 
             // numericUpDown1
             // 
-            this.numericUpDown1.Location = new System.Drawing.Point(728, 16);
+            this.numericUpDown1.Location = new System.Drawing.Point(821, 14);
             this.numericUpDown1.Maximum = new decimal(new int[] {
             12,
             0,
@@ -137,11 +138,12 @@
             // 
             // panel1
             // 
+            this.panel1.Controls.Add(this.radioButton3);
             this.panel1.Controls.Add(this.radioButton2);
             this.panel1.Controls.Add(this.radioButton1);
             this.panel1.Location = new System.Drawing.Point(483, 3);
             this.panel1.Name = "panel1";
-            this.panel1.Size = new System.Drawing.Size(197, 48);
+            this.panel1.Size = new System.Drawing.Size(290, 48);
             this.panel1.TabIndex = 4;
             // 
             // radioButton2
@@ -186,17 +188,27 @@
             this.pictureBox1.Location = new System.Drawing.Point(0, 58);
             this.pictureBox1.Margin = new System.Windows.Forms.Padding(4);
             this.pictureBox1.Name = "pictureBox1";
-            this.pictureBox1.Size = new System.Drawing.Size(812, 522);
+            this.pictureBox1.Size = new System.Drawing.Size(986, 522);
             this.pictureBox1.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
             this.pictureBox1.TabIndex = 1;
             this.pictureBox1.TabStop = false;
             this.pictureBox1.Click += new System.EventHandler(this.pictureBox1_Click);
             // 
+            // radioButton3
+            // 
+            this.radioButton3.AutoSize = true;
+            this.radioButton3.Location = new System.Drawing.Point(192, 13);
+            this.radioButton3.Name = "radioButton3";
+            this.radioButton3.Size = new System.Drawing.Size(66, 19);
+            this.radioButton3.TabIndex = 2;
+            this.radioButton3.Text = "beach";
+            this.radioButton3.UseVisualStyleBackColor = true;
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(812, 580);
+            this.ClientSize = new System.Drawing.Size(986, 580);
             this.Controls.Add(this.pictureBox1);
             this.Controls.Add(this.panel2);
             this.Margin = new System.Windows.Forms.Padding(4);
@@ -225,6 +237,7 @@
         private System.Windows.Forms.NumericUpDown numericUpDown1;
         private System.Windows.Forms.Label label2;
         private System.Windows.Forms.Button button3;
+        private System.Windows.Forms.RadioButton radioButton3;
     }
 }
 

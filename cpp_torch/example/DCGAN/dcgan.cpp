@@ -71,16 +71,16 @@ void learning_and_test_dcgan_dataset(torch::Device device)
 	g_model.get()->setInput(nz, 1, 1);
 	g_model.get()->add_conv_transpose2d(nz, 256, 4, 1, 0);
 	g_model.get()->add_bn();
-	g_model.get()->add_ReLU();
+	g_model.get()->add_ReLU_();
 	g_model.get()->add_conv_transpose2d(256, 128, 4, 2, 1);
 	g_model.get()->add_bn();
-	g_model.get()->add_ReLU();
+	g_model.get()->add_ReLU_();
 	g_model.get()->add_conv_transpose2d(128, 64, 4, 2, 1);
 	g_model.get()->add_bn();
-	g_model.get()->add_ReLU();
+	g_model.get()->add_ReLU_();
 	g_model.get()->add_conv_transpose2d(64, 32, 4, 2, 1);
 	g_model.get()->add_bn();
-	g_model.get()->add_ReLU();
+	g_model.get()->add_ReLU_();
 	g_model.get()->add_conv_transpose2d(32, 3, 4, 2, 1);
 	g_model.get()->add_Tanh();
 
@@ -88,22 +88,22 @@ void learning_and_test_dcgan_dataset(torch::Device device)
 	d_model.get()->setInput(3, 64, 64);
 	d_model.get()->add_conv2d(3, 32, 4, 2, 1);
 	d_model.get()->add_bn();
-	d_model.get()->add_LeakyReLU(0.2);
+	d_model.get()->add_LeakyReLU_(0.2);
 	d_model.get()->add_dropout(0.2);
 
 	d_model.get()->add_conv2d(32, 64, 4, 2, 1);
 	d_model.get()->add_bn();
-	d_model.get()->add_LeakyReLU(0.2);
+	d_model.get()->add_LeakyReLU_(0.2);
 	d_model.get()->add_dropout(0.2);
 
 	d_model.get()->add_conv2d(64, 128, 4, 2, 1);
 	d_model.get()->add_bn();
-	d_model.get()->add_LeakyReLU(0.2);
+	d_model.get()->add_LeakyReLU_(0.2);
 	d_model.get()->add_dropout(0.2);
 
 	d_model.get()->add_conv2d(128, 256, 4, 2, 1);
 	d_model.get()->add_bn();
-	d_model.get()->add_LeakyReLU(0.2);
+	d_model.get()->add_LeakyReLU_(0.2);
 	d_model.get()->add_dropout(0.2);
 
 	d_model.get()->add_conv2d(256, 1, 4, 1, 0);

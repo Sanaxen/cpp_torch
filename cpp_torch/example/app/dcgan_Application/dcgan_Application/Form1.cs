@@ -53,6 +53,10 @@ namespace DCGAN_Application
             {
                 System.IO.File.Copy("scenery_model\\g_model.pt", "g_model.pt", true);
             }
+            if (radioButton3.Checked)
+            {
+                System.IO.File.Copy("beach_model\\g_model.pt", "g_model.pt", true);
+            }
 
 
             string path = System.AppDomain.CurrentDomain.BaseDirectory;
