@@ -62,8 +62,8 @@ CIFAR10
 [DCGAN](./cpp_torch/example/DCGAN/readme.md)  
 
 ## Latest topic  
-Beautiful beach?
-<img src="./images/image_array3.png" width=60%>  
+Beautiful beach?  
+<img src="./images/image_array3.png" width=50%>  
 
 C# applicatin example  
 <img src="./images/dcgan_app.png" width=60%>  
