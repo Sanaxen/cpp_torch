@@ -59,7 +59,11 @@ void learning_and_test_dcgan_dataset(torch::Device device)
 	printf("mean:%f stddiv:%f\n", mean, stddiv);
 #else
 	//image normalize [-1, 1]
-	cpp_torch::test::images_normalize_11(train_images);
+	//cpp_torch::test::images_normalize_11(train_images);
+	float min = 0.0;
+	float max = 255.0;
+	cpp_torch::test::images_normalize_11(train_images, max, min);
+
 #endif
 
 	loding.end();
@@ -160,7 +164,8 @@ void learning_and_test_dcgan_dataset(torch::Device device)
 		g_nn.model.get()->train(true);
 
 		//generated_img = (mean + generated_img.mul(stddiv)).clamp(0, 255);
-		generated_img = ((1+generated_img).mul(128)).clamp(0, 255);
+		//generated_img = ((1+generated_img).mul(128)).clamp(0, 255);
+		generated_img = ((1 + generated_img).mul(0.5*(max - min)) + min).clamp(0, 255);
 		if (epoch % kLogInterval == 0)
 		{
 			if (epoch == kNumberOfEpochs)

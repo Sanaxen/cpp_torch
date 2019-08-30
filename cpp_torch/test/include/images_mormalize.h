@@ -123,6 +123,45 @@ namespace cpp_torch
 			}
 		}
 
+#if 10
+		// [-1, 1]
+		/*
+		* @param image [in/out]  image data vector
+		*/
+		void images_normalize_11(std::vector<tiny_dnn::vec_t>& images, float& max, float& min)
+		{
+			std::vector<float_t> max_(images.size());
+			std::vector<float_t> min_(images.size());
+
+			for (int i = 0; i < images.size(); i++)
+			{
+				max_[i] = -999999.0;
+				min_[i] = 999999.0;
+				for (int k = 0; k < images[i].size(); k++)
+				{
+					if (min_[i] > images[i][k]) min_[i] = images[i][k];
+					if (max_[i] < images[i][k]) max_[i] = images[i][k];
+				}
+			}
+
+			max = 0, min = 0;
+			for (int i = 0; i < images.size(); i++)
+			{
+				max += max_[i];
+				min += min_[i];
+			}
+			max /= images.size();
+			min /= images.size();
+#pragma omp parallel for
+			for (int i = 0; i < images.size(); i++)
+			{
+				for (int k = 0; k < images[i].size(); k++)
+				{
+					images[i][k] = 2.0*(images[i][k] - min) / (max - min) - 1.0;
+				}
+			}
+		}
+#else
 		// [-1, 1]
 		/*
 		* @param image [in/out]  image data vector
@@ -149,6 +188,8 @@ namespace cpp_torch
 				}
 			}
 		}
+#endif
+
 		// [-1, 1]
 		/*
 		* @param image [in/out]  image data vector

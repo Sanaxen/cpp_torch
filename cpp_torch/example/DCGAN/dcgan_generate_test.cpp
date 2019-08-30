@@ -44,11 +44,16 @@ void test_dcgan(torch::Device device)
 
 	cpp_torch::network_torch<cpp_torch::Net> g_nn(g_model, device);
 	g_nn.load(std::string("g_model.pt"));
+	g_nn.model.get()->to(device);
+
 	g_nn.model.get()->train(false);
 	torch::Tensor generated_img = g_nn.model.get()->forward(check_z);
 	g_nn.model.get()->train(true);
 
-	generated_img = ((1 + generated_img).mul(128)).clamp(0, 255);
+	const float min = 0.0;
+	const float max = 255.0;
+
+	generated_img = ((1 + generated_img).mul(0.5*(max - min)) + min).clamp(0, 255);
 
 #pragma omp parallel for
 	for (int i = 0; i < kTestBatchSize; i++)
