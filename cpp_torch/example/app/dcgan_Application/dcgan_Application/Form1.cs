@@ -57,6 +57,14 @@ namespace DCGAN_Application
             {
                 System.IO.File.Copy("beach_model\\g_model.pt", "g_model.pt", true);
             }
+            if (radioButton4.Checked)
+            {
+                if (textBox2.Text == "" && openFileDialog1.ShowDialog() == DialogResult.OK)
+                {
+                    textBox2.Text = openFileDialog1.FileName;
+                }
+                System.IO.File.Copy(textBox2.Text, "g_model.pt", true);
+            }
 
 
             string path = System.AppDomain.CurrentDomain.BaseDirectory;
@@ -87,6 +95,11 @@ namespace DCGAN_Application
         {
             button1_Click(sender, e);
             button2_Click(sender, e);
+        }
+
+        private void button4_Click(object sender, EventArgs e)
+        {
+            textBox2.Text = "";
         }
     }
 }

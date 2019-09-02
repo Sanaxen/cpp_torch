@@ -12,6 +12,9 @@
 
 #define USE_CUDA
 
+#define IMAGE_SIZE	64
+#define IMAGE_CHANNEL	3
+
 // Where to find the MNIST dataset.
 const char* kDataRoot = "./data";
 
@@ -22,12 +25,16 @@ const int64_t kTrainBatchSize = 64;
 const int64_t kTestBatchSize = 1000;
 
 // The number of epochs to train.
-const int64_t kNumberOfEpochs = 300;
+const int64_t kNumberOfEpochs = 1000;
 
 // After how many batches to log a new update with the loss value.
 const int64_t kLogInterval = 10;
 
 const int kRndArraySize = 100;
+
+const float drop_rate = 0.2;
+const int ngf = 64;
+const int ndf = 64;
 
 // load  dataset
 std::vector<tiny_dnn::label_t> train_labels, test_labels;
@@ -43,7 +50,7 @@ void learning_and_test_dcgan_dataset(torch::Device device)
 	for (int i = 0; i < image_files.size(); i++)
 	{
 		cpp_torch::Image& img = cpp_torch::readImage(image_files[i].c_str());
-		tiny_dnn::vec_t& v = image2vec_t(&img, 3, img.height, img.width/*, 1.0/255.0*/);
+		tiny_dnn::vec_t& v = image2vec_t(&img, IMAGE_CHANNEL, img.height, img.width/*, 1.0/255.0*/);
 
 		train_images.push_back(v);
 		loding += 1;
@@ -73,44 +80,44 @@ void learning_and_test_dcgan_dataset(torch::Device device)
 
 	cpp_torch::Net  g_model;
 	g_model.get()->setInput(nz, 1, 1);
-	g_model.get()->add_conv_transpose2d(nz, 256, 4, 1, 0);
+	g_model.get()->add_conv_transpose2d(nz, ngf*8, 4, 1, 0);
 	g_model.get()->add_bn();
-	g_model.get()->add_ReLU_();
-	g_model.get()->add_conv_transpose2d(256, 128, 4, 2, 1);
+	g_model.get()->add_ReLU();
+	g_model.get()->add_conv_transpose2d(ngf * 8, ngf * 4, 4, 2, 1);
 	g_model.get()->add_bn();
-	g_model.get()->add_ReLU_();
-	g_model.get()->add_conv_transpose2d(128, 64, 4, 2, 1);
+	g_model.get()->add_ReLU();
+	g_model.get()->add_conv_transpose2d(ngf * 4, ngf * 2, 4, 2, 1);
 	g_model.get()->add_bn();
-	g_model.get()->add_ReLU_();
-	g_model.get()->add_conv_transpose2d(64, 32, 4, 2, 1);
+	g_model.get()->add_ReLU();
+	g_model.get()->add_conv_transpose2d(ngf * 2, ngf, 4, 2, 1);
 	g_model.get()->add_bn();
-	g_model.get()->add_ReLU_();
-	g_model.get()->add_conv_transpose2d(32, 3, 4, 2, 1);
+	g_model.get()->add_ReLU();
+	g_model.get()->add_conv_transpose2d(ngf, IMAGE_CHANNEL, 4, 2, 1);
 	g_model.get()->add_Tanh();
 
 	cpp_torch::Net  d_model;
-	d_model.get()->setInput(3, 64, 64);
-	d_model.get()->add_conv2d(3, 32, 4, 2, 1);
+	d_model.get()->setInput(IMAGE_CHANNEL, ndf, ndf);
+	d_model.get()->add_conv2d(IMAGE_CHANNEL, ndf, 4, 2, 1);
 	d_model.get()->add_bn();
-	d_model.get()->add_LeakyReLU_(0.2);
-	d_model.get()->add_dropout(0.2);
+	d_model.get()->add_LeakyReLU(0.2);
+	d_model.get()->add_dropout(drop_rate);
 
-	d_model.get()->add_conv2d(32, 64, 4, 2, 1);
+	d_model.get()->add_conv2d(ndf, ndf*2, 4, 2, 1);
 	d_model.get()->add_bn();
-	d_model.get()->add_LeakyReLU_(0.2);
-	d_model.get()->add_dropout(0.2);
+	d_model.get()->add_LeakyReLU(0.2);
+	d_model.get()->add_dropout(drop_rate);
 
-	d_model.get()->add_conv2d(64, 128, 4, 2, 1);
+	d_model.get()->add_conv2d(ndf*2, ndf*4, 4, 2, 1);
 	d_model.get()->add_bn();
-	d_model.get()->add_LeakyReLU_(0.2);
-	d_model.get()->add_dropout(0.2);
+	d_model.get()->add_LeakyReLU(0.2);
+	d_model.get()->add_dropout(drop_rate);
 
-	d_model.get()->add_conv2d(128, 256, 4, 2, 1);
+	d_model.get()->add_conv2d(ndf*4, ndf*8, 4, 2, 1);
 	d_model.get()->add_bn();
-	d_model.get()->add_LeakyReLU_(0.2);
-	d_model.get()->add_dropout(0.2);
+	d_model.get()->add_LeakyReLU(0.2);
+	d_model.get()->add_dropout(drop_rate);
 
-	d_model.get()->add_conv2d(256, 1, 4, 1, 0);
+	d_model.get()->add_conv2d(ndf*8, 1, 4, 1, 0);
 	d_model.get()->add_Squeeze();
 #ifdef USE_LOSS_BCE
 	d_model.get()->add_Sigmoid();
@@ -121,10 +128,10 @@ void learning_and_test_dcgan_dataset(torch::Device device)
 
 	//Generator  100 -> 3 x 64 x 64
 	g_nn.input_dim(nz, 1, 1);
-	g_nn.output_dim(3, 64, 64);
+	g_nn.output_dim(IMAGE_CHANNEL, IMAGE_SIZE, IMAGE_SIZE);
 
 	//Discriminator  3 x 64 x 64 -> 0(fake) or 1(real)
-	d_nn.input_dim(3, 64, 64);
+	d_nn.input_dim(IMAGE_CHANNEL, IMAGE_SIZE, IMAGE_SIZE);
 	d_nn.output_dim(1, 1, 1);
 	d_nn.classification = false;
 	d_nn.batch_shuffle = true;
@@ -146,7 +153,7 @@ void learning_and_test_dcgan_dataset(torch::Device device)
 
 
 	cpp_torch::DCGAN<cpp_torch::Net, cpp_torch::Net> dcgan(g_nn, d_nn, device);
-
+	//dcgan.use_rand_label_change = 0.005;
 
 	FILE* fp = fopen("loss.dat", "w");
 	int epoch = 1;

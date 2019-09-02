@@ -10,12 +10,15 @@
 #include "dcgan.h"
 #include "test/include/images_mormalize.h"
 
-#define USE_CUDA
+//#define USE_CUDA
+#define IMAGE_SIZE	64
+#define IMAGE_CHANNEL	3
 
 // The batch size for testing.
 int64_t kTestBatchSize = 64;
 
 const int kRndArraySize = 100;
+const int ngf = 64;
 
 int  seed = -1;
 void test_dcgan(torch::Device device)
@@ -24,19 +27,19 @@ void test_dcgan(torch::Device device)
 
 	cpp_torch::Net  g_model;
 	g_model.get()->setInput(nz, 1, 1);
-	g_model.get()->add_conv_transpose2d(nz, 256, 4, 1, 0);
+	g_model.get()->add_conv_transpose2d(nz, ngf * 8, 4, 1, 0);
 	g_model.get()->add_bn();
-	g_model.get()->add_ReLU_();
-	g_model.get()->add_conv_transpose2d(256, 128, 4, 2, 1);
+	g_model.get()->add_ReLU();
+	g_model.get()->add_conv_transpose2d(ngf * 8, ngf * 4, 4, 2, 1);
 	g_model.get()->add_bn();
-	g_model.get()->add_ReLU_();
-	g_model.get()->add_conv_transpose2d(128, 64, 4, 2, 1);
+	g_model.get()->add_ReLU();
+	g_model.get()->add_conv_transpose2d(ngf * 4, ngf * 2, 4, 2, 1);
 	g_model.get()->add_bn();
-	g_model.get()->add_ReLU_();
-	g_model.get()->add_conv_transpose2d(64, 32, 4, 2, 1);
+	g_model.get()->add_ReLU();
+	g_model.get()->add_conv_transpose2d(ngf * 2, ngf, 4, 2, 1);
 	g_model.get()->add_bn();
-	g_model.get()->add_ReLU_();
-	g_model.get()->add_conv_transpose2d(32, 3, 4, 2, 1);
+	g_model.get()->add_ReLU();
+	g_model.get()->add_conv_transpose2d(ngf, IMAGE_CHANNEL, 4, 2, 1);
 	g_model.get()->add_Tanh();
 
 	//random numbers from a normal distribution with mean 0 and variance 1 (standard normal distribution).
