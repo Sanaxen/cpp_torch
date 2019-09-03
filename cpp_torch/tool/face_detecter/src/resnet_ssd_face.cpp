@@ -211,10 +211,25 @@ int main(int argc, char** argv)
 					int xRightTop = static_cast<int>(detectionMat.at<float>(i, 5) * frame.cols);
 					int yRightTop = static_cast<int>(detectionMat.at<float>(i, 6) * frame.rows);
 
-					Rect object((int)xLeftBottom, (int)yLeftBottom,
+
+					Rect object_tmp((int)xLeftBottom, (int)yLeftBottom,
 						(int)(xRightTop - xLeftBottom),
 						(int)(yRightTop - yLeftBottom));
 
+					float yy = object_tmp.height*1.65 - object_tmp.height;
+					float xx = object_tmp.width*1.65 - object_tmp.width;
+					xLeftBottom -= xx * 0.5;
+					yLeftBottom -= yy * 0.5;
+					xRightTop += xx * 0.5;
+					yRightTop += yy * 0.5;
+					if (xLeftBottom < 0) xLeftBottom = 0;
+					if (yLeftBottom < 0) yLeftBottom = 0;
+					if (xRightTop >= frame.cols) xLeftBottom = frame.cols-1;
+					if (yRightTop >= frame.rows) yLeftBottom = frame.rows-1;
+
+					Rect object((int)xLeftBottom, (int)yLeftBottom,
+						(int)(xRightTop - xLeftBottom),
+						(int)(yRightTop - yLeftBottom));
 
 					try
 					{

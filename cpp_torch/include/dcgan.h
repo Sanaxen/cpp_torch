@@ -65,6 +65,9 @@ namespace cpp_torch
 	public:
 		torch::Device device;
 
+		bool discriminator_noise = false;//(Label Smoothing) Salimans et. al. 2016
+		float discriminator_flip = 0.0;
+
 		DCGAN(
 			cpp_torch::network_torch<G_Model> g_nn_, 
 			cpp_torch::network_torch<D_Model> d_nn_, torch::Device device_)
@@ -120,6 +123,17 @@ namespace cpp_torch
 			//random numbers from a normal distribution with mean 0 and variance 1 (standard normal distribution).
 			torch::Tensor check_z = torch::randn({ kTrainBatchSize, nz, 1, 1 }).to(device);
 
+			std::random_device rnd;
+			std::mt19937 mt(rnd());
+			std::uniform_real_distribution<> d_flip(0.0, 1.0);
+
+			const float eps = 1.0e-12;
+
+			float noise = eps;
+			if (discriminator_noise) noise = 0.3;
+			std::uniform_real_distribution<> noisy_fake(0.0, noise);
+			std::uniform_real_distribution<> noisy_real(1.0 - noise, 0.9 + noise);
+
 			for (size_t epoch = 0; epoch < kNumberOfEpochs; ++epoch)
 			{
 				if (!d_nn.pre_make_batch)
@@ -159,7 +173,7 @@ namespace cpp_torch
 					//	Calculate loss to distinguish real image from real image(label 1)
 					torch::Tensor real_out = d_nn.model.get()->forward(real_img);
 
-					torch::Tensor loss_D_real = LOSS_FUNC(real_out.to(device), ones);
+					torch::Tensor loss_D_real = LOSS_FUNC(real_out.to(device), ones.mul(noisy_real(mt)));
 					AT_ASSERT(!std::isnan(loss_D_real.template item<float_t>()));
 
 					
@@ -171,7 +185,15 @@ namespace cpp_torch
 
 					//cpp_torch::dump_dim("fake_out", fake_out);
 					//cpp_torch::dump_dim("zeros", zeros);
-					torch::Tensor loss_D_fake = LOSS_FUNC(fake_out.to(device), zeros);
+					torch::Tensor loss_D_fake;
+					if (d_flip(mt) > discriminator_flip)
+					{
+						loss_D_fake = LOSS_FUNC(fake_out.to(device), zeros.mul(noisy_fake(mt)));
+					}
+					else
+					{
+						loss_D_fake = LOSS_FUNC(fake_out.to(device), ones.mul(noisy_real(mt)));
+					}
 					AT_ASSERT(!std::isnan(loss_D_fake.template item<float_t>()));
 
 					//Total loss of real and fake images

@@ -32,9 +32,13 @@ const int64_t kLogInterval = 10;
 
 const int kRndArraySize = 100;
 
+const bool kDataAugment = true;
 const float drop_rate = 0.2;
 const int ngf = 64;
 const int ndf = 64;
+
+const float discriminator_flip = 0.0;
+const bool discriminator_noise = true;
 
 // load  dataset
 std::vector<tiny_dnn::label_t> train_labels, test_labels;
@@ -47,12 +51,81 @@ void learning_and_test_dcgan_dataset(torch::Device device)
 	std::vector<std::string>& image_files = cpp_torch::getImageFiles(kDataRoot + std::string("/image"));
 
 	cpp_torch::progress_display2 loding(image_files.size() + 1);
+	std::random_device rnd;
+	std::mt19937 mt(rnd());
+	std::uniform_real_distribution<> rand_flip(0.0, 1.0);
+
+#ifdef USE_CV_SUPERRES
+	cv::Ptr<cv::superres::SuperResolution> superResolution = cv::superres::createSuperResolution_BTVL1();
+	superResolution->setTemporalAreaRadius(1);
+	superResolution->setIterations(2);
+#endif
+
+	const int base_size = 256;
+	const int random_sift = 15;	//base_size < 10%
+	const int extend_base_size = base_size + random_sift;
+	const int upsample = 5;
 	for (int i = 0; i < image_files.size(); i++)
 	{
 		cpp_torch::Image& img = cpp_torch::readImage(image_files[i].c_str());
-		tiny_dnn::vec_t& v = image2vec_t(&img, IMAGE_CHANNEL, img.height, img.width/*, 1.0/255.0*/);
 
-		train_images.push_back(v);
+		if (!kDataAugment)
+		{
+			tiny_dnn::vec_t& v = image2vec_t(&img, IMAGE_CHANNEL, img.height, img.width/*, 1.0/255.0*/);
+			train_images.push_back(v);
+		}
+		else
+		{
+			cv::Mat cvmat = cpp_torch::cvutil::ImgeTocvMat(&img);
+
+#ifdef USE_CV_SUPERRES
+			if (cvmat.rows < extend_base_size || cvmat.cols < extend_base_size)
+			{
+				float scale1 = (extend_base_size) / (float)cvmat.rows;
+				float scale2 = (extend_base_size) / (float)cvmat.cols;
+				superResolution->setScale(std::max(scale1, scale2));
+
+				try
+				{
+					superResolution->nextFrame(cvmat);
+				}
+				catch (cv::Exception& err)
+				{
+					cout << "error " << err.what() << endl;
+				}
+			}
+#endif
+			cv::resize(cvmat, cvmat, cv::Size(extend_base_size, extend_base_size), 0, 0, INTER_LANCZOS4);
+
+			//Cut one image a little while shifting it to multiple sheets
+			std::uniform_int_distribution<> rand_w(0, random_sift);
+			std::uniform_int_distribution<> rand_h(0, random_sift);
+			for (int k = 0; k < upsample; k++)
+			{
+				int w = 0;
+				int h = 0;
+
+				w = rand_w(mt);
+				h = rand_h(mt);
+				cv::Mat cut_img(cvmat, cv::Rect(w, h, base_size, base_size));
+				cv::resize(cut_img, cut_img, cv::Size(IMAGE_SIZE, IMAGE_SIZE), 0, 0, INTER_CUBIC);
+
+				if (rand_flip(mt) > 0.5)
+				{
+					cv::Mat dest;
+					cv::flip(cut_img, dest, 1);
+					cut_img = dest.clone();
+				}
+				char fnm[256];
+				sprintf(fnm, "dump\\%04d.png", i * upsample + k);
+				cv::imwrite(fnm, cut_img);
+
+				cpp_torch::Image& img = cpp_torch::cvutil::cvMatToImage(cut_img);
+				tiny_dnn::vec_t& v = image2vec_t(&img, IMAGE_CHANNEL, img.height, img.width/*, 1.0/255.0*/);
+
+				train_images.push_back(v);
+			}
+		}
 		loding += 1;
 	}
 	loding.end();
@@ -144,6 +217,7 @@ void learning_and_test_dcgan_dataset(torch::Device device)
 	cpp_torch::progress_display disp(train_images.size());
 	tiny_dnn::timer t;
 
+	//Adam !! Radford et. al. 2015
 	auto g_optimizer =
 		torch::optim::Adam(g_model.get()->parameters(),
 			torch::optim::AdamOptions(0.0002).beta1(0.5).beta2(0.999));
@@ -153,7 +227,8 @@ void learning_and_test_dcgan_dataset(torch::Device device)
 
 
 	cpp_torch::DCGAN<cpp_torch::Net, cpp_torch::Net> dcgan(g_nn, d_nn, device);
-	//dcgan.use_rand_label_change = 0.005;
+	dcgan.discriminator_flip = discriminator_flip;
+	dcgan.discriminator_noise = discriminator_noise;
 
 	FILE* fp = fopen("loss.dat", "w");
 	int epoch = 1;
