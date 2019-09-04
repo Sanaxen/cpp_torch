@@ -41,14 +41,16 @@ namespace super_resolution_Application
             var app = new System.Diagnostics.ProcessStartInfo();
             app.FileName = "super_resolution_espcn_test.exe";
             app.UseShellExecute = true;
-            app.Arguments = "\"" + openFileDialog1.FileName + "\"";
+            if (checkBox1.Checked) app.Arguments = " --gpu 1";
+            else app.Arguments = " --gpu 0";
+            app.Arguments += " --input " + "\"" + openFileDialog1.FileName + "\"";
             if ( radioButton1.Checked)
             {
-                app.Arguments += " 2";
+                app.Arguments += " --upscale 2";
             }
             if (radioButton2.Checked)
             {
-                app.Arguments += " 3";
+                app.Arguments += " --upscale 3";
             }
 
             string directoryName = System.IO.Path.GetDirectoryName(openFileDialog1.FileName);

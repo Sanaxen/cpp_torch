@@ -152,21 +152,24 @@ struct DiscriminatorImpl : torch::nn::Module {
 TORCH_MODULE(Discriminator); // creates module holder for NetImpl
 
 // load  dataset
-std::vector<tiny_dnn::label_t> train_labels, test_labels;
+std::vector<tiny_dnn::vec_t> train_labels, test_labels;
 std::vector<tiny_dnn::vec_t> train_images, test_images;
 
 void learning_and_test_dcgan_dataset(torch::Device device)
 {
 	train_images.clear();
 	printf("load images start\n");
-	std::vector<std::string>& image_files = cpp_torch::getImageFiles(kDataRoot + std::string("/jpg"));
+	std::vector<std::string>& image_files = cpp_torch::getImageFiles(kDataRoot + std::string("/image"));
 
 	cpp_torch::progress_display2 loding(image_files.size() + 1);
+
+	tiny_dnn::vec_t& real_label = std::vector<float_t>(1, 1.0);
 	for (int i = 0; i < image_files.size(); i++)
 	{
 		cpp_torch::Image img = cpp_torch::readImage(image_files[i].c_str());
 		tiny_dnn::vec_t& v = image2vec_t(&img, 3, img.height, img.width/*, 1.0/255.0*/);
 		train_images.push_back(v);
+		train_labels.push_back(real_label);
 		loding += 1;
 	}
 	loding.end();
@@ -291,7 +294,6 @@ void learning_and_test_dcgan_dataset(torch::Device device)
 #else
 			cpp_torch::TensorToImageFile(generated_img[0], "gen0.bmp", 255.0);
 #endif
-
 		}
 
 		if (epoch <= kNumberOfEpochs)
@@ -307,7 +309,7 @@ void learning_and_test_dcgan_dataset(torch::Device device)
 		batch++;
 	};
 
-	dcgan.train(&g_optimizer, &d_optimizer, train_images, kTrainBatchSize, kNumberOfEpochs, nz, on_enumerate_minibatch, on_enumerate_epoch);
+	dcgan.train(&g_optimizer, &d_optimizer, train_images, std::vector<tiny_dnn::vec_t>(), kTrainBatchSize, kNumberOfEpochs, nz, on_enumerate_minibatch, on_enumerate_epoch);
 	std::cout << "end training." << std::endl;
 	fclose(fp);
 

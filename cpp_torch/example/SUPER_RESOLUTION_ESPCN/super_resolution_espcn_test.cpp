@@ -8,11 +8,13 @@
 #define USE_OPENCV_UTIL
 #include "cpp_torch.h"
 #include "test/include/images_mormalize.h"
+#include "util/command_line.h"
 
-//#define USE_CUDA
+#define USE_CUDA
+bool gpu = false;
 
 // Where to find the MNIST dataset.
-const char* kDataRoot = "./data";
+const char* kDataRoot = "./data/image";
 
 int upscale_factor = 3;
 
@@ -116,10 +118,17 @@ int main(int argc, char** argv)
 	}
 
 	int  upscale = 2;
-	if (argc == 3)
+
+	char* filename = "";
+	for (int i = 1; i < argc; i++)
 	{
-		upscale = atoi(argv[2]);
+		BOOL_OPT(i, gpu, "--gpu");
+		CSTR_OPT(i, filename, "--input");
+		INT_OPT(i, upscale, "--upscale");
 	}
+	printf("--input:%s\n", filename);
+	printf("--gpu:%d\n", gpu);
+	printf("--upscale:%d\n", upscale);
 	if (upscale < 2)
 	{
 		printf("error [upscale < 2] -> upscale = 2\n");
@@ -137,7 +146,7 @@ int main(int argc, char** argv)
 
 	torch::DeviceType device_type;
 #ifdef USE_CUDA
-	if (torch::cuda::is_available()) {
+	if (gpu && torch::cuda::is_available()) {
 		std::cout << "CUDA available! Training on GPU." << std::endl;
 		device_type = torch::kCUDA;
 	}
@@ -149,7 +158,7 @@ int main(int argc, char** argv)
 	}
 	torch::Device device(device_type);
 
-	test_super_resolution_dataset(device, argv[1], upscale);
+	test_super_resolution_dataset(device, filename, upscale);
 
 	return 0;
 }

@@ -42,9 +42,12 @@ namespace DCGAN_Application
             var app = new System.Diagnostics.ProcessStartInfo();
             app.FileName = "dcgan_generate_test.exe";
             app.UseShellExecute = true;
-            app.Arguments = "\"" +textBox1.Text + "\"";
+
+            if (checkBox1.Checked) app.Arguments = " --gpu 1";
+            else app.Arguments = " --gpu 0";
+            app.Arguments += " --seed " + "\"" +textBox1.Text + "\"";
             decimal r = numericUpDown1.Value * numericUpDown1.Value;
-            app.Arguments += " \"" + r.ToString() + "\"";
+            app.Arguments += " --batch" + " \"" + r.ToString() + "\"";
             if ( radioButton1.Checked)
             {
                 System.IO.File.Copy("anime_model\\g_model.pt", "g_model.pt", true);

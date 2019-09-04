@@ -9,36 +9,48 @@
 #include "cpp_torch.h"
 #include "dcgan.h"
 #include "test/include/images_mormalize.h"
+#include "util/command_line.h"
 
 #define USE_CUDA
 
 #define IMAGE_SIZE	64
 #define IMAGE_CHANNEL	3
 
-// Where to find the MNIST dataset.
-const char* kDataRoot = "./data";
+// the path to the root of the dataset folder.
+char* kDataRoot = "./data/image";
 
 // The batch size for training.
-const int64_t kTrainBatchSize = 64;
+int64_t kTrainBatchSize = 64;
 
 // The batch size for testing.
-const int64_t kTestBatchSize = 1000;
+int64_t kTestBatchSize = 1000;
 
 // The number of epochs to train.
-const int64_t kNumberOfEpochs = 1000;
+int64_t kNumberOfEpochs = 1000;
 
 // After how many batches to log a new update with the loss value.
 const int64_t kLogInterval = 10;
 
 const int kRndArraySize = 100;
 
-const bool kDataAugment = true;
-const float drop_rate = 0.2;
+bool gpu = true;
+int kDataAugment = -1;
+float drop_rate = 0.2;
+
+//relates to the depth of feature maps carried through the generator
 const int ngf = 64;
+//sets the depth of feature maps propagated through the discriminator
 const int ndf = 64;
 
-const float discriminator_flip = 0.0;
-const bool discriminator_noise = true;
+//learning rate for training. As described in the DCGAN paper, this number should be 0.0002
+float lr = 0.0002;
+//beta1 hyperparameter for Adam optimizers. As described in paper, this number should be 0.5
+float beta1 = 0.5;
+
+float discriminator_flip = 0.0;
+float discriminator_range = 0.0;
+bool discriminator_noise = false;
+
 
 // load  dataset
 std::vector<tiny_dnn::label_t> train_labels, test_labels;
@@ -48,7 +60,7 @@ void learning_and_test_dcgan_dataset(torch::Device device)
 {
 	train_images.clear();
 	printf("load images start\n");
-	std::vector<std::string>& image_files = cpp_torch::getImageFiles(kDataRoot + std::string("/image"));
+	std::vector<std::string>& image_files = cpp_torch::getImageFiles(kDataRoot);
 
 	cpp_torch::progress_display2 loding(image_files.size() + 1);
 	std::random_device rnd;
@@ -64,13 +76,17 @@ void learning_and_test_dcgan_dataset(torch::Device device)
 	const int base_size = 256;
 	const int random_sift = 15;	//base_size < 10%
 	const int extend_base_size = base_size + random_sift;
-	const int upsample = 5;
+	const int upsample = (kDataAugment / 2.0 + 0.5);
 	for (int i = 0; i < image_files.size(); i++)
 	{
 		cpp_torch::Image& img = cpp_torch::readImage(image_files[i].c_str());
 
-		if (!kDataAugment)
+		if (kDataAugment <= 0)
 		{
+			cv::Mat cvmat = cpp_torch::cvutil::ImgeTocvMat(&img);
+			cv::resize(cvmat, cvmat, cv::Size(IMAGE_SIZE, IMAGE_SIZE), 0, 0, INTER_CUBIC);
+			cpp_torch::Image& img = cpp_torch::cvutil::cvMatToImage(cvmat);
+
 			tiny_dnn::vec_t& v = image2vec_t(&img, IMAGE_CHANNEL, img.height, img.width/*, 1.0/255.0*/);
 			train_images.push_back(v);
 		}
@@ -220,15 +236,16 @@ void learning_and_test_dcgan_dataset(torch::Device device)
 	//Adam !! Radford et. al. 2015
 	auto g_optimizer =
 		torch::optim::Adam(g_model.get()->parameters(),
-			torch::optim::AdamOptions(0.0002).beta1(0.5).beta2(0.999));
+			torch::optim::AdamOptions(lr).beta1(beta1).beta2(0.999));
 	auto d_optimizer =
 		torch::optim::Adam(d_model.get()->parameters(),
-			torch::optim::AdamOptions(0.0002).beta1(0.5).beta2(0.999));
+			torch::optim::AdamOptions(lr).beta1(beta1).beta2(0.999));
 
 
 	cpp_torch::DCGAN<cpp_torch::Net, cpp_torch::Net> dcgan(g_nn, d_nn, device);
 	dcgan.discriminator_flip = discriminator_flip;
 	dcgan.discriminator_noise = discriminator_noise;
+	dcgan.noize_range = discriminator_range;
 
 	FILE* fp = fopen("loss.dat", "w");
 	int epoch = 1;
@@ -263,7 +280,7 @@ void learning_and_test_dcgan_dataset(torch::Device device)
 				}
 				cv::Mat& img = cpp_torch::cvutil::ImageWrite(generated_img, 8, 8, "image_array.bmp", 2);
 				cv::imshow("image_array.bmp", img);
-				cv::waitKey();
+				cv::waitKey(5000);
 #else
 #pragma omp parallel for
 				for (int i = 0; i < kTrainBatchSize; i++)
@@ -317,7 +334,7 @@ void learning_and_test_dcgan_dataset(torch::Device device)
 		batch++;
 	};
 
-	dcgan.train(&g_optimizer, &d_optimizer, train_images, kTrainBatchSize, kNumberOfEpochs, nz, on_enumerate_minibatch, on_enumerate_epoch);
+	dcgan.train(&g_optimizer, &d_optimizer, train_images, tiny_dnn::tensor_t{}, kTrainBatchSize, kNumberOfEpochs, nz, on_enumerate_minibatch, on_enumerate_epoch);
 	std::cout << "end training." << std::endl;
 	fclose(fp);
 
@@ -326,13 +343,39 @@ void learning_and_test_dcgan_dataset(torch::Device device)
 }
 
 
-auto main() -> int {
+int main(int argc, char** argv)
+{
+	for (int i = 1; i < argc; i++)
+	{
+		BOOL_OPT(i, gpu, "--gpu");
+		INT_OPT(i, kDataAugment, "--augment");
+		INT_OPT(i, kNumberOfEpochs, "--epoch");
+		INT_OPT(i, kTrainBatchSize, "--batch");
+		FLOAT_OPT(i, drop_rate, "--drop_rate");
+		FLOAT_OPT(i, discriminator_flip, "--d_flip");
+		BOOL_OPT(i, discriminator_noise, "--d_noise");
+		FLOAT_OPT(i, discriminator_range, "--d_noise_range");
+		CSTR_OPT(i, kDataRoot, "--data_root");
+		FLOAT_OPT(i, lr, "--lr");
+		FLOAT_OPT(i, beta1, "--beta1");
+	}
+	printf("--data_root:%s\n", kDataRoot);
+	printf("--gpu:%d\n", gpu);
+	printf("--epoch:%d\n", kNumberOfEpochs);
+	printf("--augment:%d\n", kDataAugment);
+	printf("--batch:%d\n", kTrainBatchSize);
+	printf("--d_flip:%f\n", discriminator_flip);
+	printf("--d_noise:%s\n", discriminator_noise ? "true" : "false");
+	printf("--d_noise_range:%f\n", discriminator_range);
+	printf("--lr:%f\n", lr);
+	printf("--beta1:%f\n", beta1);
 
+	if (kDataAugment == 1) kDataAugment = 2;
 	torch::manual_seed(1);
 
 	torch::DeviceType device_type;
 #ifdef USE_CUDA
-	if (torch::cuda::is_available()) {
+	if (gpu && torch::cuda::is_available()) {
 		std::cout << "CUDA available! Training on GPU." << std::endl;
 		device_type = torch::kCUDA;
 	}
@@ -345,4 +388,6 @@ auto main() -> int {
 	torch::Device device(device_type);
 
 	learning_and_test_dcgan_dataset(device);
+
+	return 0;
 }

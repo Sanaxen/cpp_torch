@@ -9,8 +9,9 @@
 #include "cpp_torch.h"
 #include "dcgan.h"
 #include "test/include/images_mormalize.h"
+#include "util/command_line.h"
 
-//#define USE_CUDA
+#define USE_CUDA
 #define IMAGE_SIZE	64
 #define IMAGE_CHANNEL	3
 
@@ -20,6 +21,7 @@ int64_t kTestBatchSize = 64;
 const int kRndArraySize = 100;
 const int ngf = 64;
 
+bool gpu = false;
 int  seed = -1;
 void test_dcgan(torch::Device device)
 {
@@ -83,20 +85,20 @@ void test_dcgan(torch::Device device)
 
 auto main(int argc, char** argv) -> int {
 
-	if (argc < 1)
+	for (int i = 1; i < argc; i++)
 	{
-		printf("dcgan_generate_test.exe seed num\n");
+		BOOL_OPT(i, gpu, "--gpu");
+		INT_OPT(i, seed, "--seed");
+		INT_OPT(i, kTestBatchSize, "--batch");
 	}
-	if (argc > 1) seed = atoi(argv[1]);
-	if (argc > 2) kTestBatchSize = atoi(argv[2]);
-
-	printf("kTestBatchSize:%d\n", kTestBatchSize);
+	printf("--gpu:%d\n", gpu);
+	printf("--batch:%d\n", kTestBatchSize);
 
 	torch::manual_seed( abs(seed));
 
 	torch::DeviceType device_type;
 #ifdef USE_CUDA
-	if (torch::cuda::is_available()) {
+	if (gpu && torch::cuda::is_available()) {
 		std::cout << "CUDA available! Training on GPU." << std::endl;
 		device_type = torch::kCUDA;
 	}

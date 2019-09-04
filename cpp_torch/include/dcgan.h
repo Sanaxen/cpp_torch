@@ -66,6 +66,7 @@ namespace cpp_torch
 		torch::Device device;
 
 		bool discriminator_noise = false;//(Label Smoothing) Salimans et. al. 2016
+		float noize_range = 0.3;
 		float discriminator_flip = 0.0;
 
 		DCGAN(
@@ -79,6 +80,7 @@ namespace cpp_torch
 		* @param g_optimizer        Generator optimizing algorithm for training
 		* @param d_optimizer        Discriminator optimizing algorithm for training
 		* @param images             array of input data
+		* @param labels             array of input data
 		* @param kTrainBatchSize    number of mini-batch
 		* @param kNumberOfEpochs    number of training epochs
 		* @param nz                 number of random number
@@ -90,6 +92,7 @@ namespace cpp_torch
 			torch::optim::Optimizer* g_optimizer,
 			torch::optim::Optimizer* d_optimizer,
 			std::vector<torch::Tensor> &images,
+			std::vector<torch::Tensor> &labels,
 			int kTrainBatchSize,
 			int kNumberOfEpochs,
 			const int nz = 100,
@@ -113,10 +116,12 @@ namespace cpp_torch
 			int batchNum;
 
 			std::vector< torch::Tensor> batch_x;
+			std::vector< torch::Tensor> batch_y = {};
 
 			if (d_nn.pre_make_batch)
 			{
-				d_nn.generate_BATCH(images, batch_x);
+				if (labels.size() == 0 ) d_nn.generate_BATCH(images, batch_x);
+				else d_nn.generate_BATCH(images, labels, batch_x, batch_y);
 				batchNum = batch_x.size();
 			}
 
@@ -127,10 +132,11 @@ namespace cpp_torch
 			std::mt19937 mt(rnd());
 			std::uniform_real_distribution<> d_flip(0.0, 1.0);
 
-			const float eps = 1.0e-12;
+			const float eps = 1.0e-16;
 
 			float noise = eps;
-			if (discriminator_noise) noise = 0.3;
+			if (discriminator_noise) noise = noize_range;
+			if (noise < eps) noise = eps;
 			std::uniform_real_distribution<> noisy_fake(0.0, noise);
 			std::uniform_real_distribution<> noisy_real(1.0 - noise, 0.9 + noise);
 
@@ -138,7 +144,8 @@ namespace cpp_torch
 			{
 				if (!d_nn.pre_make_batch)
 				{
-					d_nn.generate_BATCH(images, batch_x);
+					if (labels.size() == 0) d_nn.generate_BATCH(images, batch_x);
+					else d_nn.generate_BATCH(images, labels, batch_x, batch_y);
 					batchNum = batch_x.size();
 				}
 
@@ -169,11 +176,14 @@ namespace cpp_torch
 					// ======= Discriminator training =========
 					//Real image
 					torch::Tensor real_img = batch_x[batch_idx].to(device);
+					torch::Tensor real_lbl;
+					if (labels.size()) real_lbl = batch_y[batch_idx].to(device);
+					else real_lbl = ones.detach();
 
 					//	Calculate loss to distinguish real image from real image(label 1)
 					torch::Tensor real_out = d_nn.model.get()->forward(real_img);
 
-					torch::Tensor loss_D_real = LOSS_FUNC(real_out.to(device), ones.mul(noisy_real(mt)));
+					torch::Tensor loss_D_real = LOSS_FUNC(real_out.to(device), real_lbl.mul(noisy_real(mt)));
 					AT_ASSERT(!std::isnan(loss_D_real.template item<float_t>()));
 
 					
@@ -217,6 +227,7 @@ namespace cpp_torch
 		* @param g_optimizer        Generator optimizing algorithm for training
 		* @param d_optimizer        Discriminator optimizing algorithm for training
 		* @param images             array of input data
+		* @param labels             array of input data
 		* @param kTrainBatchSize    number of mini-batch
 		* @param kNumberOfEpochs    number of training epochs
 		* @param nz                 number of random number
@@ -228,6 +239,7 @@ namespace cpp_torch
 			torch::optim::Optimizer* g_optimizer,
 			torch::optim::Optimizer* d_optimizer,
 			tiny_dnn::tensor_t &images, 
+			tiny_dnn::tensor_t &labels,
 			int kTrainBatchSize,
 			int kNumberOfEpochs,
 			const int nz = 100,
@@ -238,7 +250,13 @@ namespace cpp_torch
 			std::vector<torch::Tensor> images_torch;
 			toTorchTensors(images, images_torch);
 
-			return train(g_optimizer, d_optimizer, images_torch, kTrainBatchSize, kNumberOfEpochs, nz, on_batch_enumerate, on_epoch_enumerate);
+			std::vector<torch::Tensor> labels_torch;
+			if (labels.size())
+			{
+				toTorchTensors(labels, labels_torch);
+			}
+
+			return train(g_optimizer, d_optimizer, images_torch, labels_torch, kTrainBatchSize, kNumberOfEpochs, nz, on_batch_enumerate, on_epoch_enumerate);
 		}
 
 		torch::Tensor generate_rand(int num)

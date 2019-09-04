@@ -8,28 +8,30 @@
 #define USE_OPENCV_UTIL
 #include "cpp_torch.h"
 #include "test/include/images_mormalize.h"
+#include "util/command_line.h"
 
 #define USE_CUDA
+bool gpu = true;
 
-// Where to find the MNIST dataset.
-const char* kDataRoot = "./data";
+// dataset.
+char* kDataRoot = "./data/image";
 
 // The batch size for training.
-const int64_t kTrainBatchSize = 64;
+int64_t kTrainBatchSize = 64;
 
 // The batch size for testing.
 const int64_t kTestBatchSize = 32;
 
 // The number of epochs to train.
-const int64_t kNumberOfEpochs = 60;
+int64_t kNumberOfEpochs = 60;
 
 // After how many batches to log a new update with the loss value.
 const int64_t kLogInterval = 10;
 
-const int64_t kImage_size = 128;// 256;
+int64_t kImage_size = 128;// 256;
 
-const int kDataAugment_crop_num_factor = 10;
-const int upscale_factor = 3;
+int kDataAugment_crop_num_factor = 10;
+int upscale_factor = 3;
 
 int calculate_valid_crop_size(const int crop_size, const int upscale_factor)
 {
@@ -287,13 +289,31 @@ void learning_and_test_super_resolution_dataset(torch::Device device)
 }
 
 
-auto main() -> int {
+auto main(int argc, char** argv) -> int {
+
+	for (int i = 1; i < argc; i++)
+	{
+		BOOL_OPT(i, gpu, "--gpu");
+		INT_OPT(i, kDataAugment_crop_num_factor, "--augment_crop");
+		INT_OPT(i, kNumberOfEpochs, "--epoch");
+		INT_OPT(i, kTrainBatchSize, "--batch");
+		INT_OPT(i, kImage_size, "--image_size");
+		FLOAT_OPT(i, upscale_factor, "--upscale");
+		CSTR_OPT(i, kDataRoot, "--data_root");
+
+	}
+	printf("--data_root:%s\n", kDataRoot);
+	printf("--gpu:%d\n", gpu);
+	printf("--epoch:%d\n", kNumberOfEpochs);
+	printf("--augment_crop:%d\n", kDataAugment_crop_num_factor);
+	printf("--batch:%d\n", kTrainBatchSize);
+	printf("--image_size:%d\n", kImage_size);
 
 	torch::manual_seed(1);
 
 	torch::DeviceType device_type;
 #ifdef USE_CUDA
-	if (torch::cuda::is_available()) {
+	if (gpu && torch::cuda::is_available()) {
 		std::cout << "CUDA available! Training on GPU." << std::endl;
 		device_type = torch::kCUDA;
 	}

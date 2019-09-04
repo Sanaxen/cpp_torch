@@ -216,8 +216,8 @@ int main(int argc, char** argv)
 						(int)(xRightTop - xLeftBottom),
 						(int)(yRightTop - yLeftBottom));
 
-					float yy = object_tmp.height*1.65 - object_tmp.height;
-					float xx = object_tmp.width*1.65 - object_tmp.width;
+					float yy = object_tmp.height*1.96 - object_tmp.height;
+					float xx = object_tmp.width*1.85 - object_tmp.width;
 					xLeftBottom -= xx * 0.5;
 					yLeftBottom -= yy * 0.5;
 					xRightTop += xx * 0.5;
