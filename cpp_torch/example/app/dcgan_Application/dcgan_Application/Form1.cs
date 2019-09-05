@@ -11,8 +11,11 @@ using System.Windows.Forms;
 
 namespace DCGAN_Application
 {
+
     public partial class Form1 : Form
     {
+        dcgan_Application.Training form2;
+
         public Form1()
         {
             InitializeComponent();
@@ -60,6 +63,15 @@ namespace DCGAN_Application
             {
                 System.IO.File.Copy("beach_model\\g_model.pt", "g_model.pt", true);
             }
+            if (radioButton5.Checked)
+            {
+                System.IO.File.Copy("ctiy_model\\g_model.pt", "g_model.pt", true);
+            }
+            if (radioButton6.Checked)
+            {
+                System.IO.File.Copy("celeb_model\\g_model.pt", "g_model.pt", true);
+            }
+
             if (radioButton4.Checked)
             {
                 if (textBox2.Text == "" && openFileDialog1.ShowDialog() == DialogResult.OK)
@@ -103,6 +115,13 @@ namespace DCGAN_Application
         private void button4_Click(object sender, EventArgs e)
         {
             textBox2.Text = "";
+        }
+
+        private void button5_Click(object sender, EventArgs e)
+        {
+            if (form2 == null ) form2 = new dcgan_Application.Training();
+
+            form2.Show();
         }
     }
 }

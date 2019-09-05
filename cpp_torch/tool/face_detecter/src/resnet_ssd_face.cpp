@@ -32,7 +32,9 @@ const char* params
 	  "{ camera_height  | 480   | camera device height }"
 	  "{ video          |       | video or image for detection }"
       "{ opencl         | false | enable OpenCL }"
-      "{ min_confidence | 0.5   | min confidence       }";
+	  "{ view           | true  | enable viewe }"
+	  "{ min_size       | 10    | min image size }"
+	  "{ min_confidence | 0.5   | min confidence       }";
 
 std::vector<std::string> getImageFiles(const std::string& dir)
 {
@@ -53,17 +55,25 @@ std::vector<std::string> getImageFiles(const std::string& dir)
 				strstr(s.c_str(), ".mp4") == NULL && strstr(s.c_str(), ".MP4") == NULL 
 				)
 			{
-				/* skipp*/
+				// skipp
 			}
 			else
 			{
 				flist.push_back(s);
 			}
 		}
+		else if (std::tr2::sys::is_directory(p))
+		{
+			//cout << p.string() << endl;
+			//getchar();
+			std::vector<std::string>& ls = getImageFiles(p.string());
+			flist.insert(flist.end(), ls.begin(), ls.end());
+		}
 	});
 
 	return flist;
 }
+
 int main(int argc, char** argv)
 {
     CommandLineParser parser(argc, argv, params);
@@ -173,21 +183,58 @@ int main(int argc, char** argv)
 				break;
 			}
 
+			if (frame.rows < parser.get<int>("min_size") || frame.cols < parser.get<int>("min_size"))
+			{
+				continue;
+			}
+			if (frame.rows < 64 || frame.cols < 64)
+			{
+				cv::resize(frame, frame, cv::Size(128, 128), 0, 0, INTER_CUBIC);
+			}
+
 			if (frame.channels() == 4)
 				cvtColor(frame, frame, COLOR_BGRA2BGR);
 
+			Mat inputBlob;
+			try
+			{
+				//! [Prepare blob]
+				inputBlob = blobFromImage(frame, inScaleFactor,
+					Size(inWidth, inHeight), meanVal, false, false); //Convert Mat to batch of images
+			}
+			catch (cv::Exception& err)
+			{
+				cout << "Exception:" << err.what() << endl;
+				continue;
+			}
+			catch (...)
+			{
+				cout << "Exception:" << "???" << endl;
+				continue;
+			}
 			//! [Prepare blob]
-			Mat inputBlob = blobFromImage(frame, inScaleFactor,
-				Size(inWidth, inHeight), meanVal, false, false); //Convert Mat to batch of images
-//! [Prepare blob]
 
 //! [Set input blob]
 			net.setInput(inputBlob, "data"); //set the network input
 			//! [Set input blob]
 
-			//! [Make forward pass]
-			Mat detection = net.forward("detection_out"); //compute output
-			//! [Make forward pass]
+			Mat detection;
+			try
+			{
+				//! [Make forward pass]
+				detection = net.forward("detection_out"); //compute output
+				//! [Make forward pass]
+			}
+			catch (cv::Exception& err)
+			{
+				cout << "Exception:" << err.what() << endl;
+				continue;
+			}
+			catch (...)
+			{
+				cout << "Exception:" << "???" << endl;
+				continue;
+			}
 
 			vector<double> layersTimings;
 			double freq = getTickFrequency() / 1000;
@@ -216,8 +263,8 @@ int main(int argc, char** argv)
 						(int)(xRightTop - xLeftBottom),
 						(int)(yRightTop - yLeftBottom));
 
-					float yy = object_tmp.height*1.96 - object_tmp.height;
-					float xx = object_tmp.width*1.85 - object_tmp.width;
+					float yy = object_tmp.height*1.65 - object_tmp.height;
+					float xx = object_tmp.width*1.65 - object_tmp.width;
 					xLeftBottom -= xx * 0.5;
 					yLeftBottom -= yy * 0.5;
 					xRightTop += xx * 0.5;
@@ -233,7 +280,40 @@ int main(int argc, char** argv)
 
 					try
 					{
-						Mat cutimg(frame, object);
+						int xLeftBottom2 = xLeftBottom;
+						int yLeftBottom2 = yLeftBottom;
+						int xRightTop2 = xRightTop;
+						int yRightTop2 = yRightTop;
+
+						if (xRightTop - xLeftBottom > yRightTop - yLeftBottom)
+						{
+							float d = (xRightTop - xLeftBottom) - (yRightTop - yLeftBottom);
+							
+							yLeftBottom2 -= d * 0.5;
+							yRightTop2 += d * 0.5;
+
+						}
+						else
+						{
+							if (xRightTop - xLeftBottom < yRightTop - yLeftBottom)
+							{
+								float d = (yRightTop - yLeftBottom) - (xRightTop - xLeftBottom);
+
+								xLeftBottom2 -= d * 0.5;
+								xRightTop2 += d * 0.5;
+							}
+						}
+
+						Rect object2((int)xLeftBottom2, (int)yLeftBottom2,
+							(int)(xRightTop2 - xLeftBottom2),
+							(int)(yRightTop2 - yLeftBottom2));
+						
+						Mat cutimg(frame, object2);
+						if (cutimg.rows < parser.get<int>("min_size") || cutimg.cols < parser.get<int>("min_size"))
+						{
+							continue;
+						}
+
 						char outfile[256];
 						sprintf(outfile, "images\\output%d.png", ++num);
 						imwrite(outfile, cutimg);
@@ -259,7 +339,7 @@ int main(int argc, char** argv)
 				}
 			}
 
-			imshow("detections", frame);
+			if (parser.get<bool>("view"))imshow("detections", frame);
 			if (waitKey(1) >= 0) break;
 			if (image_file)
 			{

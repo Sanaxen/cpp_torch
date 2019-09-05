@@ -76,7 +76,7 @@ void learning_and_test_dcgan_dataset(torch::Device device)
 	const int base_size = 256;
 	const int random_sift = 15;	//base_size < 10%
 	const int extend_base_size = base_size + random_sift;
-	const int upsample = (kDataAugment / 2.0 + 0.5);
+	const int upsample = kDataAugment - 1;
 	for (int i = 0; i < image_files.size(); i++)
 	{
 		cpp_torch::Image& img = cpp_torch::readImage(image_files[i].c_str());
@@ -367,10 +367,10 @@ int main(int argc, char** argv)
 	printf("--d_flip:%f\n", discriminator_flip);
 	printf("--d_noise:%s\n", discriminator_noise ? "true" : "false");
 	printf("--d_noise_range:%f\n", discriminator_range);
+	printf("--drop_rate:%f\n", drop_rate);
 	printf("--lr:%f\n", lr);
 	printf("--beta1:%f\n", beta1);
 
-	if (kDataAugment == 1) kDataAugment = 2;
 	torch::manual_seed(1);
 
 	torch::DeviceType device_type;

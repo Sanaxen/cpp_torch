@@ -30,6 +30,8 @@
         {
             this.button1 = new System.Windows.Forms.Button();
             this.panel2 = new System.Windows.Forms.Panel();
+            this.button5 = new System.Windows.Forms.Button();
+            this.checkBox1 = new System.Windows.Forms.CheckBox();
             this.label3 = new System.Windows.Forms.Label();
             this.button4 = new System.Windows.Forms.Button();
             this.textBox2 = new System.Windows.Forms.TextBox();
@@ -46,7 +48,8 @@
             this.button2 = new System.Windows.Forms.Button();
             this.pictureBox1 = new System.Windows.Forms.PictureBox();
             this.openFileDialog1 = new System.Windows.Forms.OpenFileDialog();
-            this.checkBox1 = new System.Windows.Forms.CheckBox();
+            this.radioButton5 = new System.Windows.Forms.RadioButton();
+            this.radioButton6 = new System.Windows.Forms.RadioButton();
             this.panel2.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown1)).BeginInit();
             this.panel1.SuspendLayout();
@@ -66,6 +69,7 @@
             // 
             // panel2
             // 
+            this.panel2.Controls.Add(this.button5);
             this.panel2.Controls.Add(this.checkBox1);
             this.panel2.Controls.Add(this.label3);
             this.panel2.Controls.Add(this.button4);
@@ -81,13 +85,33 @@
             this.panel2.Dock = System.Windows.Forms.DockStyle.Top;
             this.panel2.Location = new System.Drawing.Point(0, 0);
             this.panel2.Name = "panel2";
-            this.panel2.Size = new System.Drawing.Size(963, 69);
+            this.panel2.Size = new System.Drawing.Size(963, 124);
             this.panel2.TabIndex = 2;
+            // 
+            // button5
+            // 
+            this.button5.Location = new System.Drawing.Point(885, 43);
+            this.button5.Name = "button5";
+            this.button5.Size = new System.Drawing.Size(75, 23);
+            this.button5.TabIndex = 14;
+            this.button5.Text = "training";
+            this.button5.UseVisualStyleBackColor = true;
+            this.button5.Click += new System.EventHandler(this.button5_Click);
+            // 
+            // checkBox1
+            // 
+            this.checkBox1.AutoSize = true;
+            this.checkBox1.Location = new System.Drawing.Point(856, 17);
+            this.checkBox1.Name = "checkBox1";
+            this.checkBox1.Size = new System.Drawing.Size(87, 16);
+            this.checkBox1.TabIndex = 13;
+            this.checkBox1.Text = "GPU(CUDA)";
+            this.checkBox1.UseVisualStyleBackColor = true;
             // 
             // label3
             // 
             this.label3.AutoSize = true;
-            this.label3.Location = new System.Drawing.Point(258, 52);
+            this.label3.Location = new System.Drawing.Point(258, 100);
             this.label3.Name = "label3";
             this.label3.Size = new System.Drawing.Size(99, 12);
             this.label3.TabIndex = 12;
@@ -95,7 +119,7 @@
             // 
             // button4
             // 
-            this.button4.Location = new System.Drawing.Point(665, 43);
+            this.button4.Location = new System.Drawing.Point(664, 95);
             this.button4.Name = "button4";
             this.button4.Size = new System.Drawing.Size(75, 23);
             this.button4.TabIndex = 11;
@@ -105,7 +129,7 @@
             // 
             // textBox2
             // 
-            this.textBox2.Location = new System.Drawing.Point(362, 45);
+            this.textBox2.Location = new System.Drawing.Point(362, 93);
             this.textBox2.Name = "textBox2";
             this.textBox2.Size = new System.Drawing.Size(296, 19);
             this.textBox2.TabIndex = 10;
@@ -124,7 +148,7 @@
             // label2
             // 
             this.label2.AutoSize = true;
-            this.label2.Location = new System.Drawing.Point(724, 9);
+            this.label2.Location = new System.Drawing.Point(810, 11);
             this.label2.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
             this.label2.Name = "label2";
             this.label2.Size = new System.Drawing.Size(16, 12);
@@ -134,7 +158,7 @@
             // label1
             // 
             this.label1.AutoSize = true;
-            this.label1.Location = new System.Drawing.Point(648, 16);
+            this.label1.Location = new System.Drawing.Point(734, 18);
             this.label1.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(28, 12);
@@ -143,7 +167,7 @@
             // 
             // numericUpDown1
             // 
-            this.numericUpDown1.Location = new System.Drawing.Point(680, 12);
+            this.numericUpDown1.Location = new System.Drawing.Point(766, 14);
             this.numericUpDown1.Margin = new System.Windows.Forms.Padding(2);
             this.numericUpDown1.Maximum = new decimal(new int[] {
             12,
@@ -175,6 +199,8 @@
             // 
             // panel1
             // 
+            this.panel1.Controls.Add(this.radioButton6);
+            this.panel1.Controls.Add(this.radioButton5);
             this.panel1.Controls.Add(this.radioButton4);
             this.panel1.Controls.Add(this.radioButton3);
             this.panel1.Controls.Add(this.radioButton2);
@@ -182,13 +208,13 @@
             this.panel1.Location = new System.Drawing.Point(362, 2);
             this.panel1.Margin = new System.Windows.Forms.Padding(2);
             this.panel1.Name = "panel1";
-            this.panel1.Size = new System.Drawing.Size(274, 38);
+            this.panel1.Size = new System.Drawing.Size(368, 86);
             this.panel1.TabIndex = 4;
             // 
             // radioButton4
             // 
             this.radioButton4.AutoSize = true;
-            this.radioButton4.Location = new System.Drawing.Point(201, 9);
+            this.radioButton4.Location = new System.Drawing.Point(321, 9);
             this.radioButton4.Margin = new System.Windows.Forms.Padding(2);
             this.radioButton4.Name = "radioButton4";
             this.radioButton4.Size = new System.Drawing.Size(45, 16);
@@ -247,9 +273,9 @@
             // 
             this.pictureBox1.Dock = System.Windows.Forms.DockStyle.Fill;
             this.pictureBox1.ErrorImage = null;
-            this.pictureBox1.Location = new System.Drawing.Point(0, 69);
+            this.pictureBox1.Location = new System.Drawing.Point(0, 124);
             this.pictureBox1.Name = "pictureBox1";
-            this.pictureBox1.Size = new System.Drawing.Size(963, 395);
+            this.pictureBox1.Size = new System.Drawing.Size(963, 340);
             this.pictureBox1.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
             this.pictureBox1.TabIndex = 1;
             this.pictureBox1.TabStop = false;
@@ -259,17 +285,27 @@
             // 
             this.openFileDialog1.FileName = "openFileDialog1";
             // 
-            // checkBox1
+            // radioButton5
             // 
-            this.checkBox1.AutoSize = true;
-            this.checkBox1.Checked = true;
-            this.checkBox1.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.checkBox1.Location = new System.Drawing.Point(856, 17);
-            this.checkBox1.Name = "checkBox1";
-            this.checkBox1.Size = new System.Drawing.Size(87, 16);
-            this.checkBox1.TabIndex = 13;
-            this.checkBox1.Text = "GPU(CUDA)";
-            this.checkBox1.UseVisualStyleBackColor = true;
+            this.radioButton5.AutoSize = true;
+            this.radioButton5.Location = new System.Drawing.Point(202, 10);
+            this.radioButton5.Name = "radioButton5";
+            this.radioButton5.Size = new System.Drawing.Size(63, 16);
+            this.radioButton5.TabIndex = 4;
+            this.radioButton5.TabStop = true;
+            this.radioButton5.Text = "Big city";
+            this.radioButton5.UseVisualStyleBackColor = true;
+            // 
+            // radioButton6
+            // 
+            this.radioButton6.AutoSize = true;
+            this.radioButton6.Location = new System.Drawing.Point(3, 30);
+            this.radioButton6.Name = "radioButton6";
+            this.radioButton6.Size = new System.Drawing.Size(50, 16);
+            this.radioButton6.TabIndex = 5;
+            this.radioButton6.TabStop = true;
+            this.radioButton6.Text = "seleb";
+            this.radioButton6.UseVisualStyleBackColor = true;
             // 
             // Form1
             // 
@@ -310,6 +346,9 @@
         private System.Windows.Forms.Button button4;
         private System.Windows.Forms.Label label3;
         private System.Windows.Forms.CheckBox checkBox1;
+        private System.Windows.Forms.Button button5;
+        private System.Windows.Forms.RadioButton radioButton6;
+        private System.Windows.Forms.RadioButton radioButton5;
     }
 }
 

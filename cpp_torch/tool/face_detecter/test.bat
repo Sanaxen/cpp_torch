@@ -6,7 +6,7 @@ set PROTO=.\face_detector\deploy.prototxt
 set image=input_image
 
 :image file
-.\x64\Release\resnet_ssd_face.exe --min_confidence=0.6 --model=%MODEL% --proto=%PROTO% --video=%image%
+.\x64\Release\resnet_ssd_face.exe --min_confidence=0.7 --model=%MODEL% --proto=%PROTO% --video=%image% --view=false --min_size=96
 
 : camer
 :.\x64\Release\resnet_ssd_face.exe --min_confidence=0.6 --model=%MODEL% --proto=%PROTO%

@@ -120,8 +120,14 @@ namespace cpp_torch
 
 			if (d_nn.pre_make_batch)
 			{
-				if (labels.size() == 0 ) d_nn.generate_BATCH(images, batch_x);
-				else d_nn.generate_BATCH(images, labels, batch_x, batch_y);
+				if (labels.size() == 0)
+				{
+					d_nn.generate_BATCH(images, batch_x);
+				}
+				else
+				{
+					d_nn.generate_BATCH(images, labels, batch_x, batch_y);
+				}
 				batchNum = batch_x.size();
 			}
 
@@ -144,8 +150,14 @@ namespace cpp_torch
 			{
 				if (!d_nn.pre_make_batch)
 				{
-					if (labels.size() == 0) d_nn.generate_BATCH(images, batch_x);
-					else d_nn.generate_BATCH(images, labels, batch_x, batch_y);
+					if (labels.size() == 0)
+					{
+						d_nn.generate_BATCH(images, batch_x);
+					}
+					else
+					{
+						d_nn.generate_BATCH(images, labels, batch_x, batch_y);
+					}
 					batchNum = batch_x.size();
 				}
 
@@ -176,14 +188,21 @@ namespace cpp_torch
 					// ======= Discriminator training =========
 					//Real image
 					torch::Tensor real_img = batch_x[batch_idx].to(device);
-					torch::Tensor real_lbl;
-					if (labels.size()) real_lbl = batch_y[batch_idx].to(device);
-					else real_lbl = ones.detach();
+					torch::Tensor real_label;
+					if (batch_y.size())
+					{
+						real_label = batch_y[batch_idx].to(device);
+					}
+					else
+					{
+						real_label = ones.detach();
+						real_label = real_label.to(device);
+					}
 
 					//	Calculate loss to distinguish real image from real image(label 1)
 					torch::Tensor real_out = d_nn.model.get()->forward(real_img);
 
-					torch::Tensor loss_D_real = LOSS_FUNC(real_out.to(device), real_lbl.mul(noisy_real(mt)));
+					torch::Tensor loss_D_real = LOSS_FUNC(real_out.to(device), real_label.mul(noisy_real(mt)));
 					AT_ASSERT(!std::isnan(loss_D_real.template item<float_t>()));
 
 					
@@ -250,12 +269,15 @@ namespace cpp_torch
 			std::vector<torch::Tensor> images_torch;
 			toTorchTensors(images, images_torch);
 
-			std::vector<torch::Tensor> labels_torch;
+			std::vector<torch::Tensor> labels_torch = {};
 			if (labels.size())
 			{
+				if (labels.size() != images.size())
+				{
+					throw error_exception("images size != lables size.");
+				}
 				toTorchTensors(labels, labels_torch);
 			}
-
 			return train(g_optimizer, d_optimizer, images_torch, labels_torch, kTrainBatchSize, kNumberOfEpochs, nz, on_batch_enumerate, on_epoch_enumerate);
 		}
 
