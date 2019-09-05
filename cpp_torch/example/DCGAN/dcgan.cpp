@@ -81,7 +81,7 @@ void learning_and_test_dcgan_dataset(torch::Device device)
 	{
 		cpp_torch::Image& img = cpp_torch::readImage(image_files[i].c_str());
 
-		if (kDataAugment <= 0)
+		if (kDataAugment <= 1)
 		{
 			cv::Mat cvmat = cpp_torch::cvutil::ImgeTocvMat(&img);
 			cv::resize(cvmat, cvmat, cv::Size(IMAGE_SIZE, IMAGE_SIZE), 0, 0, INTER_CUBIC);
