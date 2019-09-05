@@ -71,9 +71,17 @@ namespace DCGAN_Application
             {
                 System.IO.File.Copy("celeb_model\\g_model.pt", "g_model.pt", true);
             }
+            if (radioButton7.Checked)
+            {
+                System.IO.File.Copy("women_model\\g_model.pt", "g_model.pt", true);
+            }
 
             if (radioButton4.Checked)
             {
+                if (openFileDialog1.InitialDirectory == "")
+                {
+                    openFileDialog1.InitialDirectory = System.AppDomain.CurrentDomain.BaseDirectory;
+                }
                 if (textBox2.Text == "" && openFileDialog1.ShowDialog() == DialogResult.OK)
                 {
                     textBox2.Text = openFileDialog1.FileName;
