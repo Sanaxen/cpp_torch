@@ -812,6 +812,7 @@ namespace cpp_torch
 			const int batchNum = in.size() / BatchSize;
 			if (batchNum == 0)
 			{
+				printf("input size:%d BatchSize:%d\n", in.size(), BatchSize);
 				throw error_exception("input size < Batch Size");
 			}
 
