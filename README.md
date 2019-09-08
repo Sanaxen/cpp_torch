@@ -64,28 +64,12 @@ CIFAR10
 ## Latest topic  
 Do you have a favorite cute person?  
 <img src="./images/image_array4.png" width=50%>  
-This app was created with C # for GUI and C ++ only for core processing. Python is not required.
+This app was created with C # for GUI and C ++ only for core processing. Python is not required.  
+<img src="./images/dcgan_app2.png" width=50%>  
 
 
+## [previous topic](./cpp_torch/previous.md)
 
-Beautiful beach?  
-<img src="./images/image_array3.png" width=50%>  
-
-C# applicatin example  
-<img src="./images/dcgan_app.png" width=60%>  
-
-
-``C++`` only **super_resolution**  (train & test)  
-60epochs<img src="./images/super_resolution.png" width=90%>  
-It's still being verified  
-**[ESPCN(Efficient SubPixel Convolutional Neural Network)](./cpp_torch/test/super_resolution_espcn/readme.md)**  
-**[SRCNN(Super-Resolution Convolutional Neural Network)](./cpp_torch/test/super_resolution_srcnn/readme.md)**  
-
-
-``C++``  only **DCGAN(Deep Convolutional Generative Adversarial Network)** (train & test) [reference](https://qiita.com/hokuto_HIRANO/items/7381095aaee668513487)
-<img src="./images/dcgan_train.gif" width=60%>  
-It was not possible with **tiny-dnn**, but it became possible with **cpp_torch(libtorch)**.
-<img src="./images/image_array2.png" width=60%>  
 ## Requirements  
 visual studio 2015,2017  
 
