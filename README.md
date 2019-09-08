@@ -62,6 +62,12 @@ CIFAR10
 [DCGAN](./cpp_torch/example/DCGAN/readme.md)  
 
 ## Latest topic  
+Do you have a favorite cute person?  
+<img src="./images/image_array4.png" width=50%>  
+This app was created with C # for GUI and C ++ only for core processing. Python is not required.
+
+
+
 Beautiful beach?  
 <img src="./images/image_array3.png" width=50%>  
 
@@ -89,3 +95,13 @@ visual studio 2015,2017
 
 ## tiny-dnn
 [BSD 3-Clause License Copyright (c) 2013, Taiga Nomi](https://github.com/tiny-dnn/tiny-dnn)  
+
+*tiny_dnn* was good, but unfortunately development has clearly stopped. Therefore, we created cpp_torch that can be used instead.  
+
+> ```
+> If you are building in C++,
+> Even if Python or pytorch (libtorch) is changed Should work.  
+> 
+> Will the Python app function correctly next month?  
+> Is there a guarantee that customers will not update python, etc.?
+> ```
