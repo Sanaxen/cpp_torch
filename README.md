@@ -68,7 +68,7 @@ This app was created with C # for GUI and C ++ only for core processing. Python 
 <img src="./images/dcgan_app2.png" width=50%>  
 
 
-## [previous topic](./cpp_torch/previous.md)
+## [previous topic](./previous.md)
 
 ## Requirements  
 visual studio 2015,2017  
