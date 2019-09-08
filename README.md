@@ -66,7 +66,7 @@ Do you have a favorite cute person?
 <img src="./images/image_array4.png" width=50%>  
 This app was created with C # for GUI and C ++ only for core processing. Python is not required.  
 <img src="./images/dcgan_app2.png" width=50%>  
-
+##### This application is in [cpp_torch/example/app/dcgan_Application](./example/app/dcgan_Application)
 
 ## [previous topic](./previous.md)
 
