@@ -14,7 +14,9 @@
 bool gpu = true;
 
 // dataset.
-char* kDataRoot = "./data/image";
+char* kDataRoot = "./data/BSDS300/images/train";
+char* kTestDataRoot1 = "./data/BSDS300/images/test";
+char* kTestDataRoot2 = "./data/Set5";
 
 // The batch size for training.
 int64_t kTrainBatchSize = 64;
@@ -47,8 +49,8 @@ void learning_and_test_super_resolution_dataset(torch::Device device)
 {
 	train_images.clear();
 	printf("load images start\n");
-	std::vector<std::string>& image_train_files = cpp_torch::getImageFiles(kDataRoot + std::string("/BSDS300/images/train"));
-	std::vector<std::string>& image_test_files = cpp_torch::getImageFiles(kDataRoot + std::string("/BSDS300/images/test"));
+	std::vector<std::string>& image_train_files = cpp_torch::getImageFiles(kDataRoot);
+	std::vector<std::string>& image_test_files = cpp_torch::getImageFiles(kTestDataRoot1);
 
 	input_image_size = calculate_valid_crop_size(kImage_size, upscale_factor);
 	//printf("input_image_size:%d\n", input_image_size);
@@ -64,12 +66,14 @@ void learning_and_test_super_resolution_dataset(torch::Device device)
 
 		cv::Mat cvmat = cpp_torch::cvutil::ImgeTocvMat(&img);
 
-		if (cvmat.size().width <= input_image_size || cvmat.size().height <= input_image_size)
+		const int pad = 20 + kDataAugment_crop_num_factor;
+		if (cvmat.size().width <= input_image_size+pad || cvmat.size().height <= input_image_size + pad)
 		{
-			cv::resize(cvmat, cvmat, cv::Size(input_image_size, input_image_size), 0, 0, INTER_CUBIC);
+			cv::resize(cvmat, cvmat, cv::Size(input_image_size + pad, input_image_size + pad), 0, 0, INTER_CUBIC);
 		}
 		std::uniform_int_distribution<> rand_w(0, (int)cvmat.size().width - input_image_size - 1);
 		std::uniform_int_distribution<> rand_h(0, (int)cvmat.size().height - input_image_size - 1);
+		const int retry_max = 20;
 		for (int k = 0; k < kDataAugment_crop_num_factor; k++)
 		{
 			int w = 0;
@@ -83,7 +87,7 @@ void learning_and_test_super_resolution_dataset(torch::Device device)
 				w = rand_w(mt);
 				h = rand_h(mt);
 				count++;
-				if (count == 20)
+				if (count == retry_max)
 				{
 					w = 0;
 					h = 0;
@@ -115,7 +119,7 @@ void learning_and_test_super_resolution_dataset(torch::Device device)
 
 			train_images.push_back(vx);
 			train_labels.push_back(vy);
-			if (count == 20) break;
+			if (count == retry_max) break;
 		}
 		loding += 1;
 	}
@@ -205,7 +209,7 @@ void learning_and_test_super_resolution_dataset(torch::Device device)
 
 		if (epoch % kLogInterval == 0)
 		{
-			std::vector<std::string>& image_files = cpp_torch::getImageFiles(kDataRoot + std::string("/Set5"));
+			std::vector<std::string>& image_files = cpp_torch::getImageFiles(kTestDataRoot2);
 
 
 			float mse_loss = 0;
@@ -291,6 +295,7 @@ void learning_and_test_super_resolution_dataset(torch::Device device)
 
 auto main(int argc, char** argv) -> int {
 
+	bool help = false;
 	for (int i = 1; i < argc; i++)
 	{
 		BOOL_OPT(i, gpu, "--gpu");
@@ -300,6 +305,9 @@ auto main(int argc, char** argv) -> int {
 		INT_OPT(i, kImage_size, "--image_size");
 		FLOAT_OPT(i, upscale_factor, "--upscale");
 		CSTR_OPT(i, kDataRoot, "--data_root");
+		CSTR_OPT(i, kTestDataRoot1, "--testdata_root1");
+		CSTR_OPT(i, kTestDataRoot2, "--testdata_root2");
+		HELP_OPT(i, help, "--help");
 
 	}
 	printf("--data_root:%s\n", kDataRoot);
@@ -308,6 +316,9 @@ auto main(int argc, char** argv) -> int {
 	printf("--augment_crop:%d\n", kDataAugment_crop_num_factor);
 	printf("--batch:%d\n", kTrainBatchSize);
 	printf("--image_size:%d\n", kImage_size);
+	printf("--testdata_root1:%s\n", kTestDataRoot1);
+	printf("--testdata_root2:%s\n", kTestDataRoot2);
+	if (help) exit(0);
 
 	torch::manual_seed(1);
 

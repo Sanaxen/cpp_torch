@@ -345,6 +345,7 @@ void learning_and_test_dcgan_dataset(torch::Device device)
 
 int main(int argc, char** argv)
 {
+	bool help = false;
 	for (int i = 1; i < argc; i++)
 	{
 		BOOL_OPT(i, gpu, "--gpu");
@@ -358,6 +359,7 @@ int main(int argc, char** argv)
 		CSTR_OPT(i, kDataRoot, "--data_root");
 		FLOAT_OPT(i, lr, "--lr");
 		FLOAT_OPT(i, beta1, "--beta1");
+		HELP_OPT(i, help, "--help");
 	}
 	printf("--data_root:%s\n", kDataRoot);
 	printf("--gpu:%d\n", gpu);
@@ -370,6 +372,7 @@ int main(int argc, char** argv)
 	printf("--drop_rate:%f\n", drop_rate);
 	printf("--lr:%f\n", lr);
 	printf("--beta1:%f\n", beta1);
+	if (help) exit(0);
 
 	torch::manual_seed(1);
 

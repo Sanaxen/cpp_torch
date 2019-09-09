@@ -11,3 +11,4 @@ in the LICENSE file.
 #define INT_OPT(i, var, opt) if (strcmp(argv[i], opt) == 0){var = atoi(argv[i+1]);i++;continue;}
 #define CSTR_OPT(i, var, opt) if (strcmp(argv[i], opt) == 0){var = argv[i+1];i++;continue;}
 #define STR_OPT(i, var, opt) if (strcmp(argv[i], opt) == 0){var = std::string(argv[i+1]);i++;continue;}
+#define HELP_OPT(i, var, opt) if (strcmp(argv[i], opt) == 0){var = true;continue;}
