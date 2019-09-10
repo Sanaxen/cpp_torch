@@ -117,30 +117,37 @@ int main(int argc, char** argv)
 		printf("super_resolution_test.exe image_file upscale\n");
 	}
 
-	int  upscale = 2;
+	float  upscale = 2;
 
 	char* filename = "";
 	for (int i = 1; i < argc; i++)
 	{
 		BOOL_OPT(i, gpu, "--gpu");
 		CSTR_OPT(i, filename, "--input");
-		INT_OPT(i, upscale, "--upscale");
+		FLOAT_OPT(i, upscale, "--upscale");
 	}
 	printf("--input:%s\n", filename);
 	printf("--gpu:%d\n", gpu);
-	printf("--upscale:%d\n", upscale);
-	if (upscale < 2)
+	printf("--upscale:%.2f\n", upscale);
+	if (upscale <= 0)
 	{
-		printf("error [upscale < 2] -> upscale = 2\n");
+		printf("error [upscale <= 0] -> upscale = 2\n");
 		upscale = 2;
 	}
-	if (upscale > 3)
+	if (upscale > 12)
 	{
-		printf("error [upscale > 3] -> upscale = 3\n");
-		upscale = 3;
+		printf("error [upscale > 12] -> upscale = 12\n");
+		upscale = 12;
 	}
-	printf("%s -> upscale:%d\n", argv[1], upscale);
+	printf("%s -> upscale:%.2f\n", argv[1], upscale);
 
+	if (upscale <= 1)
+	{
+		cv::Mat img = imread(filename);
+		cv::resize(img, img, cv::Size(img.size().width * upscale, img.size().height * upscale), 0, 0, INTER_CUBIC);
+		cv::imwrite("downsize_img.png", img);
+		return 0;
+	}
 
 	torch::manual_seed(1);
 
@@ -158,7 +165,7 @@ int main(int argc, char** argv)
 	}
 	torch::Device device(device_type);
 
-	test_super_resolution_dataset(device, filename, upscale);
+	test_super_resolution_dataset(device, filename, (int)upscale);
 
 	return 0;
 }
