@@ -44,15 +44,15 @@ namespace super_resolution_Application
             if (checkBox1.Checked) app.Arguments = " --gpu 1";
             else app.Arguments = " --gpu 0";
             app.Arguments += " --input " + "\"" + openFileDialog1.FileName + "\"";
-            if ( radioButton1.Checked)
+
+            if (radioButton1.Checked)
             {
-                app.Arguments += " --upscale 2";
+                app.Arguments += " --upscale " + numericUpDown1.Value.ToString();
             }
             if (radioButton2.Checked)
             {
-                app.Arguments += " --upscale 3";
+                app.Arguments += " --upscale " + textBox2.Text;
             }
-
             string directoryName = System.IO.Path.GetDirectoryName(openFileDialog1.FileName);
             string fileName = System.IO.Path.GetFileNameWithoutExtension(openFileDialog1.FileName);
             string extension = System.IO.Path.GetExtension(openFileDialog1.FileName);
@@ -65,11 +65,19 @@ namespace super_resolution_Application
             System.Diagnostics.Process p = System.Diagnostics.Process.Start(app);
             p.WaitForExit();
 
-            string outfile = directoryName + "\\" + fileName + "_super_res" + extension;
-            System.IO.File.Copy("super_resolution_test_999.png", outfile, true);
+            string outfile = "";
+            if (radioButton2.Checked)
+            {
+                outfile = directoryName + "\\" + fileName + "downsize_img" + extension;
+                System.IO.File.Copy("downsize_img.png", outfile, true);
+            }
+            else
+            {
+                outfile = directoryName + "\\" + fileName + "_super_res" + extension;
+                System.IO.File.Copy("super_resolution_test_999.png", outfile, true);
+            }
 
             Directory.SetCurrentDirectory(cur);
-
 
             Directory.SetCurrentDirectory(path);
             var app2 = new System.Diagnostics.ProcessStartInfo();
