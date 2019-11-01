@@ -36,9 +36,13 @@ int hidden_size = 64;
 int x_dim = 1;
 int y_dim = 3;
 int n_rnn = 1;
-int normalize = 1;
+int normalize = 2;
 float test_size = 0.3f;
-std::string input = "sample.csv";
+float lr = 0.001;
+float momentum = 0.5;
+float min_loss = 0.0001;
+int prophecy = 0;
+std::string input = "/sample.csv";
 
 #ifdef USE_CUDA
 int use_gpu = 1;
@@ -60,12 +64,6 @@ void comannd_line_opt(int argc, char** argv)
 		if (std::string(argv[i]) == "--y_dim")
 		{
 			y_dim = atoi(argv[i + 1]);
-			i++;
-			continue;
-		}
-		if (std::string(argv[i]) == "--hidden_size")
-		{
-			hidden_size = atoi(argv[i + 1]);
 			i++;
 			continue;
 		}
@@ -96,12 +94,6 @@ void comannd_line_opt(int argc, char** argv)
 		if (std::string(argv[i]) == "--kTrainBatchSize")
 		{
 			kTrainBatchSize = atoi(argv[i + 1]);
-			i++;
-			continue;
-		}
-		if (std::string(argv[i]) == "--hidden_size")
-		{
-			hidden_size = atoi(argv[i + 1]);
 			i++;
 			continue;
 		}
@@ -154,7 +146,30 @@ void comannd_line_opt(int argc, char** argv)
 			i++;
 			continue;
 		}
-		
+		if (std::string(argv[i]) == "--lr")
+		{
+			lr = atof(argv[i + 1]);
+			i++;
+			continue;
+		}
+		if (std::string(argv[i]) == "--momentum")
+		{
+			momentum = atof(argv[i + 1]);
+			i++;
+			continue;
+		}
+		if (std::string(argv[i]) == "--min_loss")
+		{
+			min_loss = atof(argv[i + 1]);
+			i++;
+			continue;
+		}
+		if (std::string(argv[i]) == "--prophecy")
+		{
+			prophecy = atoi(argv[i + 1]);
+			i++;
+			continue;
+		}
 	}
 }
 
@@ -284,7 +299,8 @@ void learning_and_test_rnn_dataset(cpp_torch::test::SeqenceData& seqence_data, t
 	cpp_torch::Net model;
 
 	model.get()->device = device;
-	model.get()->setInput(1, 1, (explanatory_variable) ? x_dim : 0 *sequence_length);
+	int z_dim = y_dim + ((explanatory_variable != 0) ? x_dim : 0);
+	model.get()->setInput(1, 1, z_dim*sequence_length);
 
 #ifdef RNN_LAYERS_OPT
 	model.get()->add_recurrent(std::string("lstm"), sequence_length, hidden_size, n_rnn);
@@ -310,7 +326,7 @@ void learning_and_test_rnn_dataset(cpp_torch::test::SeqenceData& seqence_data, t
 	cpp_torch::network_torch<cpp_torch::Net> nn(model, device);
 #endif
 
-	nn.input_dim(1, 1, (y_dim + (explanatory_variable)?x_dim:0)*sequence_length);
+	nn.input_dim(1, 1, z_dim*sequence_length);
 	nn.output_dim(1, 1, y_dim*out_sequence_length);
 	nn.classification = false;
 	nn.batch_shuffle = false;
@@ -326,11 +342,11 @@ void learning_and_test_rnn_dataset(cpp_torch::test::SeqenceData& seqence_data, t
 	const std::string& solver_name = "SGD";
 
 	auto optimizerSGD = torch::optim::SGD(
-		model.get()->parameters(), torch::optim::SGDOptions(0.01).momentum(0.5));
+		model.get()->parameters(), torch::optim::SGDOptions(lr).momentum(momentum));
 
 	auto optimizerAdam =
 		torch::optim::Adam(model.get()->parameters(),
-			torch::optim::AdamOptions(0.0001));
+			torch::optim::AdamOptions(lr));
 
 	if (solver_name == "SGD")
 	{
@@ -356,7 +372,7 @@ void learning_and_test_rnn_dataset(cpp_torch::test::SeqenceData& seqence_data, t
 			fflush(lossfp);
 
 			seqence_data.sequence_test(nn);
-			if (loss < ZERO_TOL)
+			if (loss < ZERO_TOL || loss < min_loss)
 			{
 				nn.stop_ongoing_training();
 			}
@@ -435,6 +451,7 @@ int main(int argc, char** argv)
 	seqence_data.sequence_length = sequence_length;
 	seqence_data.out_sequence_length = out_sequence_length;
 	seqence_data.n_minibatch = kTrainBatchSize;
+	seqence_data.prophecy = prophecy;
 
 	if (explanatory_variable)
 	{

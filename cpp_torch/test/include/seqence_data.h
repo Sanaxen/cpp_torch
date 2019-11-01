@@ -24,6 +24,9 @@ namespace cpp_torch
 
 
 		public:
+			int prophecy = 0;
+			float testsize = 0.3;
+			int normalize_type = 2;
 			int n_minibatch;
 			int y_dim;
 			int x_dim;
@@ -34,7 +37,7 @@ namespace cpp_torch
 
 			bool add_explanatory_variable = false;	// true to add x to the explanatory variable
 
-			void Initialize(const std::string &data_dir_path)
+			void Initialize(const std::string &data_dir_path, const std::string& filename="sample.csv")
 			{
 				/*
 				csv data format
@@ -45,7 +48,8 @@ namespace cpp_torch
 
 				ti = time index
 				*/
-				CSVReader csv(data_dir_path + "/sample.csv", ',', false);
+				printf("read[%s]\n", (data_dir_path + "/" + filename).c_str());
+				CSVReader csv(data_dir_path + "/"+ filename, ',', false);
 				std::vector<tiny_dnn::vec_t>& dataset = csv.toTensor();
 
 				/*
@@ -106,10 +110,17 @@ namespace cpp_torch
 				}
 
 				nY = iY;
-				//data normalize
-				tiny_dnn::cpp_torch::normalizeMinMax(nY, dataset_min, dataset_maxmin);
-
-				data_set(0.3);
+				if (normalize_type == 1)
+				{
+					//data normalize
+					tiny_dnn::cpp_torch::normalizeMinMax(nY, dataset_min, dataset_maxmin);
+				}
+				if (normalize_type == 2)
+				{
+					//data normalize
+					tiny_dnn::cpp_torch::normalizeZ(nY, dataset_min, dataset_maxmin);
+				}
+				data_set(this->testsize);
 			}
 
 			void get_train_data(std::vector<tiny_dnn::vec_t>& train_images_, std::vector<tiny_dnn::vec_t>& train_labels_)
@@ -159,6 +170,9 @@ namespace cpp_torch
 				//datasetNum = (size_t)((float)datasetNum / (float)kTrainBatchSize);
 				//datasetNum = kTrainBatchSize*datasetNum;
 				//test_Num = dataAll - datasetNum;
+				printf("(test:%f)\n", test);
+				printf("test_Num:%d\n", test_Num);
+				printf("datasetNum:%d\n", datasetNum);
 
 				//datasetNum = datasetNum - datasetNum % n_minibatch;
 				if (datasetNum == 0 || datasetNum < n_minibatch)
@@ -168,6 +182,12 @@ namespace cpp_torch
 					return error;
 				}
 				size_t train_num_max = datasetNum;
+				if (datasetNum < 0)
+				{
+					printf("Insufficient data length\n");
+					error = -1;
+					return error;
+				}
 				printf("train:%d test:%d\n", datasetNum, test_Num);
 
 				for (int i = 0; i < train_num_max; i++)
@@ -212,7 +232,6 @@ namespace cpp_torch
 			template <typename Model>
 			void sequence_test(	Model nn)
 			{
-				int prophecy = 0;
 				std::vector<tiny_dnn::vec_t> train(nY.size() + prophecy + sequence_length + out_sequence_length);
 				std::vector<tiny_dnn::vec_t> predict(nY.size() + prophecy + sequence_length + out_sequence_length);
 				std::vector<tiny_dnn::vec_t> YY = nY;
@@ -240,8 +259,7 @@ namespace cpp_torch
 					train[j] = predict[j] = y;
 				}
 
-#pragma omp parallel for
-				for (int i = 0; i < iY.size() + prophecy; i++)
+				for (int i = 0; i < YY.size()- sequence_length- out_sequence_length; i++)
 				{
 					tiny_dnn::vec_t next_y = nn.predict(seq_vec(YY, i));
 					//output sequence_length 
@@ -256,12 +274,16 @@ namespace cpp_torch
 						}
 						train[i + sequence_length + j] = y;
 						predict[i + sequence_length + j] = yy;
+
+						if (i + sequence_length + j >= train_images.size())
+						{
+							YY[i + sequence_length + j] = yy;
+						}
 					}
 				}
 
 
-
-				FILE* fp = fopen("training.dat", "w");
+				FILE* fp = fopen("test.dat", "w");
 				float dt = iX[1][0] - iX[0][0];
 				float t = 0;
 				for (int i = 0; i < sequence_length; i++)
@@ -269,53 +291,70 @@ namespace cpp_torch
 					fprintf(fp, "%f", t);
 					for (int k = 0; k < y_dim; k++)
 					{
-						fprintf(fp, " NaN %f", train[i][k] * dataset_maxmin[k] + dataset_min[k]);
-					}
-					fprintf(fp, "\n");
-					t += dt;
-				}
-
-				for (int i = sequence_length - 1; i < train_images.size() - sequence_length; i++)
-				{
-					fprintf(fp, "%f", t);
-					for (int k = 0; k < y_dim; k++)
-					{
-						fprintf(fp, " %f %f", predict[i][k] * dataset_maxmin[k] + dataset_min[k], train[i][k] * dataset_maxmin[k] + dataset_min[k]);
+						fprintf(fp, " %f NaN", train[i][k] * dataset_maxmin[k] + dataset_min[k]);
 					}
 					fprintf(fp, "\n");
 					t += dt;
 				}
 				fclose(fp);
 
-				fp = fopen("predict.dat", "w");
-				for (int i = train_images.size() - sequence_length - 1; i < iY.size() - sequence_length; i++)
+				fp = fopen("predict1.dat", "w");
+				for (int i = sequence_length - 1; i < train_images.size() - sequence_length; i++)
 				{
 					fprintf(fp, "%f", t);
-					if (i < train_images.size())
+					for (int k = 0; k < y_dim; k++)
+					{
+						fprintf(fp, " %f %f", train[i][k] * dataset_maxmin[k] + dataset_min[k], predict[i][k] * dataset_maxmin[k] + dataset_min[k]);
+					}
+					fprintf(fp, "\n");
+					t += dt;
+				}
+				fclose(fp);
+
+				fp = fopen("predict2.dat", "w");
+				int sz = train_images.size() + sequence_length;
+				if (sz >= nY.size()) sz = nY.size();
+
+				for (int i = train_images.size() - sequence_length - 1; i < sz; i++)
+				{
+					fprintf(fp, "%f", t);
+					if (i < nY.size())
 					{
 						for (int k = 0; k < y_dim; k++)
 						{
-							fprintf(fp, " %f %f", predict[i][k] * dataset_maxmin[k] + dataset_min[k], train[i][k] * dataset_maxmin[k] + dataset_min[k]);
+							fprintf(fp, " %f %f", train[i][k] * dataset_maxmin[k] + dataset_min[k], predict[i][k] * dataset_maxmin[k] + dataset_min[k]);
 						}
 					}
 					else
 					{
 						for (int k = 0; k < y_dim; k++)
 						{
-							fprintf(fp, " %f %f", predict[i][k] * dataset_maxmin[k] + dataset_min[k], train[i][k] * dataset_maxmin[k] + dataset_min[k]);
+							fprintf(fp, " %f %f", train[i][k] * dataset_maxmin[k] + dataset_min[k], predict[i][k] * dataset_maxmin[k] + dataset_min[k]);
 							//fprintf(fp, " %f NaN", predict[i][k] * dataset_maxmin[k] + dataset_min[k], train[i][k] * dataset_maxmin[k] + dataset_min[k]);
 						}
 					}
 					fprintf(fp, "\n");
 					t += dt;
 				}
+				fclose(fp);
 
-				for (int i = iY.size() - sequence_length - 1; i < iY.size() + prophecy; i++)
+				fp = fopen("prophecy.dat", "w");
+				for (int i = sz - 1; i < iY.size() + prophecy; i++)
 				{
 					fprintf(fp, "%f", t);
-					for (int k = 0; k < y_dim; k++)
+					if (i < nY.size())
 					{
-						fprintf(fp, " %f NaN", predict[i][k] * dataset_maxmin[k] + dataset_min[k]);
+						for (int k = 0; k < y_dim; k++)
+						{
+							fprintf(fp, " %f %f", train[i][k] * dataset_maxmin[k] + dataset_min[k], predict[i][k] * dataset_maxmin[k] + dataset_min[k]);
+						}
+					}
+					else
+					{
+						for (int k = 0; k < y_dim; k++)
+						{
+							fprintf(fp, " NaN %f", predict[i][k] * dataset_maxmin[k] + dataset_min[k]);
+						}
 					}
 					fprintf(fp, "\n");
 					t += dt;
