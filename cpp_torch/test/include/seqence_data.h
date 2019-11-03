@@ -26,7 +26,7 @@ namespace cpp_torch
 		public:
 			int prophecy = 0;
 			float testsize = 0.3;
-			int normalize_type = 2;
+			int normalize_type = 1;
 			int n_minibatch;
 			int y_dim;
 			int x_dim;
@@ -259,7 +259,7 @@ namespace cpp_torch
 					train[j] = predict[j] = y;
 				}
 
-				for (int i = 0; i < YY.size()- sequence_length- out_sequence_length; i++)
+				for (int i = 0; i < iY.size() + prophecy; i++)
 				{
 					tiny_dnn::vec_t next_y = nn.predict(seq_vec(YY, i));
 					//output sequence_length 
@@ -274,10 +274,15 @@ namespace cpp_torch
 						}
 						train[i + sequence_length + j] = y;
 						predict[i + sequence_length + j] = yy;
-
-						if (i + sequence_length + j >= train_images.size())
+					}
+					if (i >= train_images.size() - sequence_length)
+					{
+						for (int j = 0; j < out_sequence_length; j++)
 						{
-							YY[i + sequence_length + j] = yy;
+							for (int k = 0; k < y_dim; k++)
+							{
+								YY[i + sequence_length + j][k] = predict[i + sequence_length + j][k];
+							}
 						}
 					}
 				}
@@ -299,7 +304,7 @@ namespace cpp_torch
 				fclose(fp);
 
 				fp = fopen("predict1.dat", "w");
-				for (int i = sequence_length - 1; i < train_images.size() - sequence_length; i++)
+				for (int i = sequence_length-1; i < train_images.size(); i++)
 				{
 					fprintf(fp, "%f", t);
 					for (int k = 0; k < y_dim; k++)
@@ -312,26 +317,14 @@ namespace cpp_torch
 				fclose(fp);
 
 				fp = fopen("predict2.dat", "w");
-				int sz = train_images.size() + sequence_length;
-				if (sz >= nY.size()) sz = nY.size();
+				int sz = nY.size();
 
-				for (int i = train_images.size() - sequence_length - 1; i < sz; i++)
+				for (int i = train_images.size()-1; i < sz; i++)
 				{
 					fprintf(fp, "%f", t);
-					if (i < nY.size())
+					for (int k = 0; k < y_dim; k++)
 					{
-						for (int k = 0; k < y_dim; k++)
-						{
-							fprintf(fp, " %f %f", train[i][k] * dataset_maxmin[k] + dataset_min[k], predict[i][k] * dataset_maxmin[k] + dataset_min[k]);
-						}
-					}
-					else
-					{
-						for (int k = 0; k < y_dim; k++)
-						{
-							fprintf(fp, " %f %f", train[i][k] * dataset_maxmin[k] + dataset_min[k], predict[i][k] * dataset_maxmin[k] + dataset_min[k]);
-							//fprintf(fp, " %f NaN", predict[i][k] * dataset_maxmin[k] + dataset_min[k], train[i][k] * dataset_maxmin[k] + dataset_min[k]);
-						}
+						fprintf(fp, " %f %f", train[i][k] * dataset_maxmin[k] + dataset_min[k], predict[i][k] * dataset_maxmin[k] + dataset_min[k]);
 					}
 					fprintf(fp, "\n");
 					t += dt;
@@ -339,22 +332,12 @@ namespace cpp_torch
 				fclose(fp);
 
 				fp = fopen("prophecy.dat", "w");
-				for (int i = sz - 1; i < iY.size() + prophecy; i++)
+				for (int i = sz-1; i < iY.size() + prophecy; i++)
 				{
 					fprintf(fp, "%f", t);
-					if (i < nY.size())
+					for (int k = 0; k < y_dim; k++)
 					{
-						for (int k = 0; k < y_dim; k++)
-						{
-							fprintf(fp, " %f %f", train[i][k] * dataset_maxmin[k] + dataset_min[k], predict[i][k] * dataset_maxmin[k] + dataset_min[k]);
-						}
-					}
-					else
-					{
-						for (int k = 0; k < y_dim; k++)
-						{
-							fprintf(fp, " NaN %f", predict[i][k] * dataset_maxmin[k] + dataset_min[k]);
-						}
+						fprintf(fp, " NaN %f", predict[i][k] * dataset_maxmin[k] + dataset_min[k]);
 					}
 					fprintf(fp, "\n");
 					t += dt;
