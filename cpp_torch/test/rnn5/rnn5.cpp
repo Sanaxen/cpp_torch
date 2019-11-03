@@ -25,9 +25,10 @@ int64_t kTestBatchSize = 10;
 int64_t kNumberOfEpochs = 2000;
 
 // After how many batches to log a new update with the loss value.
-const int64_t kLogInterval = 10;
+int64_t kLogInterval = 10;
 
-std::string solver_name = std::string ("Adam");
+float stop_min_loss = 0;
+std::string solver_name = std::string("Adam");
 
 int explanatory_variable = 0;
 int sequence_length = 21;
@@ -36,11 +37,13 @@ int hidden_size = 64;
 int x_dim = 1;
 int y_dim = 3;
 int n_rnn = 1;
-int normalize = 2;
+int normalize = 1;
 float test_size = 0.3f;
-float lr = 0.001;
-float momentum = 0.5;
-float min_loss = 0.0001;
+float lr = 0.0001;
+float moment = 0.5;
+int nfc = -1;
+int fc_hidden_size = 128;
+int classification = 0;
 int prophecy = 0;
 std::string input = "/sample.csv";
 
@@ -64,6 +67,12 @@ void comannd_line_opt(int argc, char** argv)
 		if (std::string(argv[i]) == "--y_dim")
 		{
 			y_dim = atoi(argv[i + 1]);
+			i++;
+			continue;
+		}
+		if (std::string(argv[i]) == "--hidden_size")
+		{
+			hidden_size = atoi(argv[i + 1]);
 			i++;
 			continue;
 		}
@@ -94,12 +103,6 @@ void comannd_line_opt(int argc, char** argv)
 		if (std::string(argv[i]) == "--kTrainBatchSize")
 		{
 			kTrainBatchSize = atoi(argv[i + 1]);
-			i++;
-			continue;
-		}
-		if (std::string(argv[i]) == "--hidden_size")
-		{
-			hidden_size = atoi(argv[i + 1]);
 			i++;
 			continue;
 		}
@@ -140,7 +143,7 @@ void comannd_line_opt(int argc, char** argv)
 			i++;
 			continue;
 		}
-		if (std::string(argv[i]) == "--explanatory_variable"|| std::string(argv[i]) == "--ex_var")
+		if (std::string(argv[i]) == "--explanatory_variable" || std::string(argv[i]) == "--ex_var")
 		{
 			explanatory_variable = atoi(argv[i + 1]);
 			i++;
@@ -152,15 +155,27 @@ void comannd_line_opt(int argc, char** argv)
 			i++;
 			continue;
 		}
-		if (std::string(argv[i]) == "--momentum")
+		if (std::string(argv[i]) == "--moment")
 		{
-			momentum = atof(argv[i + 1]);
+			moment = atof(argv[i + 1]);
 			i++;
 			continue;
 		}
-		if (std::string(argv[i]) == "--min_loss")
+		if (std::string(argv[i]) == "--nfc")
 		{
-			min_loss = atof(argv[i + 1]);
+			nfc = atoi(argv[i + 1]);
+			i++;
+			continue;
+		}
+		if (std::string(argv[i]) == "--fc_hidden_size")
+		{
+			fc_hidden_size = atoi(argv[i + 1]);
+			i++;
+			continue;
+		}
+		if (std::string(argv[i]) == "--classification")
+		{
+			classification = atoi(argv[i + 1]);
 			i++;
 			continue;
 		}
@@ -170,7 +185,41 @@ void comannd_line_opt(int argc, char** argv)
 			i++;
 			continue;
 		}
+		if (std::string(argv[i]) == "--kLogInterval")
+		{
+			kLogInterval = atoi(argv[i + 1]);
+			i++;
+			continue;
+		}
+		if (std::string(argv[i]) == "--stop_min_loss")
+		{
+			stop_min_loss = atof(argv[i + 1]);
+			i++;
+			continue;
+		}
 	}
+	printf("--x_dim					:%d\n", x_dim);
+	printf("--y_dim					:%d\n", y_dim);
+	printf("--hidden_size			:%d\n", hidden_size);
+	printf("--sequence_length		:%d\n", sequence_length);
+	printf("--out_sequence_length	:%d\n", out_sequence_length);
+	printf("--kNumberOfEpochs		:%d\n", kNumberOfEpochs);
+	printf("--kTestBatchSize		:%d\n", kTestBatchSize);
+	printf("--kTrainBatchSize		:%d\n", kTrainBatchSize);
+	printf("--n_rnn					:%d\n", n_rnn);
+	printf("--normalize				:%d\n", normalize);
+	printf("--input					:%s\n", input.c_str());
+	printf("--use_gpu				:%d\n", use_gpu);
+	printf("--solver				:%s\n", solver_name.c_str());
+	printf("--explanatory_variable	:%d\n", explanatory_variable);
+	printf("--lr					:%f\n", lr);
+	printf("--moment				:%f\n", moment);
+	printf("--nfc					:%d\n", nfc);
+	printf("--fc_hidden_size		:%d\n", fc_hidden_size);
+	printf("--classification		:%d\n", classification);
+	printf("--prophecy				:%d\n", prophecy);
+	printf("--kLogInterval			:%d\n", kLogInterval);
+	printf("--stop_min_loss			:%f\n", stop_min_loss);
 }
 
 #define RNN_LAYERS_OPT
@@ -299,24 +348,49 @@ void learning_and_test_rnn_dataset(cpp_torch::test::SeqenceData& seqence_data, t
 	cpp_torch::Net model;
 
 	model.get()->device = device;
-	int z_dim = y_dim + ((explanatory_variable != 0) ? x_dim : 0);
+	
+	const int z_dim = y_dim + ((explanatory_variable != 0) ? x_dim : 0);
 	model.get()->setInput(1, 1, z_dim*sequence_length);
 
+	if (n_rnn <= 0) n_rnn = 1;
 #ifdef RNN_LAYERS_OPT
 	model.get()->add_recurrent(std::string("lstm"), sequence_length, hidden_size, n_rnn);
 #else
-	model.get()->add_recurrent(std::string("lstm"), sequence_length, hidden_size);
-	model.get()->add_Tanh();
-	model.get()->add_recurrent(std::string("lstm"), sequence_length, hidden_size);
-	model.get()->add_Tanh();
-	model.get()->add_recurrent(std::string("lstm"), sequence_length, hidden_size);
+	for (int i = 0; i < n_rnn; i++)
+	{
+		model.get()->add_recurrent(std::string("lstm"), sequence_length, hidden_size);
+		model.get()->add_Tanh();
+	}
 #endif
 	model.get()->add_Tanh();
-	model.get()->add_fc(128);
-	model.get()->add_Tanh();
-	model.get()->add_fc(128);
-	model.get()->add_Tanh();
+	if (nfc == -1)
+	{
+		model.get()->add_fc(fc_hidden_size);
+		model.get()->add_Tanh();
+		model.get()->add_fc(fc_hidden_size);
+		model.get()->add_Tanh();
+	}
+	else
+	{
+		size_t sz = fc_hidden_size;
+		if (sz < (y_dim*out_sequence_length) * 10)
+		{
+			sz = (y_dim*out_sequence_length) * 10;
+		}
+		for (int i = 0; i < nfc; i++) {
+			model.get()->add_fc(sz);
+			model.get()->add_Tanh();
+		}
+		
+		sz = (y_dim*out_sequence_length) * 10;
+		model.get()->add_fc(sz);
+		model.get()->add_Tanh();
+	}
 	model.get()->add_fc(y_dim*out_sequence_length);
+	if (classification > 1)
+	{
+		model.get()->add_LogSoftmax(1);
+	}
 #endif
 
 
@@ -333,16 +407,16 @@ void learning_and_test_rnn_dataset(cpp_torch::test::SeqenceData& seqence_data, t
 
 	std::cout << "start training" << std::endl;
 
-	tiny_dnn::progress_display disp(train_images.size());
+	//tiny_dnn::progress_display disp(train_images.size());
+	cpp_torch::progress_display disp(train_images.size());
+
 	tiny_dnn::timer t;
 
 
 	torch::optim::Optimizer* optimizer = nullptr;
 
-	const std::string& solver_name = "SGD";
-
 	auto optimizerSGD = torch::optim::SGD(
-		model.get()->parameters(), torch::optim::SGDOptions(lr).momentum(momentum));
+		model.get()->parameters(), torch::optim::SGDOptions(lr).momentum(moment));
 
 	auto optimizerAdam =
 		torch::optim::Adam(model.get()->parameters(),
@@ -357,6 +431,8 @@ void learning_and_test_rnn_dataset(cpp_torch::test::SeqenceData& seqence_data, t
 		optimizer = &optimizerAdam;
 	}
 
+	float min_loss = 9999999.0;
+
 	FILE* lossfp = fopen("loss.dat", "w");
 	int epoch = 1;
 	// create callback
@@ -367,14 +443,19 @@ void learning_and_test_rnn_dataset(cpp_torch::test::SeqenceData& seqence_data, t
 		if (epoch % kLogInterval == 0)
 		{
 			float loss = nn.get_loss(train_images, train_labels, kTestBatchSize);
-			std::cout << "loss :" << loss << std::endl;
+			std::cout << "loss :" << loss << " min_loss :" << min_loss << std::endl;
 			fprintf(lossfp, "%f\n", loss);
 			fflush(lossfp);
 
 			seqence_data.sequence_test(nn);
-			if (loss < ZERO_TOL || loss < min_loss)
+			if (loss < ZERO_TOL || loss < stop_min_loss)
 			{
 				nn.stop_ongoing_training();
+			}
+			if (loss < min_loss)
+			{
+				min_loss = loss;
+				nn.save(std::string("best_model.pt"));
 			}
 		}
 		++epoch;
@@ -404,7 +485,7 @@ void learning_and_test_rnn_dataset(cpp_torch::test::SeqenceData& seqence_data, t
 	fclose(lossfp);
 
 	float_t loss = nn.get_loss(train_images, train_labels, kTestBatchSize);
-	printf("loss:%f\n", loss);
+	//printf("loss:%f\n", loss);
 	std::vector<int>& res = nn.test_tolerance(test_images, test_labels);
 	{
 		cpp_torch::textColor color("YELLOW");
@@ -412,8 +493,24 @@ void learning_and_test_rnn_dataset(cpp_torch::test::SeqenceData& seqence_data, t
 	}
 
 	nn.test(test_images, test_labels, kTestBatchSize);
+	{
+		cpp_torch::Net bakup_model;
+		cpp_torch::network_torch<cpp_torch::Net> nn2(bakup_model, device);
+		nn2 = nn;
 
+		nn2.load(std::string("best_model.pt"));
+		printf("best_model(loss):%f\n", min_loss);
+		seqence_data.sequence_test(nn2);
 
+		nn2.test(test_images, test_labels, kTestBatchSize);
+
+		tiny_dnn::result res2 = nn2.test(test_images, test_labels);
+		std::vector<int>& res = nn2.test_tolerance(test_images, test_labels);
+		{
+			cpp_torch::textColor color("BLUE");
+			cpp_torch::print_ConfusionMatrix(res, nn2.get_tolerance());
+		}
+	}
 }
 
 
