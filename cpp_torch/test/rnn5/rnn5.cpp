@@ -223,104 +223,6 @@ void comannd_line_opt(int argc, char** argv)
 }
 
 #define RNN_LAYERS_OPT
-struct NetImpl : torch::nn::Module {
-	NetImpl()
-		: 
-		lstm({ nullptr }),
-		lstm2({ nullptr }),
-		lstm3({ nullptr }),
-		fc1(sequence_length*hidden_size, 128),
-		fc2(128, 128),
-		fc3(128, 50),
-		fc4(50, y_dim*out_sequence_length)
-	{
-#ifdef RNN_LAYERS_OPT
-		auto opt = torch::nn::LSTMOptions(y_dim, hidden_size).layers(n_rnn);
-		opt = opt.batch_first(true);
-		lstm = torch::nn::LSTM(opt);
-		lstm.get()->options.batch_first(true);
-#else
-		//Results are incorrect(?)
-		auto opt = torch::nn::LSTMOptions(y_dim, hidden_size);
-		opt = opt.batch_first(true);
-
-		lstm = torch::nn::LSTM(opt);
-		lstm.get()->options.batch_first(true);
-
-		auto opt2 = torch::nn::LSTMOptions(hidden_size, hidden_size);
-		opt2 = opt2.batch_first(true);
-
-		lstm2 = torch::nn::LSTM(opt2);
-		lstm2.get()->options.batch_first(true);
-
-		auto opt3 = torch::nn::LSTMOptions(hidden_size, hidden_size);
-		opt3 = opt3.batch_first(true);
-
-		lstm3 = torch::nn::LSTM(opt3);
-		lstm3.get()->options.batch_first(true);
-#endif
-
-		fc1.get()->options.with_bias(false);
-		fc2.get()->options.with_bias(false);
-		fc3.get()->options.with_bias(false);
-		fc4.get()->options.with_bias(false);
-
-#ifdef RNN_LAYERS_OPT
-		register_module("lstm", lstm);
-#else
-		register_module("lstm", lstm);
-		register_module("lstm2", lstm);
-		register_module("lstm3", lstm);
-#endif
-		register_module("fc1", fc1);
-		register_module("fc2", fc2);
-		register_module("fc3", fc3);
-		register_module("fc4", fc4);
-	}
-
-	torch::Tensor forward(torch::Tensor x) {
-
-		int batch = x.sizes()[0];
-		//cpp_torch::dump_dim("X", x);
-		x = x.view({ batch, -1, y_dim});
-		//cpp_torch::dump_dim("X", x);
-#ifdef RNN_LAYERS_OPT
-		x = lstm->forward(x).output;
-		//cpp_torch::dump_dim("X", x);
-		x = torch::tanh(x);
-#else
-		x = lstm->forward(x).output;
-		//cpp_torch::dump_dim("X", x);
-		x = torch::tanh(x);
-		x = lstm2->forward(x).output;
-		//cpp_torch::dump_dim("X", x);
-		x = torch::tanh(x);
-		x = lstm3->forward(x).output;
-		//cpp_torch::dump_dim("X", x);
-		x = torch::tanh(x);
-#endif
-
-		//cpp_torch::dump_dim("X", x);
-		x = x.view({ batch,  -1});
-		//cpp_torch::dump_dim("X", x);
-		x = torch::tanh(fc1(x));
-		//cpp_torch::dump_dim("X", x);
-		x = torch::tanh(fc2(x));
-		x = torch::tanh(fc3(x));
-		x = torch::tanh(fc4(x));
-
-		return x;
-	}
-
-	torch::nn::LSTM lstm;
-	torch::nn::LSTM lstm2;
-	torch::nn::LSTM lstm3;
-	torch::nn::Linear fc1;
-	torch::nn::Linear fc2;
-	torch::nn::Linear fc3;
-	torch::nn::Linear fc4;
-};
-TORCH_MODULE(Net); // creates module holder for NetImpl
 
 std::vector<tiny_dnn::vec_t> train_labels, test_labels;
 std::vector<tiny_dnn::vec_t> train_images, test_images;
@@ -339,12 +241,6 @@ void read_rnn_dataset(cpp_torch::test::SeqenceData& seqence_data, const std::str
 
 void learning_and_test_rnn_dataset(cpp_torch::test::SeqenceData& seqence_data, torch::Device device)
 {
-
-#ifndef TEST
-	Net model;
-#endif
-
-#ifdef TEST
 	cpp_torch::Net model;
 
 	model.get()->device = device;
@@ -352,9 +248,12 @@ void learning_and_test_rnn_dataset(cpp_torch::test::SeqenceData& seqence_data, t
 	const int z_dim = y_dim + ((explanatory_variable != 0) ? x_dim : 0);
 	model.get()->setInput(1, 1, z_dim*sequence_length);
 
+	model.get()->add_fc(z_dim*sequence_length);
+	model.get()->add_Tanh();
+
 	if (n_rnn <= 0) n_rnn = 1;
 #ifdef RNN_LAYERS_OPT
-	model.get()->add_recurrent(std::string("lstm"), sequence_length, hidden_size, n_rnn);
+	model.get()->add_recurrent(std::string("lstm"), sequence_length, hidden_size, n_rnn, 0.1);
 #else
 	for (int i = 0; i < n_rnn; i++)
 	{
@@ -378,12 +277,12 @@ void learning_and_test_rnn_dataset(cpp_torch::test::SeqenceData& seqence_data, t
 			sz = (y_dim*out_sequence_length) * 10;
 		}
 		for (int i = 0; i < nfc; i++) {
-			model.get()->add_fc(sz);
+			model.get()->add_fc(sz, false);
 			model.get()->add_Tanh();
 		}
 		
 		sz = (y_dim*out_sequence_length) * 10;
-		model.get()->add_fc(sz);
+		model.get()->add_fc(sz, false);
 		model.get()->add_Tanh();
 	}
 	model.get()->add_fc(y_dim*out_sequence_length);
@@ -391,14 +290,8 @@ void learning_and_test_rnn_dataset(cpp_torch::test::SeqenceData& seqence_data, t
 	{
 		model.get()->add_LogSoftmax(1);
 	}
-#endif
 
-
-#ifndef TEST
-	cpp_torch::network_torch<Net> nn(model, device);
-#else
 	cpp_torch::network_torch<cpp_torch::Net> nn(model, device);
-#endif
 
 	nn.input_dim(1, 1, z_dim*sequence_length);
 	nn.output_dim(1, 1, y_dim*out_sequence_length);
