@@ -241,9 +241,9 @@ namespace cpp_torch
 				{
 					YY[i].resize(nY[0].size());
 				}
+				train = YY;
 				for (int i = 0; i < YY.size(); i++)
 				{
-					train[i].resize(nY[0].size());
 					predict[i].resize(nY[0].size());
 				}
 
@@ -256,7 +256,7 @@ namespace cpp_torch
 					{
 						y[k] = nY[j][k];
 					}
-					train[j] = predict[j] = y;
+					predict[j] = y;
 				}
 
 				for (int i = 0; i < iY.size() + prophecy; i++)
@@ -269,10 +269,8 @@ namespace cpp_torch
 						tiny_dnn::vec_t y(y_dim);
 						for (int k = 0; k < y_dim; k++)
 						{
-							y[k] = YY[i + sequence_length + j][k];
 							yy[k] = next_y[y_dim*j + k];
 						}
-						train[i + sequence_length + j] = y;
 						predict[i + sequence_length + j] = yy;
 					}
 					if (i >= train_images.size() - sequence_length)
@@ -304,7 +302,7 @@ namespace cpp_torch
 				fclose(fp);
 
 				fp = fopen("predict1.dat", "w");
-				for (int i = sequence_length-1; i < train_images.size(); i++)
+				for (int i = sequence_length-1; i < train_images.size()- sequence_length; i++)
 				{
 					fprintf(fp, "%f", t);
 					for (int k = 0; k < y_dim; k++)
@@ -317,9 +315,10 @@ namespace cpp_torch
 				fclose(fp);
 
 				fp = fopen("predict2.dat", "w");
-				int sz = nY.size();
+				int sz = train_images.size() + sequence_length;
+				if (sz >= nY.size()) sz = nY.size();
 
-				for (int i = train_images.size()-1; i < sz; i++)
+				for (int i = train_images.size()- sequence_length - 1; i < sz; i++)
 				{
 					fprintf(fp, "%f", t);
 					for (int k = 0; k < y_dim; k++)
@@ -335,9 +334,19 @@ namespace cpp_torch
 				for (int i = sz-1; i < iY.size() + prophecy; i++)
 				{
 					fprintf(fp, "%f", t);
-					for (int k = 0; k < y_dim; k++)
+					if (i < nY.size())
 					{
-						fprintf(fp, " NaN %f", predict[i][k] * dataset_maxmin[k] + dataset_min[k]);
+						for (int k = 0; k < y_dim; k++)
+						{
+							fprintf(fp, " %f %f", train[i][k] * dataset_maxmin[k] + dataset_min[k], predict[i][k] * dataset_maxmin[k] + dataset_min[k]);
+						}
+					}
+					else
+					{
+						for (int k = 0; k < y_dim; k++)
+						{
+							fprintf(fp, " NaN %f", predict[i][k] * dataset_maxmin[k] + dataset_min[k]);
+						}
 					}
 					fprintf(fp, "\n");
 					t += dt;
