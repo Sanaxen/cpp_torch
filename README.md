@@ -2,6 +2,29 @@
 
 **header only, deep learning framework with no dependencies other than libtorch**  
 
+---
+The current code works with **libtorch1.3**, but the latest is **libtorch1.4**.
+
+Support for libtorch1.3 to libtorch1.4 is being promoted. Please wait.
+The current changes that we learned from the work It cannot be compiled with **visual studio2015**. 
+**visual studio2017** also requires updates to the latest patches.
+
+``with_bias-> bias``
+transposed seems to be abolished in 
+``torch :: nn :: Conv2dOptions. ``
+Instead Must be changed to 
+``torch :: nn :: ConvTranspose2d.``
+``torch :: nn :: FeatureDropout``
+also seems to be abolished. instead of Use 
+``torch :: nn :: Dropout2d.``
+
+Other
+``torch :: Tensor & tensor = torch :: tensor ({vec [i]});``
+Is said to be a tensor and terminates abnormally.
+``torch :: Tensor & tensor = torch :: tensor (vec [i]);``
+Must be.
+
+* * *
 Directory structure
 <img src="./images/image00.png"/>  
 
