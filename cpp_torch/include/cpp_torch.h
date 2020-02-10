@@ -9,6 +9,9 @@ in the LICENSE file.
 
 #define _CPP_TORCH_H
 
+
+#include <torch/csrc/api/include/torch/nn/init.h>
+#include <torch/enum.h>
 #include <torch/torch.h>
 
 #include <cstddef>

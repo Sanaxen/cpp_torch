@@ -86,7 +86,8 @@ namespace cpp_torch
 #pragma omp parallel for
 		for (int i = 0; i < vec.size(); i++)
 		{
-			torch::Tensor& tensor = torch::tensor({ vec[i] });
+			//torch::Tensor& tensor = torch::tensor({ vec[i] });	1.3
+			torch::Tensor& tensor = torch::tensor(vec[i]);
 			tensor_vect[i] = tensor;
 		}
 	}
@@ -94,7 +95,8 @@ namespace cpp_torch
 		typename initial_vector>
 		inline torch::Tensor toTorchTensors(initial_vector& vec)
 	{
-		return torch::tensor({ vec });
+		//return torch::tensor({ vec });	 1.3
+		return torch::tensor( vec );
 	}
 
 	inline std::vector<tiny_dnn::tensor_t> toTensor_t(torch::Tensor& x, int batch, int channel, int h, int w)

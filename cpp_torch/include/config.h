@@ -9,12 +9,13 @@ in the LICENSE file.
 
 #define _CONFIG_H
 
-#define USE_VS2015
-//#define USE_VS2017
+//#define USE_VS2015	//--> error => USE_LIBTORCH_140
+#define USE_VS2017
 
 //#define USE_LIBTORCH_110
 //#define USE_LIBTORCH_120
-#define USE_LIBTORCH_130
+//#define USE_LIBTORCH_130
+#define USE_LIBTORCH_140
 
 #define USE_COLOR_CONSOLE
 #define USE_WINDOWS

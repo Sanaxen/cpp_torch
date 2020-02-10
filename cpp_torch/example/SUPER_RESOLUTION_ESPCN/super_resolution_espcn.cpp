@@ -172,7 +172,8 @@ void learning_and_test_super_resolution_dataset(torch::Device device)
 
 	for (auto w : model.get()->conv2d)
 	{
-		torch::nn::init::orthogonal_(w->weight, torch::nn::init::calculate_gain(torch::nn::init::Nonlinearity::ReLU));
+		torch::nn::init::orthogonal_(w->weight, torch::nn::init::calculate_gain(torch::kReLU));
+		//torch::nn::init::orthogonal_(w->weight, torch::nn::init::calculate_gain(torch::nn::init::Nonlinearity::ReLU));	//1.3
 	}
 	cpp_torch::network_torch<cpp_torch::Net> nn(model, device);
 

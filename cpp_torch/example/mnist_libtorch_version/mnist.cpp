@@ -6,7 +6,7 @@
 #include <string>
 #include <vector>
 
-#define USE_LIBTORCH_120
+#define USE_LIBTORCH_140
 #include "libtorch_link_libs.hpp"
 #define USE_CUDA
 
@@ -51,7 +51,7 @@ struct Net : torch::nn::Module {
 
   torch::nn::Conv2d conv1;
   torch::nn::Conv2d conv2;
-  torch::nn::FeatureDropout conv2_drop;
+  torch::nn::Dropout2d conv2_drop;
   torch::nn::Linear fc1;
   torch::nn::Linear fc2;
 };
@@ -103,7 +103,7 @@ void test(
                      output,
                      targets,
                      /*weight=*/{},
-                     Reduction::Sum)
+                     torch::Reduction::Sum)
                      .template item<float>();
     auto pred = output.argmax(1);
     correct += pred.eq(targets).sum().template item<int64_t>();

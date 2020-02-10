@@ -55,9 +55,9 @@ const float upscale_factor = 3;
 const 
 struct NetImpl : torch::nn::Module {
 	NetImpl():
-		conv1(torch::nn::Conv2dOptions(3, 64, 9).with_bias(false).stride(1).padding(4)),
-		conv2(torch::nn::Conv2dOptions(64, 32, 1).with_bias(false).stride(1).padding(0)),
-		conv3(torch::nn::Conv2dOptions(32, 3, 5).with_bias(false).stride(1).padding(2))
+		conv1(torch::nn::Conv2dOptions(3, 64, 9).bias(false).stride(1).padding(4)),
+		conv2(torch::nn::Conv2dOptions(64, 32, 1).bias(false).stride(1).padding(0)),
+		conv3(torch::nn::Conv2dOptions(32, 3, 5).bias(false).stride(1).padding(2))
 	{
 		register_module("conv1", conv1);
 		register_module("conv2", conv2);

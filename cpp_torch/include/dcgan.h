@@ -43,6 +43,7 @@ namespace cpp_torch
 
 #ifndef 	__Experiment
 #ifdef USE_LOSS_BCE
+//#define LOSS_FUNC	torch::nn::BCEWithLogitsLoss
 #define LOSS_FUNC	torch::binary_cross_entropy
 #endif
 

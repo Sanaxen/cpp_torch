@@ -19,7 +19,7 @@ namespace cpp_torch
 		MAXPOOL2D = 4,
 		AVGPOOL2D = 5,
 		DROPOUT = 6,
-		BATCHNORMAL = 7,
+		BATCHNORMAL2D = 7,
 		CONV_TRANSPOSE2D = 8,
 		PIXEL_SHUFFLE = 9,
 		RNN = 90,
@@ -69,13 +69,13 @@ namespace cpp_torch
 	struct NetImpl : torch::nn::Module {
 		NetImpl() :
 			fc(1, nullptr), conv2d(1, nullptr),
-			conv_drop(1, nullptr), bn(1, nullptr),
+			conv_drop(1, nullptr), bn2d(1, nullptr),
 			lstm(1, nullptr),gru(1, nullptr), rnn(1, nullptr),
 			conv_transpose2d(1, nullptr),
 			device(torch::kCPU)
 		{
 			fc.clear();	conv2d.clear();	
-			conv_drop.clear();	bn.clear();
+			conv_drop.clear();	bn2d.clear();
 			lstm.clear();gru.clear();rnn.clear(),
 			conv_transpose2d.clear();
 		}
@@ -87,10 +87,10 @@ namespace cpp_torch
 		int pixel_shuffle_count = 0;
 
 		std::vector<torch::nn::Conv2d> conv2d;
-		std::vector<torch::nn::Conv2d> conv_transpose2d;
+		std::vector<torch::nn::ConvTranspose2d> conv_transpose2d;
 		std::vector<torch::nn::Linear> fc;
-		std::vector<torch::nn::FeatureDropout> conv_drop;
-		std::vector<torch::nn::BatchNorm> bn;
+		std::vector<torch::nn::Dropout2d> conv_drop;
+		std::vector<torch::nn::BatchNorm2d> bn2d;
 		std::vector<torch::nn::LSTM> lstm;
 		std::vector<torch::nn::GRU> gru;
 		std::vector<torch::nn::RNN> rnn;
@@ -133,7 +133,7 @@ namespace cpp_torch
 
 			//std::cout << layer[i - 1].out_ << std::endl;
 			inout.in_ = layer[i - 1].out_;
-			fc.emplace_back(register_module("fc" + std::to_string(id), torch::nn::Linear(torch::nn::LinearOptions(in, out).with_bias(bias))));
+			fc.emplace_back(register_module("fc" + std::to_string(id), torch::nn::Linear(torch::nn::LinearOptions(in, out).bias(bias))));
 			inout.out_ = { 1,1, out };
 			layer.emplace_back(inout);
 
@@ -167,7 +167,7 @@ namespace cpp_torch
 			const int i = layer.size();
 			inout.in_ = { input_channels,layer[i - 1].out_[1], layer[i - 1].out_[2] };
 
-			auto& l = register_module("conv2d" + std::to_string(id), torch::nn::Conv2d(torch::nn::Conv2dOptions(input_channels, output_channels, { kernel_size[0],kernel_size[1] }).with_bias(bias).padding({ padding[0],padding[1] }).stride({ stride[0],stride[1] }).dilation({ dilation[0],dilation[1] })));
+			auto& l = register_module("conv2d" + std::to_string(id), torch::nn::Conv2d(torch::nn::Conv2dOptions(input_channels, output_channels, { kernel_size[0],kernel_size[1] }).bias(bias).padding({ padding[0],padding[1] }).stride({ stride[0],stride[1] }).dilation({ dilation[0],dilation[1] })));
 			conv2d.emplace_back(l);
 
 			inout.out_ = {
@@ -220,17 +220,17 @@ namespace cpp_torch
 		**/
 		void add_conv_transpose2d_(int input_channels, int output_channels, std::vector<int> kernel_size = { 1,1 }, std::vector<int> stride = { 1,1 }, std::vector<int> padding = { 0,0 }, std::vector<int> out_padding = { 0,0 }, std::vector<int> dilation = { 1,1 }, bool bias = true)
 		{
-			int id = conv2d.size();
+			int id = conv_transpose2d.size();
 			cpp_torch::LayerInOut inout;
 			inout.name = "conv_transpose2d";
-			inout.type = cpp_torch::LayerType::CONV2D;
+			inout.type = cpp_torch::LayerType::CONV_TRANSPOSE2D;
 			inout.id = id;
 
 			const int i = layer.size();
 			inout.in_ = { input_channels,layer[i - 1].out_[1], layer[i - 1].out_[2] };
 
-			auto& l = register_module("conv_transpose2d" + std::to_string(id), torch::nn::Conv2d(torch::nn::Conv2dOptions(input_channels, output_channels, { kernel_size[0],kernel_size[1] }).with_bias(bias).padding({ padding[0],padding[1] }).stride({ stride[0],stride[1] }).dilation({ dilation[0],dilation[1] }).transposed(true)));
-			conv2d.emplace_back(l);
+			auto& l = register_module("conv_transpose2d" + std::to_string(id), torch::nn::ConvTranspose2d(torch::nn::ConvTranspose2dOptions(input_channels, output_channels, { kernel_size[0],kernel_size[1] }).bias(bias).padding({ padding[0],padding[1] }).stride({ stride[0],stride[1] }).dilation({ dilation[0],dilation[1] })));
+			conv_transpose2d.emplace_back(l);
 
 			inout.out_ = {
 				output_channels,
@@ -414,7 +414,7 @@ namespace cpp_torch
 
 			const int i = layer.size();
 			inout.in_ = layer[i - 1].out_;
-			conv_drop.emplace_back(register_module("conv_drop" + std::to_string(id), torch::nn::FeatureDropout(torch::nn::FeatureDropout(rate))));
+			conv_drop.emplace_back(register_module("conv_drop" + std::to_string(id), torch::nn::Dropout2d(torch::nn::Dropout2d(rate))));
 			inout.out_ = inout.in_;
 			layer.emplace_back(inout);
 
@@ -484,24 +484,24 @@ namespace cpp_torch
 		* @param momentum        [in] momentum in the computation of the exponential
 		* @param eos             [in] The epsilon value added for numerical stability.
 		**/
-		void add_bn(float_t momentum=0.1, float_t eps= 1e-5)
+		void add_bn2d(float_t momentum=0.1, float_t eps= 1e-5)
 		{
-			int id = bn.size();
+			int id = bn2d.size();
 			cpp_torch::LayerInOut inout;
-			inout.name = "batchnorml";
-			inout.type = cpp_torch::LayerType::BATCHNORMAL;
+			inout.name = "batchnorml2d";
+			inout.type = cpp_torch::LayerType::BATCHNORMAL2D;
 			inout.id = id;
 
 			const int i = layer.size();
 			inout.in_ = layer[i - 1].out_;
-			bn.emplace_back(register_module("bn" + std::to_string(id), torch::nn::BatchNorm(torch::nn::BatchNormOptions(inout.in_[0]).eps(eps).momentum(momentum))));
+			bn2d.emplace_back(register_module("bn2d" + std::to_string(id), torch::nn::BatchNorm2d(torch::nn::BatchNorm2dOptions(inout.in_[0]).eps(eps).momentum(momentum))));
 
 			inout.out_ = inout.in_;
 			//printf("out %d %d %d ->", inout.outC, inout.outH, inout.outW);
 			layer.emplace_back(inout);
 
 
-			std::cout << "bn {" << inout.in_ << "}->{" << inout.out_ << "}" << std::endl;
+			std::cout << "bn2d {" << inout.in_ << "}->{" << inout.out_ << "}" << std::endl;
 		}
 
 		/**
@@ -698,18 +698,18 @@ namespace cpp_torch
 					if (debug_dmp)cpp_torch::dump_dim(layer[i].name, x);
 					continue;
 				}
-				if (layer[i].type == cpp_torch::LayerType::BATCHNORMAL)
+				if (layer[i].type == cpp_torch::LayerType::BATCHNORMAL2D)
 				{
 					x = x.view({ -1, layer[i - 1].out_[0], layer[i - 1].out_[1], layer[i - 1].out_[2] });
-					x = bn[layer[i].id]->forward(x);
-					if (debug_dmp)cpp_torch::dump_dim(bn[layer[i].id]->name(), x);
+					x = bn2d[layer[i].id]->forward(x);
+					if (debug_dmp)cpp_torch::dump_dim(bn2d[layer[i].id]->name(), x);
 					continue;
 				}
 				if (layer[i].type == cpp_torch::LayerType::PIXEL_SHUFFLE)
 				{
 					x = x.view({ -1, layer[i - 1].out_[0], layer[i - 1].out_[1], layer[i - 1].out_[2] });
 					x = torch::pixel_shuffle(x, layer[i].upscale_factor);
-					if (debug_dmp)cpp_torch::dump_dim(bn[layer[i].id]->name(), x);
+					if (debug_dmp)cpp_torch::dump_dim(bn2d[layer[i].id]->name(), x);
 					continue;
 				}
 

@@ -12,6 +12,10 @@
 #include <random>
 #include <filesystem>
 
+#ifndef _HAS_CXX17
+#error  CXX17
+#endif
+
 #include <time.h> 
 using namespace cv;
 using namespace std;
@@ -149,12 +153,12 @@ namespace cpp_torch
 		cv::Mat  ImageWrite(const std::string& path, int M, int N, const std::string& image_file_name, int padding = 0)
 		{
 			std::vector<string> flist;
-			std::tr2::sys::path p(path);
+			std::filesystem::path p(path);
 
-			for_each(std::tr2::sys::directory_iterator(p),
-				std::tr2::sys::directory_iterator(),
-				[&flist](const std::tr2::sys::path& p) {
-				if (std::tr2::sys::is_regular_file(p)) {
+			for_each(std::filesystem::directory_iterator(p),
+				std::filesystem::directory_iterator(),
+				[&flist](const std::filesystem::path& p) {
+				if (std::filesystem::is_regular_file(p)) {
 					string s = p.string();
 					if (
 						strstr(s.c_str(), ".bmp") == NULL && strstr(s.c_str(), ".BMP") == NULL &&

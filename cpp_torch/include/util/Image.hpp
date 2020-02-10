@@ -8,7 +8,6 @@ in the LICENSE file.
 #ifndef __IMAGE_HPP
 
 #define __IMAGE_HPP
-#include <filesystem>
 
 #ifndef STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_IMPLEMENTATION
@@ -19,6 +18,11 @@ in the LICENSE file.
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "../third_party/stb/stb_image_write.h"
 #endif
+
+#ifndef _HAS_CXX17
+#error  CXX17
+#endif
+#include <filesystem>
 
 #pragma warning(disable : 4244)
 #pragma warning(disable : 4018)
@@ -175,12 +179,12 @@ namespace cpp_torch
 	std::vector<std::string> getImageFiles(const std::string& dir)
 	{
 		std::vector<std::string> flist;
-		std::tr2::sys::path p(dir);
+		std::filesystem::path p(dir);
 
-		for_each(std::tr2::sys::directory_iterator(p),
-			std::tr2::sys::directory_iterator(),
-			[&flist](const std::tr2::sys::path& p) {
-			if (std::tr2::sys::is_regular_file(p)) {
+		for_each(std::filesystem::directory_iterator(p),
+			std::filesystem::directory_iterator(),
+			[&flist](const std::filesystem::path& p) {
+			if (filesystem::is_regular_file(p)) {
 				string s = p.string();
 				if (
 					strstr(s.c_str(), ".bmp") == NULL && strstr(s.c_str(), ".BMP") == NULL &&
@@ -908,6 +912,7 @@ namespace cpp_torch
 		}
 		return ToImage(&(image_data[0]), height, width, channel);
 	}
+
 	std::vector<float_t> image2vec_t(Image* img, int in_channel, int height, int width, float scale = 1.0)
 	{
 		std::vector<float_t> image_data(in_channel*height*width);

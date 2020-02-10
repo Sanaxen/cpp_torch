@@ -24,6 +24,9 @@ Is said to be a tensor and terminates abnormally.
 ``torch :: Tensor & tensor = torch :: tensor (vec [i]);``
 Must be.
 
+ (/std:c++17)
+std::byte compile error C2872
+compile option -> ``/D _HAS_STD_BYTE =0``
 * * *
 Directory structure
 <img src="./images/image00.png"/>  
