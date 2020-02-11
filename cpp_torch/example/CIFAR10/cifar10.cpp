@@ -77,28 +77,28 @@ void learning_and_test_cifar10_dataset(torch::Device device)
 #else
 	model.get()->add_conv2d(3, 32, 3, 3, 3);
 	model.get()->add_ReLU();
-	model.get()->add_bn();
+	model.get()->add_bn2d();
 	model.get()->add_conv2d(32, 32, 3, 3, 3);
 	model.get()->add_ReLU();
-	model.get()->add_bn();
+	model.get()->add_bn2d();
 	model.get()->add_maxpool2d(2);
 	model.get()->add_conv_drop(0.2);
 
 	model.get()->add_conv2d(32, 64, 3, 3, 3);
 	model.get()->add_ReLU();
-	model.get()->add_bn();
+	model.get()->add_bn2d();
 	model.get()->add_conv2d(64, 64, 3, 3, 3);
 	model.get()->add_ReLU();
-	model.get()->add_bn();
+	model.get()->add_bn2d();
 	model.get()->add_maxpool2d(2);
 	model.get()->add_conv_drop(0.3);
 
 	model.get()->add_conv2d(64, 128, 3, 3, 3);
 	model.get()->add_ReLU();
-	model.get()->add_bn();
+	model.get()->add_bn2d();
 	model.get()->add_conv2d(128, 128, 3, 3, 3);
 	model.get()->add_ReLU();
-	model.get()->add_bn();
+	model.get()->add_bn2d();
 	model.get()->add_maxpool2d(2);
 	model.get()->add_conv_drop(0.4);
 
