@@ -33,3 +33,4 @@
 *.bak
 cpp_torch/tool/image_concat/generated_images/Thumbs.db
 cpp_torch/tool/image_concat/images/Thumbs.db
+cpp_torch/example/DCGAN/dcgan/.vs/dcgan/v15/.suo
