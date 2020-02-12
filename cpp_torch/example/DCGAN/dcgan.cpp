@@ -8,7 +8,7 @@
 #define USE_OPENCV_UTIL
 #include "cpp_torch.h"
 #include "dcgan.h"
-#include "test/include/images_mormalize.h"
+#include "test/include/images_normalize.h"
 #include "util/command_line.h"
 
 #define USE_CUDA
@@ -169,44 +169,44 @@ void learning_and_test_dcgan_dataset(torch::Device device)
 
 	cpp_torch::Net  g_model;
 	g_model.get()->setInput(nz, 1, 1);
-	g_model.get()->add_conv_transpose2d(nz, ngf*8, 4, 1, 0);
+	g_model.get()->add_conv_transpose2d(nz, ngf*8, 4, 1, 0, 0, 1, false);
 	g_model.get()->add_bn2d();
 	g_model.get()->add_ReLU();
-	g_model.get()->add_conv_transpose2d(ngf * 8, ngf * 4, 4, 2, 1);
+	g_model.get()->add_conv_transpose2d(ngf * 8, ngf * 4, 4, 2, 1, 0, 1, false);
 	g_model.get()->add_bn2d();
 	g_model.get()->add_ReLU();
-	g_model.get()->add_conv_transpose2d(ngf * 4, ngf * 2, 4, 2, 1);
+	g_model.get()->add_conv_transpose2d(ngf * 4, ngf * 2, 4, 2, 1, 0, 1, false);
 	g_model.get()->add_bn2d();
 	g_model.get()->add_ReLU();
-	g_model.get()->add_conv_transpose2d(ngf * 2, ngf, 4, 2, 1);
+	g_model.get()->add_conv_transpose2d(ngf * 2, ngf, 4, 2, 1, 0, 1, false);
 	g_model.get()->add_bn2d();
 	g_model.get()->add_ReLU();
-	g_model.get()->add_conv_transpose2d(ngf, IMAGE_CHANNEL, 4, 2, 1);
+	g_model.get()->add_conv_transpose2d(ngf, IMAGE_CHANNEL, 4, 2, 1, 0, 1, false);
 	g_model.get()->add_Tanh();
 
 	cpp_torch::Net  d_model;
 	d_model.get()->setInput(IMAGE_CHANNEL, ndf, ndf);
-	d_model.get()->add_conv2d(IMAGE_CHANNEL, ndf, 4, 2, 1);
+	d_model.get()->add_conv2d(IMAGE_CHANNEL, ndf, 4, 2, 1, 1, false);
 	d_model.get()->add_bn2d();
 	d_model.get()->add_LeakyReLU(0.2);
 	d_model.get()->add_dropout(drop_rate);
 
-	d_model.get()->add_conv2d(ndf, ndf*2, 4, 2, 1);
+	d_model.get()->add_conv2d(ndf, ndf*2, 4, 2, 1, 1, false);
 	d_model.get()->add_bn2d();
 	d_model.get()->add_LeakyReLU(0.2);
 	d_model.get()->add_dropout(drop_rate);
 
-	d_model.get()->add_conv2d(ndf*2, ndf*4, 4, 2, 1);
+	d_model.get()->add_conv2d(ndf*2, ndf*4, 4, 2, 1, 1, false);
 	d_model.get()->add_bn2d();
 	d_model.get()->add_LeakyReLU(0.2);
 	d_model.get()->add_dropout(drop_rate);
 
-	d_model.get()->add_conv2d(ndf*4, ndf*8, 4, 2, 1);
+	d_model.get()->add_conv2d(ndf*4, ndf*8, 4, 2, 1, 1, false);
 	d_model.get()->add_bn2d();
 	d_model.get()->add_LeakyReLU(0.2);
 	d_model.get()->add_dropout(drop_rate);
 
-	d_model.get()->add_conv2d(ndf*8, 1, 4, 1, 0);
+	d_model.get()->add_conv2d(ndf*8, 1, 4, 1, 0, 1, false);
 	d_model.get()->add_Squeeze();
 #ifdef USE_LOSS_BCE
 	d_model.get()->add_Sigmoid();
