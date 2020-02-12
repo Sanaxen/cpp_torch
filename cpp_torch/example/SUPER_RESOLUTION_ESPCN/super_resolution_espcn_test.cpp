@@ -7,7 +7,7 @@
 */
 #define USE_OPENCV_UTIL
 #include "cpp_torch.h"
-#include "test/include/images_mormalize.h"
+#include "test/include/images_normalize.h"
 #include "util/command_line.h"
 
 #define USE_CUDA

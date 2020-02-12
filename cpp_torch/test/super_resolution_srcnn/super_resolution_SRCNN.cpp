@@ -7,7 +7,7 @@
 */
 #define USE_OPENCV_UTIL
 #include "cpp_torch.h"
-#include "test/include/images_mormalize.h"
+#include "test/include/images_normalize.h"
 
 bool file_copy(const std::string& from, const std::string& to)
 {
