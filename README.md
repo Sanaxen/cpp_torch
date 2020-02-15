@@ -97,7 +97,7 @@ This app was created with C # for GUI and C ++ only for core processing. Python 
 ## [previous topic](./previous.md)
 
 ## Requirements  
-visual studio 2015,2017  
+visual studio ~~2015~~,**2017,2019**  
 
 [libtorch](https://pytorch.org/get-started1locally/)
 **Please adapt the version of cuda to your environment**  
