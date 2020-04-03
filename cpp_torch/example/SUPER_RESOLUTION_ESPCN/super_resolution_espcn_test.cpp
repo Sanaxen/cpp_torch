@@ -38,6 +38,18 @@ void test_super_resolution_dataset(torch::Device device, const std::string& test
 	cpp_torch::Net model;
 
 	model.get()->setInput(1, input_image_size, input_image_size);
+#if 0
+	model.get()->add_conv2d(1, 64, 5, 1, 2);
+	model.get()->add_Tanh();
+	model.get()->add_conv2d(64, 64, 3, 1, 1);
+	model.get()->add_Tanh();
+	model.get()->add_conv2d(64, 32, 3, 1, 1);
+	model.get()->add_Tanh();
+	model.get()->add_conv2d(32, pow(upscale_factor, 2), 3, 1, 1);
+	model.get()->add_Tanh();
+	model.get()->add_pixel_shuffle(upscale_factor);
+	model.get()->add_Sigmoid();
+#else
 	model.get()->add_conv2d(1, 64, 5, 1, 2);
 	model.get()->add_ReLU();
 	model.get()->add_conv2d(64, 64, 3, 1, 1);
@@ -47,6 +59,7 @@ void test_super_resolution_dataset(torch::Device device, const std::string& test
 	model.get()->add_conv2d(32, pow(upscale_factor, 2), 3, 1, 1);
 	model.get()->add_ReLU();
 	model.get()->add_pixel_shuffle(upscale_factor);
+#endif
 
 	char load_model[256];
 	sprintf(load_model, "model_scale%d.pt", upscale_factor);

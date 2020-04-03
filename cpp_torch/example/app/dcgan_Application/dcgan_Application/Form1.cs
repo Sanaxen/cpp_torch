@@ -79,6 +79,10 @@ namespace DCGAN_Application
             {
                 System.IO.File.Copy("butterfly_model\\g_model.pt", "g_model.pt", true);
             }
+            if (radioButton9.Checked)
+            {
+                System.IO.File.Copy("bedroom_model\\g_model.pt", "g_model.pt", true);
+            }
 
             if (radioButton4.Checked)
             {

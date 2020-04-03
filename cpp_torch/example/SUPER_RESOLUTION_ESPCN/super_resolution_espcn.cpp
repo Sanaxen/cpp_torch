@@ -160,6 +160,7 @@ void learning_and_test_super_resolution_dataset(torch::Device device)
 	cpp_torch::Net model;
 
 	model.get()->setInput(1, input_image_size / upscale_factor, input_image_size / upscale_factor);
+#if 0
 	model.get()->add_conv2d(1, 64, 5, 1, 2);
 	model.get()->add_ReLU();
 	model.get()->add_conv2d(64, 64, 3, 1, 1);
@@ -169,12 +170,26 @@ void learning_and_test_super_resolution_dataset(torch::Device device)
 	model.get()->add_conv2d(32, pow(upscale_factor, 2), 3, 1, 1);
 	model.get()->add_ReLU();
 	model.get()->add_pixel_shuffle(upscale_factor);
+	//model.get()->add_Sigmoid();
+#else
+	model.get()->add_conv2d(1, 64, 5, 1, 2);
+	model.get()->add_ReLU();
+	model.get()->add_conv2d(64, 64, 3, 1, 1);
+	model.get()->add_ReLU();
+	model.get()->add_conv2d(64, 32, 3, 1, 1);
+	model.get()->add_ReLU();
+	model.get()->add_conv2d(32, pow(upscale_factor, 2), 3, 1, 1);
+	model.get()->add_ReLU();
+	model.get()->add_pixel_shuffle(upscale_factor);
+#endif
 
 	for (auto w : model.get()->conv2d)
 	{
 		torch::nn::init::orthogonal_(w->weight, torch::nn::init::calculate_gain(torch::kReLU));
 		//torch::nn::init::orthogonal_(w->weight, torch::nn::init::calculate_gain(torch::nn::init::Nonlinearity::ReLU));	//1.3
 	}
+	torch::nn::init::orthogonal_(model.get()->conv2d[model.get()->conv2d.size()-1]->weight);
+
 	cpp_torch::network_torch<cpp_torch::Net> nn(model, device);
 
 	nn.input_dim(1, input_image_size / upscale_factor, input_image_size / upscale_factor);
