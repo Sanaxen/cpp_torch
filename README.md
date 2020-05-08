@@ -3,7 +3,8 @@
 **header only, deep learning framework with no dependencies other than libtorch**  
 
 ---
-The current code works with **libtorch1.3**, but the latest is **libtorch1.4**.
+Enabled to build with **libtorch1.5**  
+~~The current code works with **libtorch1.3**, but the latest is **libtorch1.4**.~~
 
 Support for libtorch1.3 to libtorch1.4 is being promoted. Please wait.
 The current changes that we learned from the work It cannot be compiled with **visual studio2015**. 

@@ -28,6 +28,23 @@ void test_dcgan(torch::Device device)
 	const int nz = kRndArraySize;
 
 	cpp_torch::Net  g_model;
+#if 10
+	g_model.get()->setInput(nz, 1, 1);
+	g_model.get()->add_conv_transpose2d(nz, ngf * 8, 4, 1, 0, 0, 1, false);
+	g_model.get()->add_bn2d();
+	g_model.get()->add_ReLU();
+	g_model.get()->add_conv_transpose2d(ngf * 8, ngf * 4, 4, 2, 1, 0, 1, false);
+	g_model.get()->add_bn2d();
+	g_model.get()->add_ReLU();
+	g_model.get()->add_conv_transpose2d(ngf * 4, ngf * 2, 4, 2, 1, 0, 1, false);
+	g_model.get()->add_bn2d();
+	g_model.get()->add_ReLU();
+	g_model.get()->add_conv_transpose2d(ngf * 2, ngf, 4, 2, 1, 0, 1, false);
+	g_model.get()->add_bn2d();
+	g_model.get()->add_ReLU();
+	g_model.get()->add_conv_transpose2d(ngf, IMAGE_CHANNEL, 4, 2, 1, 0, 1, false);
+	g_model.get()->add_Tanh();
+#else
 	g_model.get()->setInput(nz, 1, 1);
 	g_model.get()->add_conv_transpose2d(nz, ngf * 8, 4, 1, 0);
 	g_model.get()->add_bn2d();
@@ -43,6 +60,7 @@ void test_dcgan(torch::Device device)
 	g_model.get()->add_ReLU();
 	g_model.get()->add_conv_transpose2d(ngf, IMAGE_CHANNEL, 4, 2, 1);
 	g_model.get()->add_Tanh();
+#endif
 
 	//random numbers from a normal distribution with mean 0 and variance 1 (standard normal distribution).
 	torch::Tensor check_z = torch::randn({ kTestBatchSize, nz, 1, 1 }).to(device);

@@ -539,9 +539,10 @@ namespace cpp_torch
 				id = rnn.size();
 				auto opt = torch::nn::RNNOptions(inout.rnn_sequence_single_size, hidden_size);
 				opt = opt.batch_first(true);
-				if (activatin == "ReLU") opt.activation(torch::nn::RNNActivation::ReLU);
-				if (activatin == "TanH") opt.activation(torch::nn::RNNActivation::Tanh);
-				opt = opt.layers(num_layers);
+
+				if (activatin == "ReLU") opt = opt.nonlinearity(torch::kReLU);
+				if (activatin == "TanH") opt = opt.nonlinearity(torch::kTanh);
+				opt = opt.num_layers(num_layers);
 				if (dropout > 0.0) opt = opt.dropout(dropout);
 
 				rnn.emplace_back(register_module(rnn_type + std::to_string(id), torch::nn::RNN(opt)));
@@ -551,7 +552,7 @@ namespace cpp_torch
 				id = lstm.size();
 				auto opt = torch::nn::LSTMOptions(inout.rnn_sequence_single_size, hidden_size);
 				opt = opt.batch_first(true);
-				opt = opt.layers(num_layers);
+				opt = opt.num_layers(num_layers);
 				if (dropout > 0.0) opt = opt.dropout(dropout);
 
 				lstm.emplace_back(register_module(rnn_type + std::to_string(id), torch::nn::LSTM(opt)));
@@ -561,7 +562,7 @@ namespace cpp_torch
 				id = gru.size();
 				auto opt = torch::nn::GRUOptions(inout.rnn_sequence_single_size, hidden_size);
 				opt = opt.batch_first(true);
-				opt = opt.layers(num_layers);
+				opt = opt.num_layers(num_layers);
 				if (dropout > 0.0) opt = opt.dropout(dropout);
 
 				gru.emplace_back(register_module(rnn_type + std::to_string(id), torch::nn::GRU(opt)));
@@ -723,15 +724,15 @@ namespace cpp_torch
 					//dump_dim("X", x);
 					if (layer[i].type == cpp_torch::LayerType::LSTM)
 					{
-						x = lstm[layer[i].id]->forward(x).output;
+						x = std::get<0>(lstm[layer[i].id]->forward(x));
 					}else
 					if (layer[i].type == cpp_torch::LayerType::GRU)
 					{
-						x = gru[layer[i].id]->forward(x).output;
+						x = std::get<0>(gru[layer[i].id]->forward(x));
 					}else
 					if (layer[i].type == cpp_torch::LayerType::RNN)
 					{
-						x = rnn[layer[i].id]->forward(x).output;
+						x = std::get<0>(rnn[layer[i].id]->forward(x));
 					}
 					x = x.view({ batch,  layer[i].rnn_seqence_length, -1 });
 					//dump_dim("X", x);

@@ -120,7 +120,7 @@ void learning_and_test_cifar10_dataset(torch::Device device)
 
 	auto optimizer =
 		torch::optim::Adam(model.get()->parameters(),
-			torch::optim::AdamOptions(0.0005));
+			torch::optim::AdamOptions(0.0005).betas(std::make_tuple(0.5, 0.5)));
 	//torch::optim::SGD optimizer(
 	//	model.get()->parameters(), torch::optim::SGDOptions(0.001).momentum(0.9));
 

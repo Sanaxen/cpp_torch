@@ -15,7 +15,8 @@ in the LICENSE file.
 //#define USE_LIBTORCH_110
 //#define USE_LIBTORCH_120
 //#define USE_LIBTORCH_130
-#define USE_LIBTORCH_140
+//#define USE_LIBTORCH_140
+#define USE_LIBTORCH_150
 
 #define USE_COLOR_CONSOLE
 #define USE_WINDOWS

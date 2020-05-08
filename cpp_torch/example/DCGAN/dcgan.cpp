@@ -46,11 +46,13 @@ const int ndf = 64;
 float lr = 0.0002;
 //beta1 hyperparameter for Adam optimizers. As described in paper, this number should be 0.5
 float beta1 = 0.5;
+float beta2 = 0.5;//0.999
 
 float discriminator_flip = 0.0;
 float discriminator_range = 0.0;
 bool discriminator_noise = false;
 
+int checkStart = 150;
 
 // load  dataset
 std::vector<tiny_dnn::label_t> train_labels, test_labels;
@@ -236,16 +238,19 @@ void learning_and_test_dcgan_dataset(torch::Device device)
 	//Adam !! Radford et. al. 2015
 	auto g_optimizer =
 		torch::optim::Adam(g_model.get()->parameters(),
-			torch::optim::AdamOptions(lr).beta1(beta1).beta2(0.999));
+			torch::optim::AdamOptions(lr).betas(std::make_tuple(beta1, beta2)));
 	auto d_optimizer =
 		torch::optim::Adam(d_model.get()->parameters(),
-			torch::optim::AdamOptions(lr).beta1(beta1).beta2(0.999));
+			torch::optim::AdamOptions(lr).betas(std::make_tuple(beta1, beta2)));
 
 
 	cpp_torch::DCGAN<cpp_torch::Net, cpp_torch::Net> dcgan(g_nn, d_nn, device);
 	dcgan.discriminator_flip = discriminator_flip;
 	dcgan.discriminator_noise = discriminator_noise;
 	dcgan.noize_range = discriminator_range;
+
+	float loss_min = 99999.0;
+	int none_update_count = 0;
 
 	FILE* fp = fopen("loss.dat", "w");
 	int epoch = 1;
@@ -255,7 +260,9 @@ void learning_and_test_dcgan_dataset(torch::Device device)
 			<< t.elapsed() << "s elapsed." << std::endl;
 		++epoch;
 
-		fprintf(fp, "%f %f\n", dcgan.get_generator_loss(), dcgan.get_discriminator_loss());
+		float g_loss = dcgan.get_generator_loss();
+		float d_loss = dcgan.get_discriminator_loss();
+		fprintf(fp, "%f %f\n", g_loss, d_loss);
 		fflush(fp);
 
 		g_nn.model.get()->train(false);
@@ -265,6 +272,30 @@ void learning_and_test_dcgan_dataset(torch::Device device)
 		//generated_img = (mean + generated_img.mul(stddiv)).clamp(0, 255);
 		//generated_img = ((1+generated_img).mul(128)).clamp(0, 255);
 		generated_img = ((1 + generated_img).mul(0.5*(max - min)) + min).clamp(0, 255);
+
+		if (epoch > checkStart)
+		{
+			if (loss_min > fabs(g_loss - d_loss))
+			{
+				loss_min = fabs(g_loss - d_loss);
+				g_nn.save(std::string("g_model.pt"));
+				d_nn.save(std::string("d_model.pt"));
+				cv::Mat& img = cpp_torch::cvutil::ImageWrite(generated_img, 8, 8, "image_array_bst.bmp", 2);
+				cv::imshow("image_array_bst.bmp", img);
+				cv::waitKey(5000);
+				none_update_count = 0;
+			}
+			else
+			{
+				none_update_count++;
+			}
+			if (none_update_count > 100)
+			{
+				throw "stopping";
+			}
+		}
+			
+#if 0
 		if (epoch % kLogInterval == 0)
 		{
 			if (epoch == kNumberOfEpochs)
@@ -320,7 +351,7 @@ void learning_and_test_dcgan_dataset(torch::Device device)
 #endif
 
 		}
-
+#endif
 		if (epoch <= kNumberOfEpochs)
 		{
 			disp.restart(train_images.size());
@@ -334,12 +365,19 @@ void learning_and_test_dcgan_dataset(torch::Device device)
 		batch++;
 	};
 
-	dcgan.train(&g_optimizer, &d_optimizer, train_images, tiny_dnn::tensor_t{}, kTrainBatchSize, kNumberOfEpochs, nz, on_enumerate_minibatch, on_enumerate_epoch);
+	try
+	{
+		dcgan.train(&g_optimizer, &d_optimizer, train_images, tiny_dnn::tensor_t{}, kTrainBatchSize, kNumberOfEpochs, nz, on_enumerate_minibatch, on_enumerate_epoch);
+	}
+	catch (...)
+	{
+
+	}
 	std::cout << "end training." << std::endl;
 	fclose(fp);
 
-	g_nn.save(std::string("g_model.pt"));
-	d_nn.save(std::string("d_model.pt"));
+	//g_nn.save(std::string("g_model.pt"));
+	//d_nn.save(std::string("d_model.pt"));
 }
 
 
@@ -352,6 +390,7 @@ int main(int argc, char** argv)
 		INT_OPT(i, kDataAugment, "--augment");
 		INT_OPT(i, kNumberOfEpochs, "--epoch");
 		INT_OPT(i, kTrainBatchSize, "--batch");
+		INT_OPT(i, checkStart, "--checkStart");
 		FLOAT_OPT(i, drop_rate, "--drop_rate");
 		FLOAT_OPT(i, discriminator_flip, "--d_flip");
 		BOOL_OPT(i, discriminator_noise, "--d_noise");
@@ -372,6 +411,7 @@ int main(int argc, char** argv)
 	printf("--drop_rate:%f\n", drop_rate);
 	printf("--lr:%f\n", lr);
 	printf("--beta1:%f\n", beta1);
+	printf("--checkStart:%d\n", checkStart);
 	if (help) exit(0);
 
 	torch::manual_seed(1);

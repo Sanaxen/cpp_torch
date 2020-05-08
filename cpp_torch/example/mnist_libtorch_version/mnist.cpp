@@ -6,7 +6,7 @@
 #include <string>
 #include <vector>
 
-#define USE_LIBTORCH_140
+#define USE_LIBTORCH_150
 #include "libtorch_link_libs.hpp"
 #define USE_CUDA
 
