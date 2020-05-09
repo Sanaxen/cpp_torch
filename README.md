@@ -4,6 +4,8 @@
 
 ---
 Enabled to build with **libtorch1.5**  
+###!!**DCGAN does not converge after changing to libtorch1.5**
+
 ~~The current code works with **libtorch1.3**, but the latest is **libtorch1.4**.~~
 
 Support for libtorch1.3 to libtorch1.4 is being promoted. Please wait.
