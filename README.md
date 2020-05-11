@@ -29,13 +29,14 @@ The current changes that we learned from the work It cannot be compiled with **
 **visual studio2017** also requires updates to the latest patches.
 
 ``with_bias-> bias``
-transposed seems to be abolished in  
+transposed seems to be abolished in 
 ``torch :: nn :: Conv2dOptions. ``
-Instead Must be changed to  
-``torch :: nn :: ConvTranspose2d.``
+Instead Must be changed to 
+``torch :: nn :: ConvTranspose2d.``  
+
 ``torch :: nn :: FeatureDropout``
-also seems to be abolished. instead of Use  
-``torch :: nn :: Dropout2d.``
+also seems to be abolished. instead of Use 
+``torch :: nn :: Dropout2d.``  
 
 Other  
 ``torch :: Tensor & tensor = torch :: tensor ({vec [i]});``  
