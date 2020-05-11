@@ -25,32 +25,32 @@ Libtorch 1.5 failed to access CUDA devices [#37481](https://github.com/pytorch/p
 ~~The current code works with **libtorch1.3**, but the latest is **libtorch1.4**.~~
 
 Support for libtorch1.3 to libtorch1.4 is being promoted. Please wait.
-The current changes that we learned from the work It cannot be compiled with **visual studio2015**. 
+The current changes that we learned from the work It cannot be compiled with **visual studio2015**.  
 **visual studio2017** also requires updates to the latest patches.
 
 ``with_bias-> bias``
-transposed seems to be abolished in 
+transposed seems to be abolished in  
 ``torch :: nn :: Conv2dOptions. ``
-Instead Must be changed to 
+Instead Must be changed to  
 ``torch :: nn :: ConvTranspose2d.``
 ``torch :: nn :: FeatureDropout``
-also seems to be abolished. instead of Use 
+also seems to be abolished. instead of Use  
 ``torch :: nn :: Dropout2d.``
 
-Other
-``torch :: Tensor & tensor = torch :: tensor ({vec [i]});``
-Is said to be a tensor and terminates abnormally.
-``torch :: Tensor & tensor = torch :: tensor (vec [i]);``
-Must be.
+Other  
+``torch :: Tensor & tensor = torch :: tensor ({vec [i]});``  
+Is said to be a tensor and terminates abnormally.  
+``torch :: Tensor & tensor = torch :: tensor (vec [i]);``  
+Must be.  
 
- (/std:c++17)
-std::byte compile error C2872
-compile option -> ``/D _HAS_STD_BYTE=0``
+ (/std:c++17)  
+std::byte compile error C2872  
+compile option -> ``/D _HAS_STD_BYTE=0``  
 
-Linker -> Command line -> Addtitional options
--INCLUDE:?warp_size@cuda@at@@YAHXZ
+Linker -> Command line -> Addtitional options  
+-INCLUDE:?warp_size@cuda@at@@YAHXZ  
 * * *
-Directory structure
+Directory structure  
 <img src="./images/image00.png"/>  
 
 This project aims to be a wrapper for libtorch to make [**tiny-dnn**](https://github.com/tiny-dnn/tiny-dnn) compatible with GPU.
