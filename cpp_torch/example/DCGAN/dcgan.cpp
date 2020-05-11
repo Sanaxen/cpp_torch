@@ -33,7 +33,7 @@ const int64_t kLogInterval = 10;
 
 const int kRndArraySize = 100;
 
-bool gpu = true;
+int gpu = 1;
 int kDataAugment = -1;
 float drop_rate = 0.2;
 
@@ -46,7 +46,7 @@ const int ndf = 64;
 float lr = 0.0002;
 //beta1 hyperparameter for Adam optimizers. As described in paper, this number should be 0.5
 float beta1 = 0.5;
-float beta2 = 0.5;//0.999
+float beta2 = 0.999;
 
 float discriminator_flip = 0.0;
 float discriminator_range = 0.0;
@@ -273,29 +273,29 @@ void learning_and_test_dcgan_dataset(torch::Device device)
 		//generated_img = ((1+generated_img).mul(128)).clamp(0, 255);
 		generated_img = ((1 + generated_img).mul(0.5*(max - min)) + min).clamp(0, 255);
 
-		if (epoch > checkStart)
-		{
-			if (loss_min > fabs(g_loss - d_loss))
-			{
-				loss_min = fabs(g_loss - d_loss);
-				g_nn.save(std::string("g_model.pt"));
-				d_nn.save(std::string("d_model.pt"));
-				cv::Mat& img = cpp_torch::cvutil::ImageWrite(generated_img, 8, 8, "image_array_bst.bmp", 2);
-				cv::imshow("image_array_bst.bmp", img);
-				cv::waitKey(5000);
-				none_update_count = 0;
-			}
-			else
-			{
-				none_update_count++;
-			}
-			if (none_update_count > 100)
-			{
-				throw "stopping";
-			}
-		}
+		//if (epoch > checkStart)
+		//{
+		//	if (loss_min > fabs(g_loss - d_loss))
+		//	{
+		//		loss_min = fabs(g_loss - d_loss);
+		//		g_nn.save(std::string("g_model.pt"));
+		//		d_nn.save(std::string("d_model.pt"));
+		//		cv::Mat& img = cpp_torch::cvutil::ImageWrite(generated_img, 8, 8, "image_array_bst.bmp", 2);
+		//		cv::imshow("image_array_bst.bmp", img);
+		//		cv::waitKey(5000);
+		//		none_update_count = 0;
+		//	}
+		//	else
+		//	{
+		//		none_update_count++;
+		//	}
+		//	if (none_update_count > 100)
+		//	{
+		//		throw "stopping";
+		//	}
+		//}
 			
-#if 0
+#if 10
 		if (epoch % kLogInterval == 0)
 		{
 			if (epoch == kNumberOfEpochs)
@@ -386,7 +386,7 @@ int main(int argc, char** argv)
 	bool help = false;
 	for (int i = 1; i < argc; i++)
 	{
-		BOOL_OPT(i, gpu, "--gpu");
+		INT_OPT(i, gpu, "--gpu");
 		INT_OPT(i, kDataAugment, "--augment");
 		INT_OPT(i, kNumberOfEpochs, "--epoch");
 		INT_OPT(i, kTrainBatchSize, "--batch");

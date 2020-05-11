@@ -11,6 +11,7 @@
 #ifdef USE_LIBTORCH_150
 #pragma comment(lib, "c10.lib")
 #pragma comment(lib, "c10_cuda.lib")
+#pragma comment(lib, "caffe2_detectron_ops_gpu.lib")
 #pragma comment(lib, "caffe2_module_test_dynamic.lib")
 #pragma comment(lib, "caffe2_nvrtc.lib")
 #pragma comment(lib, "clog.lib")

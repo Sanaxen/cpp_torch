@@ -4,7 +4,23 @@
 
 ---
 Enabled to build with **libtorch1.5**  
-###!!**DCGAN does not converge after changing to libtorch1.5**
+
+###!!**Currently, the cause is unknown, but the result is incorrect in CPU mode of libtorch 1.5.**
+
+**Infomation**
+[libtorch]Same model in CUDA and CPU got different result? [#26456](https://github.com/pytorch/pytorch/issues/26456)
+
+
+### **can solve the problem that is not working on GPU (CUDA) (torch::cuda::is_available() returns false).***
+
+####How to resolve this issue
+add the following argument -INCLUDE:?warp_size@cuda@at@@YAHXZ
+**Linker -> Command line -> Addtitional options
+-INCLUDE:?warp_size@cuda@at@@YAHXZ**
+
+#### reference
+Windows Libtorch Ver1.5 did't operate at the GPU mode , it operated at the CPU mode. [#37568](https://github.com/pytorch/pytorch/issues/37568)
+Libtorch 1.5 failed to access CUDA devices [#37481](https://github.com/pytorch/pytorch/issues/37481)
 
 ~~The current code works with **libtorch1.3**, but the latest is **libtorch1.4**.~~
 
@@ -30,6 +46,9 @@ Must be.
  (/std:c++17)
 std::byte compile error C2872
 compile option -> ``/D _HAS_STD_BYTE=0``
+
+Linker -> Command line -> Addtitional options
+-INCLUDE:?warp_size@cuda@at@@YAHXZ
 * * *
 Directory structure
 <img src="./images/image00.png"/>  
