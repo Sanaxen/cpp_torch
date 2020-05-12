@@ -309,7 +309,8 @@ void learning_and_test_dcgan_dataset(torch::Device device)
 					cv::Mat& cv_mat = cpp_torch::cvutil::tensorToMat(generated_img[i], 1);
 					cv::imwrite(fname, cv_mat);
 				}
-				cv::Mat& img = cpp_torch::cvutil::ImageWrite(generated_img, 8, 8, "image_array.bmp", 2);
+				int b = (int)sqrt((float)kTrainBatchSize);
+				cv::Mat& img = cpp_torch::cvutil::ImageWrite(generated_img, b, b, "image_array.bmp", 2);
 				cv::imshow("image_array.bmp", img);
 				cv::waitKey(5000);
 #else
@@ -340,9 +341,10 @@ void learning_and_test_dcgan_dataset(torch::Device device)
 			//cv::imshow("gen0.bmp", img);
 			//cv::waitKey(500);
 
+			int b = (int)sqrt((float)kTrainBatchSize);
 			char fname[64];
 			sprintf(fname, "generated_images/image_array%d.png", epoch);
-			cv::Mat& img = cpp_torch::cvutil::ImageWrite(generated_img, 8, 8, fname, 2);
+			cv::Mat& img = cpp_torch::cvutil::ImageWrite(generated_img, b, b, fname, 2);
 			cv::imshow("", img);
 			cv::waitKey(500);
 
@@ -400,6 +402,13 @@ int main(int argc, char** argv)
 		FLOAT_OPT(i, beta1, "--beta1");
 		HELP_OPT(i, help, "--help");
 	}
+	{
+		int b = (int)sqrt((float)kTrainBatchSize);
+		if (b*b != kTrainBatchSize)
+		{
+			kTrainBatchSize = b * b;
+		}
+	}
 	printf("--data_root:%s\n", kDataRoot);
 	printf("--gpu:%d\n", gpu);
 	printf("--epoch:%d\n", kNumberOfEpochs);
@@ -418,7 +427,7 @@ int main(int argc, char** argv)
 
 	torch::DeviceType device_type;
 #ifdef USE_CUDA
-	if (gpu && torch::cuda::is_available()) {
+	if (gpu && torch::cuda::cudnn_is_available/*is_available*/()) {
 		std::cout << "CUDA available! Training on GPU." << std::endl;
 		device_type = torch::kCUDA;
 	}
