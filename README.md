@@ -25,7 +25,7 @@ Libtorch 1.5 failed to access CUDA devices [#37481](https://github.com/pytorch/p
 
 ~~The current code works with **libtorch1.3**, but the latest is **libtorch1.4**.~~
 
-Support for libtorch1.3 to libtorch1.4 is being promoted. Please wait.
+~~Support for libtorch1.3 to libtorch1.4 is being promoted. Please wait.~~
 The current changes that we learned from the work It cannot be compiled with **visual studio2015**.  
 **visual studio2017** also requires updates to the latest patches.
 
