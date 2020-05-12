@@ -5,7 +5,8 @@
 ---
 Enabled to build with **libtorch1.5**  
 
-###!!**Currently, the cause is unknown, but the result is incorrect in CPU mode of libtorch 1.5.**  
+!~~!Currently, the cause is unknown, but the result is incorrect in CPU mode of libtorch 1.5.~~  
+It's not a smart method, but it has been fixed to give the correct result.  
 
 **Infomation**  
 [libtorch]Same model in CUDA and CPU got different result? [#26456](https://github.com/pytorch/pytorch/issues/26456)  

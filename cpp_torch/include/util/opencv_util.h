@@ -84,7 +84,7 @@ namespace cpp_torch
 
 		cv::Mat tensorToMat(const torch::Tensor &tensor, const int scale = 1.0)
 		{
-			auto sizes = tensor.sizes();
+			const auto sizes = tensor.sizes();
 			//printf("%d %d %d\n", sizes[0], sizes[1], sizes[2]);
 			if (sizes.size() > 3)
 			{
@@ -98,7 +98,25 @@ namespace cpp_torch
 			out_tensor = out_tensor.to(torch::kCPU);
 
 			cv::Mat resultImg(sizes[1], sizes[2], CV_8UC3);
-			std::memcpy((void*)resultImg.data, out_tensor.data_ptr(), sizeof(torch::kU8)*out_tensor.numel());
+
+			if (tensor.device().type() == torch::kCPU)
+			{
+#pragma omp parallel for
+				for (int y = 0; y < sizes[2]; ++y)
+				{
+					for (int x = 0; x < sizes[1]; ++x)
+					{
+						for (int c = 0; c < sizes[0]; ++c)
+						{
+							resultImg.at< cv::Vec3b>(y, x)[c] = out_tensor[y][x][c].template item<float_t>();
+						}
+					}
+				}
+			}
+			else
+			{
+				std::memcpy((void*)resultImg.data, out_tensor.data_ptr(), sizeof(torch::kU8)*out_tensor.numel());
+			}
 			cv::cvtColor(resultImg, resultImg, cv::COLOR_BGR2RGB);
 
 			//cv::imshow("", resultImg);
