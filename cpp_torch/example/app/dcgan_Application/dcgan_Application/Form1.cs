@@ -33,7 +33,7 @@ namespace DCGAN_Application
         private void button1_Click(object sender, EventArgs e)
         {
             System.Random r = new System.Random(Environment.TickCount);
-            textBox1.Text = r.Next(1000).ToString();
+            textBox1.Text = r.Next(100000).ToString();
         }
 
         private void openFileDialog1_FileOk(object sender, CancelEventArgs e)
