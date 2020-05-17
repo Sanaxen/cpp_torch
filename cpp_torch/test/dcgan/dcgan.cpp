@@ -34,13 +34,13 @@ struct GeneratorImpl : torch::nn::Module {
 	GeneratorImpl(): 
 		conv1(torch::nn::Conv2dOptions(kRndArraySize, 256,4).with_bias(false).transposed(true).stride(1).padding(0)),
 		batchnml1(torch::nn::BatchNormOptions(256)),
-		conv2(torch::nn::Conv2dOptions(256, 128, 4).with_bias(false).transposed(true).stride(2).padding(1)),
+		conv2(torch::nn::Conv2dOptions(256, 128, 4).bias(false).transposed(true).stride(2).padding(1)),
 		batchnml2(torch::nn::BatchNormOptions(128)),
-		conv3(torch::nn::Conv2dOptions(128, 64, 4).with_bias(false).transposed(true).stride(2).padding(1)),
+		conv3(torch::nn::Conv2dOptions(128, 64, 4).bias(false).transposed(true).stride(2).padding(1)),
 		batchnml3(torch::nn::BatchNormOptions(64)),
-		conv4(torch::nn::Conv2dOptions(64, 32, 4).with_bias(false).transposed(true).stride(2).padding(1)),
+		conv4(torch::nn::Conv2dOptions(64, 32, 4).bias(false).transposed(true).stride(2).padding(1)),
 		batchnml4(torch::nn::BatchNormOptions(32)),
-		conv5(torch::nn::Conv2dOptions(32, 3, 4).with_bias(false).transposed(true).stride(2).padding(1))
+		conv5(torch::nn::Conv2dOptions(32, 3, 4).bias(false).transposed(true).stride(2).padding(1))
 		{
 		register_module("conv1", conv1);
 		register_module("conv2", conv2);
@@ -78,23 +78,23 @@ struct GeneratorImpl : torch::nn::Module {
 	torch::nn::Conv2d conv3;
 	torch::nn::Conv2d conv4;
 	torch::nn::Conv2d conv5;
-	torch::nn::BatchNorm batchnml1;
-	torch::nn::BatchNorm batchnml2;
-	torch::nn::BatchNorm batchnml3;
-	torch::nn::BatchNorm batchnml4;
+	torch::nn::BatchNorm2d batchnml1;
+	torch::nn::BatchNorm2d batchnml2;
+	torch::nn::BatchNorm2d batchnml3;
+	torch::nn::BatchNorm2d batchnml4;
 };
 TORCH_MODULE(Generator); // creates module holder for NetImpl
 
 struct DiscriminatorImpl : torch::nn::Module {
 	DiscriminatorImpl() :
-		conv1(torch::nn::Conv2dOptions(3, 32, 4).with_bias(false).stride(2).padding(1)),
-		conv2(torch::nn::Conv2dOptions(32, 64, 4).with_bias(false).stride(2).padding(1)),
+		conv1(torch::nn::Conv2dOptions(3, 32, 4).bias(false).stride(2).padding(1)),
+		conv2(torch::nn::Conv2dOptions(32, 64, 4).bias(false).stride(2).padding(1)),
 		batchnml1(torch::nn::BatchNormOptions(64)),
-		conv3(torch::nn::Conv2dOptions(64, 128, 4).with_bias(false).stride(2).padding(1)),
+		conv3(torch::nn::Conv2dOptions(64, 128, 4).bias(false).stride(2).padding(1)),
 		batchnml2(torch::nn::BatchNormOptions(128)),
-		conv4(torch::nn::Conv2dOptions(128, 256, 4).with_bias(false).stride(2).padding(1)),
+		conv4(torch::nn::Conv2dOptions(128, 256, 4).bias(false).stride(2).padding(1)),
 		batchnml3(torch::nn::BatchNormOptions(256)),
-		conv5(torch::nn::Conv2dOptions(256, 1, 4).with_bias(false).stride(1).padding(0))
+		conv5(torch::nn::Conv2dOptions(256, 1, 4).bias(false).stride(1).padding(0))
 	{
 		register_module("conv1", conv1);
 		register_module("conv2", conv2);
@@ -145,9 +145,9 @@ struct DiscriminatorImpl : torch::nn::Module {
 	torch::nn::Conv2d conv3;
 	torch::nn::Conv2d conv4;
 	torch::nn::Conv2d conv5;
-	torch::nn::BatchNorm batchnml1;
-	torch::nn::BatchNorm batchnml2;
-	torch::nn::BatchNorm batchnml3;
+	torch::nn::BatchNorm2d batchnml1;
+	torch::nn::BatchNorm2d batchnml2;
+	torch::nn::BatchNorm2d batchnml3;
 };
 TORCH_MODULE(Discriminator); // creates module holder for NetImpl
 
