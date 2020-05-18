@@ -57,6 +57,7 @@ namespace cpp_torch
 		bool ceil_mode = false;
 		bool bias = true;
 
+		int rnn_hidden_size = 0;
 		int rnn_seqence_length = 1;
 		int rnn_sequence_single_size = 1;
 
@@ -527,6 +528,7 @@ namespace cpp_torch
 			const int i = layer.size();
 			in = layer[i - 1].out_[0] * layer[i - 1].out_[1] * layer[i - 1].out_[2];
 
+			inout.rnn_hidden_size = hidden_size;
 			inout.rnn_seqence_length = sequence_length;
 			inout.rnn_sequence_single_size = in / sequence_length;
 
@@ -537,7 +539,7 @@ namespace cpp_torch
 			if (rnn_type == "rnn")
 			{
 				id = rnn.size();
-				auto opt = torch::nn::RNNOptions(inout.rnn_sequence_single_size, hidden_size);
+				auto opt = torch::nn::RNNOptions(inout.rnn_sequence_single_size, inout.rnn_hidden_size);
 				opt = opt.batch_first(true);
 
 				if (activatin == "ReLU") opt = opt.nonlinearity(torch::kReLU);
@@ -550,7 +552,7 @@ namespace cpp_torch
 			if (rnn_type == "lstm")
 			{
 				id = lstm.size();
-				auto opt = torch::nn::LSTMOptions(inout.rnn_sequence_single_size, hidden_size);
+				auto opt = torch::nn::LSTMOptions(inout.rnn_sequence_single_size, inout.rnn_hidden_size);
 				opt = opt.batch_first(true);
 				opt = opt.num_layers(num_layers);
 				if (dropout > 0.0) opt = opt.dropout(dropout);
@@ -560,7 +562,7 @@ namespace cpp_torch
 			if (rnn_type == "gru")
 			{ 
 				id = gru.size();
-				auto opt = torch::nn::GRUOptions(inout.rnn_sequence_single_size, hidden_size);
+				auto opt = torch::nn::GRUOptions(inout.rnn_sequence_single_size, inout.rnn_hidden_size);
 				opt = opt.batch_first(true);
 				opt = opt.num_layers(num_layers);
 				if (dropout > 0.0) opt = opt.dropout(dropout);
@@ -572,7 +574,8 @@ namespace cpp_torch
 				throw error_exception("recurrent type error");
 			}
 			inout.id = id;
-			inout.out_ = { 1,sequence_length, hidden_size };
+			//inout.out_ = { 1,sequence_length, hidden_size };
+			inout.out_ = { 1, num_layers, inout.rnn_hidden_size };
 			layer.emplace_back(inout);
 
 			std::cout << rnn_type << "{" << inout.in_ << "}->{" << inout.out_ << "}" << std::endl;
@@ -724,7 +727,8 @@ namespace cpp_torch
 					//dump_dim("X", x);
 					if (layer[i].type == cpp_torch::LayerType::LSTM)
 					{
-						x = std::get<0>(lstm[layer[i].id]->forward(x));
+						//x = std::get<0>(lstm[layer[i].id]->forward(x));
+						x = std::get<0>(std::get<1>(lstm[layer[i].id]->forward(x)));
 					}else
 					if (layer[i].type == cpp_torch::LayerType::GRU)
 					{
@@ -734,7 +738,8 @@ namespace cpp_torch
 					{
 						x = std::get<0>(rnn[layer[i].id]->forward(x));
 					}
-					x = x.view({ batch,  layer[i].rnn_seqence_length, -1 });
+					//x = x.view({ batch,  layer[i].rnn_seqence_length, -1 });
+					//x = x.view({ batch,  -1, layer[i].rnn_hidden_size });
 					//dump_dim("X", x);
 
 					if (layer[i].type == cpp_torch::LayerType::LSTM)
