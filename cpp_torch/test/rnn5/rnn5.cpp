@@ -255,9 +255,10 @@ void learning_and_test_rnn_dataset(cpp_torch::test::SeqenceData& seqence_data, t
 #ifdef RNN_LAYERS_OPT
 	model.get()->add_recurrent(std::string("lstm"), sequence_length, hidden_size, n_rnn, 0.1);
 #else
-	for (int i = 0; i < n_rnn; i++)
+	model.get()->add_recurrent(std::string("lstm"), sequence_length, hidden_size);
+	for (int i = 1; i < n_rnn; i++)
 	{
-		model.get()->add_recurrent(std::string("lstm"), sequence_length, hidden_size);
+		model.get()->add_recurrent(std::string("lstm"), 1, hidden_size);
 		model.get()->add_Tanh();
 	}
 #endif
