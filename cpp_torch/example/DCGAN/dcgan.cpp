@@ -313,6 +313,8 @@ void learning_and_test_dcgan_dataset(torch::Device device)
 				cv::Mat& img = cpp_torch::cvutil::ImageWrite(generated_img, b, b, "image_array.bmp", 2);
 				cv::imshow("image_array.bmp", img);
 				cv::waitKey(5000);
+				//g_nn.save(std::string("g_model.pt"));
+				//d_nn.save(std::string("d_model.pt"));
 #else
 #pragma omp parallel for
 				for (int i = 0; i < kTrainBatchSize; i++)
@@ -333,6 +335,8 @@ void learning_and_test_dcgan_dataset(torch::Device device)
 
 			sprintf(model_name, "discriminator_model%03d.pt", epoch - 1);
 			d_nn.save(std::string(model_name));
+			//g_nn.save(std::string("g_model.pt"));
+			//d_nn.save(std::string("d_model.pt"));
 		}
 		else
 		{
@@ -378,8 +382,8 @@ void learning_and_test_dcgan_dataset(torch::Device device)
 	std::cout << "end training." << std::endl;
 	fclose(fp);
 
-	//g_nn.save(std::string("g_model.pt"));
-	//d_nn.save(std::string("d_model.pt"));
+	g_nn.save(std::string("g_model.pt"));
+	d_nn.save(std::string("d_model.pt"));
 }
 
 
