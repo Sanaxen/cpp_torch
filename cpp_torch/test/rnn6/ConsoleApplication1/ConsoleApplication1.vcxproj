@@ -22,7 +22,7 @@
     <ClCompile Include="..\test.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\test.h" />
+    <ClInclude Include="..\tiny_dnn2libtorch_dll.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>

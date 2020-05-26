@@ -8,7 +8,7 @@
 #include "cpp_torch.h"
 
 #define _LIBRARY_EXPORTS
-#include "test.h"
+#include "tiny_dnn2libtorch_dll.h"
 
 #define TEST		//cpp_torch
 #define USE_CUDA
@@ -62,6 +62,10 @@ namespace rnn_dll_variables
 	float tolerance = 1.0e-6;
 	char rnn_type[16] = { '\0' };
 
+	char regression[16] = { '\0' };
+	int input_size = 0;
+	int classification = 0;
+
 	float moment = 0.01;
 	float scale = 1.0;
 
@@ -97,7 +101,7 @@ void state_reset(std::string& rnn_type , cpp_torch::Net& model)
 }
 
 
-extern "C" _LIBRARY_EXPORTS void getData(const char* filename, std::vector<tiny_dnn::vec_t>& data)
+extern "C" _LIBRARY_EXPORTS void torch_getData(const char* filename, std::vector<tiny_dnn::vec_t>& data)
 {
 	CSVReader csv(filename, ',', false);
 	data = csv.toTensor();
@@ -116,6 +120,11 @@ void scaling_data(std::vector<tiny_dnn::vec_t>& data, std::vector<tiny_dnn::vec_
 	}
 }
 
+cpp_torch::network_torch<cpp_torch::Net>* toNet(void* nn)
+{
+	return (cpp_torch::network_torch<cpp_torch::Net>*)nn;
+}
+
 extern "C" _LIBRARY_EXPORTS void send_train_images(std::vector<tiny_dnn::vec_t>& data)
 {
 	scaling_data(train_images, data);
@@ -125,11 +134,23 @@ extern "C" _LIBRARY_EXPORTS void send_train_labels(std::vector<tiny_dnn::vec_t>&
 	scaling_data(train_labels, data);
 }
 
+extern "C" _LIBRARY_EXPORTS void torch_read_train_params()
+{
+	torch_read_params(true);
+}
+extern "C" _LIBRARY_EXPORTS void torch_read_test_params()
+{
+	torch_read_params(true);
+	torch_read_params(false);
+}
 
-extern "C" _LIBRARY_EXPORTS void read_params()
+extern "C" _LIBRARY_EXPORTS void torch_read_params(bool train)
 {
 	char* buf = new char[100000];
-	FILE* fp = fopen("train_params.txt", "r");
+	char* param = "train_params.txt";
+	if (!train) param = "test_params.txt";
+
+	FILE* fp = fopen( param, "r");
 
 	while (fgets(buf, 100000, fp) != NULL)
 	{
@@ -231,13 +252,30 @@ extern "C" _LIBRARY_EXPORTS void read_params()
 		{
 			sscanf(buf, "rnn_type:%s", rnn_type);
 		}
-		if (strstr(buf, "maxvalue"))
+		if (strstr(buf, "regression"))
 		{
-			sscanf(buf, "maxvalue:%f", &maxvalue);
+			sscanf(buf, "regression:%s", regression);
 		}
-		if (strstr(buf, "minvalue"))
+		if (strstr(buf, "input_size"))
 		{
-			sscanf(buf, "minvalue:%f", &minvalue);
+			sscanf(buf, "input_size:%d", &input_size);
+		}
+		if (strstr(buf, "classification"))
+		{
+			sscanf(buf, "classification:%d", &classification);
+		}
+		//
+
+		if (train)
+		{
+			if (strstr(buf, "maxvalue"))
+			{
+				sscanf(buf, "maxvalue:%f", &maxvalue);
+			}
+			if (strstr(buf, "minvalue"))
+			{
+				sscanf(buf, "minvalue:%f", &minvalue);
+			}
 		}
 	}
 	fclose(fp);
@@ -267,7 +305,6 @@ extern "C" _LIBRARY_EXPORTS void read_params()
 	printf("ntest_labels:%d\n", ntest_labels);
 	printf("ntest_labels_0:%d\n", ntest_labels_0);
 
-	printf("test_mode:%d\n", test_mode);
 	printf("x_dim:%d\n", x_dim);
 	printf("y_dim:%d\n", y_dim);
 	printf("sequence_length:%d\n", sequence_length);
@@ -281,6 +318,12 @@ extern "C" _LIBRARY_EXPORTS void read_params()
 	printf("n_train_epochs:%d\n", n_train_epochs);
 	printf("n_minibatch:%d\n", n_minibatch);
 	printf("rnn_type:%s\n", rnn_type);
+
+	printf("(fc)input_size:%d\n", input_size);
+	printf("(fc)regression:%s\n", regression);
+	printf("(fc)classification:%d\n", classification);
+	//
+	printf("test_mode:%d\n", test_mode);
 }
 
 extern "C" _LIBRARY_EXPORTS int getBatchSize()
@@ -312,15 +355,25 @@ extern "C" _LIBRARY_EXPORTS float getTolerance()
 	return tolerance;
 }
 
-extern "C" _LIBRARY_EXPORTS float get_loss(std::vector<tiny_dnn::vec_t>& train_images_,  std::vector<tiny_dnn::vec_t>& train_labels_)
+extern "C" _LIBRARY_EXPORTS float torch_get_loss(std::vector<tiny_dnn::vec_t>& train_images_,  std::vector<tiny_dnn::vec_t>& train_labels_, int batch)
 {
-	float loss = nn_->get_loss(train_images_, train_labels_, kTrainBatchSize);
+	float loss = nn_->get_loss(train_images_, train_labels_, batch);
 	return loss;
 }
-extern "C" _LIBRARY_EXPORTS float get_Loss()
+extern "C" _LIBRARY_EXPORTS float torch_get_Loss(int batch)
 {
-	float loss = nn_->get_loss(train_images, train_labels, kTrainBatchSize);
+	float loss = nn_->get_loss(train_images, train_labels, batch);
 	return loss;
+}
+extern "C" _LIBRARY_EXPORTS float torch_get_loss_nn(void* nn, std::vector<tiny_dnn::vec_t>& train_images_, std::vector<tiny_dnn::vec_t>& train_labels_, int batch)
+{
+	float loss = toNet(nn)->get_loss(train_images_, train_labels_, batch);
+	return loss;
+}
+extern  _LIBRARY_EXPORTS tiny_dnn::result torch_get_accuracy_nn(void* nn, std::vector<tiny_dnn::vec_t>& train_images_, std::vector<tiny_dnn::vec_t>& train_labels_, int batch)
+{
+	tiny_dnn::result res = toNet(nn)->get_accuracy(train_images_, train_labels_);
+	return res;
 }
 
 
@@ -329,6 +382,8 @@ extern "C" _LIBRARY_EXPORTS void* torch_model(std::string& ptfile)
 	cpp_torch::Net bakup_model;
 	cpp_torch::network_torch<cpp_torch::Net>* nn2 = new cpp_torch::network_torch<cpp_torch::Net>(bakup_model, device);
 	*nn2 = *nn_;
+
+	nn2->load(ptfile);
 
 	return (void*)nn2;
 }
@@ -353,29 +408,32 @@ extern _LIBRARY_EXPORTS tiny_dnn::vec_t torch_model_predict(const void* nn, tiny
 	return y;
 }
 
-extern "C" _LIBRARY_EXPORTS void delete_model()
+extern "C" _LIBRARY_EXPORTS void torch_delete_model()
 {
 	if (nn_ == nullptr) return;
 	delete nn_;
 
 	nn_ = nullptr;
 }
-
-cpp_torch::network_torch<cpp_torch::Net>* toNet(void* nn)
+extern "C" _LIBRARY_EXPORTS void torch_delete_load_model(void* n)
 {
-	return (cpp_torch::network_torch<cpp_torch::Net>*)nn;
+	if (n == nullptr) return;
+	delete n;
+
+	n = nullptr;
 }
 
-extern "C" _LIBRARY_EXPORTS void* getNet()
+
+extern "C" _LIBRARY_EXPORTS void* torch_getNet()
 {
 	return(void*)(nn_);
 }
 
-extern "C" _LIBRARY_EXPORTS void* getDevice()
+extern "C" _LIBRARY_EXPORTS void* torch_getDevice()
 {
 	return(void*)(&device);
 }
-extern "C" _LIBRARY_EXPORTS void* setDevice(const char* device_name)
+extern "C" _LIBRARY_EXPORTS void* torch_setDevice(const char* device_name)
 {
 	torch::DeviceType device_type;
 
@@ -425,11 +483,20 @@ extern "C" _LIBRARY_EXPORTS void torch_stop_ongoing_training()
 	nn_->stop_ongoing_training();
 }
 
-extern "C" _LIBRARY_EXPORTS void save(const char* name)
+extern "C" _LIBRARY_EXPORTS void torch_save_nn(void* nn, const char* name)
+{
+	toNet(nn)->save(std::string(name));
+}
+
+extern "C" _LIBRARY_EXPORTS void torch_save(const char* name)
 {
 	nn_->save(std::string(name));
 }
-extern "C" _LIBRARY_EXPORTS void* load(const char* name)
+extern "C" _LIBRARY_EXPORTS void torch_load(const char* name)
+{
+	nn_->load(std::string(name));
+}
+extern "C" _LIBRARY_EXPORTS void* torch_load_new(const char* name)
 {
 	void* nn2 = torch_model(std::string(name));
 	return nn2;
@@ -560,6 +627,141 @@ extern "C" _LIBRARY_EXPORTS void torch_train(
 	nn_->output_dim(1, 1, train_labels[0].size());
 	nn_->classification = false;
 	nn_->batch_shuffle = false;
+
+
+	torch::optim::Optimizer* optimizer = nullptr;
+
+	auto optimizerSGD = torch::optim::SGD(
+		model.get()->parameters(), torch::optim::SGDOptions(learning_rate).momentum(moment));
+
+	auto optimizerAdam =
+		torch::optim::Adam(model.get()->parameters(),
+			torch::optim::AdamOptions(learning_rate));
+
+	if (std::string(opt_type) == "SGD")
+	{
+		optimizer = &optimizerSGD;
+	}
+	if (std::string(opt_type) == "adam")
+	{
+		optimizer = &optimizerAdam;
+	}
+
+	if (!test_mode)
+	{
+		// train
+		std::cout << "start training" << std::endl;
+		nn_->fit(optimizer, train_images, train_labels, n_minibatch,
+			n_train_epochs, on_enumerate_minibatch,
+			on_enumerate_epoch);
+		std::cout << "end training." << std::endl;
+	}
+}
+
+extern "C" _LIBRARY_EXPORTS void torch_train_fc(
+	std::vector<tiny_dnn::vec_t>& train_images_,
+	std::vector<tiny_dnn::vec_t>& train_labels_,
+	int n_minibatch,
+	int n_train_epochs,
+	char* regression,
+	std::function <void(void)> on_enumerate_minibatch,
+	std::function <void(void)> on_enumerate_epoch
+)
+{
+	if (train_images_.size() > 0 && train_labels_.size() > 0)
+	{
+		send_train_images(train_images_);
+		send_train_labels(train_labels_);
+	}
+
+	kNumberOfEpochs = n_train_epochs;
+	kTrainBatchSize = n_minibatch;
+
+	int hidden_size = train_images[0].size() * 50;
+
+	cpp_torch::Net model;
+
+
+	model.get()->device = device;
+
+	model.get()->setInput(1, 1, train_images[0].size());
+
+
+	if (regression == "linear" || regression == "logistic")
+	{
+		/**/
+	}
+	else
+	{
+		model.get()->add_fc(input_size);
+		model.get()->add_Tanh();
+
+		for (int i = 0; i < n_layers; i++) {
+			if (dropout && i == n_layers - 1) model.get()->add_dropout(dropout);
+			model.get()->add_fc(input_size);
+			model.get()->add_Tanh();
+		}
+	}
+	if (classification >= 2)
+	{
+		if (dropout) model.get()->add_dropout(dropout);
+		model.get()->add_fc(std::min((int)input_size, classification * 2));
+		model.get()->add_Tanh();
+		model.get()->add_fc(classification);
+	}
+	else
+	{
+		model.get()->add_fc(train_labels[0].size());
+	}
+
+	if (regression == "logistic")
+	{
+		model.get()->add_Sigmoid();
+	}
+	if (classification >= 2)
+	{
+		model.get()->add_Softmax(classification);
+	}
+
+
+	//xavier
+	for (auto w : model.get()->fc)
+	{
+		torch::nn::init::xavier_uniform_(w->weight, torch::nn::init::calculate_gain(torch::kReLU));
+	}
+	for (auto w : model.get()->lstm)
+	{
+		//auto &x = w->all_weights();
+		//for (auto xx : x)
+		//{
+		//	torch::nn::init::xavier_uniform_(xx, torch::nn::init::calculate_gain(torch::kReLU));
+		//}
+	}
+#if 0
+	//uniform
+	for (auto w : model.get()->fc)
+	{
+		torch::nn::init::uniform_(w->weight, torch::nn::init::calculate_gain(torch::kReLU));
+	}
+	for (auto w : model.get()->lstm)
+	{
+	}
+	//gaussian
+	for (auto w : model.get()->fc)
+	{
+		torch::nn::init::normal_(w->weight, torch::nn::init::calculate_gain(torch::kReLU));
+	}
+	for (auto w : model.get()->lstm)
+	{
+	}
+#endif
+
+	nn_ = new cpp_torch::network_torch<cpp_torch::Net>(model, device);
+
+	nn_->input_dim(1, 1, train_images[0].size());
+	nn_->output_dim(1, 1, train_labels[0].size());
+	nn_->classification = (classification >= 2);
+	nn_->batch_shuffle = true;
 
 
 	torch::optim::Optimizer* optimizer = nullptr;

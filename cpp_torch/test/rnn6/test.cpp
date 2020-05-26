@@ -30,7 +30,8 @@ namespace tiny_dnn {
 		std::chrono::high_resolution_clock::time_point t1, t2;
 	};
 };
-#include "test.h"
+#include "utils.h"
+#include "tiny_dnn2libtorch_dll.h"
 #include <iostream>
 
 std::vector<tiny_dnn::vec_t> train_labels_, test_labels_;
@@ -40,7 +41,7 @@ bool stop_ongoing_training_flag = false;
 
 void test_(void* nn)
 {
-	void* nn2 = load("best_model.pt");
+	void* nn2 = torch_load_new("best_model.pt");
 
 	int y_dim = getYdim();
 	float scale = getScale();
@@ -111,17 +112,29 @@ void test_(void* nn)
 	fp = fopen("prophecy.dat", "w");
 	fprintf(fp, "\n");
 	fclose(fp);
+
+	torch_delete_load_model(nn2);
 }
 
 int main()
 {
-	read_params();
-	getData("train_images.csv", train_images_);
-	getData("train_labels.csv", train_labels_);
+	bool isTrain = true;
+	if (isTrain)
+	{
+		torch_read_train_params();
+		torch_getData("train_images_tr.csv", train_images_);
+		torch_getData("train_labels_tr.csv", train_labels_);
+	}
+	else
+	{
+		torch_read_test_params();
+		torch_getData("train_images_ts.csv", train_images_);
+		torch_getData("train_labels_ts.csv", train_labels_);
+	}
 
 	
 	torch_train_init();
-	setDevice("gpu");
+	torch_setDevice("cpu");
 
 
 	int epoch = 1;
@@ -142,7 +155,7 @@ int main()
 
 		if (epoch % 10 == 0)
 		{
-			float loss = get_Loss();
+			float loss = torch_get_Loss(getBatchSize());
 			std::cout << "loss :" << loss << " min_loss :" << min_loss << std::endl;
 
 			if (!fp_error_loss2 && min_loss < std::numeric_limits<float>::max())
@@ -157,9 +170,9 @@ int main()
 			if (loss < min_loss)
 			{
 				min_loss = loss;
-				save("best_model.pt");
+				torch_save("best_model.pt");
 			}
-			test_(getNet());
+			test_(torch_getNet());
 		}
 		++epoch;
 
@@ -172,11 +185,15 @@ int main()
 
 	int batch = 1;
 	auto on_enumerate_minibatch = [&]() {
+		if (batch == 1 && epoch == 1)
+		{
+			torch_progress_display_restart(disp, train_images_.size());
+		}
 		torch_progress_display_count(disp, getBatchSize());
 		batch++;
 	};
 
-	int n_epoch = 10;
+	int n_epoch = 30;
 	int minbatch = 128;
 	if (0)
 	{
@@ -197,6 +214,10 @@ int main()
 			n_epoch,
 			on_enumerate_minibatch, on_enumerate_epoch);
 	}
-	delete_model();
+	if (!isTrain)
+	{
+		test_(torch_getNet());
+	}
+	torch_delete_model();
 	return 0;
 }
