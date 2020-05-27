@@ -195,14 +195,22 @@ int main()
 
 	int n_epoch = 30;
 	int minbatch = 128;
-	if (0)
+	if (1)
 	{
-		torch_train(
+		char regression[10] = { '\0' };
+		torch_train_fc(
 			train_images_,
 			train_labels_,
 			minbatch,
 			n_epoch,
+			regression,
 			on_enumerate_minibatch, on_enumerate_epoch);
+		//torch_train(
+		//	train_images_,
+		//	train_labels_,
+		//	minbatch,
+		//	n_epoch,
+		//	on_enumerate_minibatch, on_enumerate_epoch);
 	}
 	else
 	{

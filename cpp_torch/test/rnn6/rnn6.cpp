@@ -372,8 +372,22 @@ extern "C" _LIBRARY_EXPORTS float torch_get_loss_nn(void* nn, std::vector<tiny_d
 }
 extern  _LIBRARY_EXPORTS tiny_dnn::result torch_get_accuracy_nn(void* nn, std::vector<tiny_dnn::vec_t>& train_images_, std::vector<tiny_dnn::vec_t>& train_labels_, int batch)
 {
-	tiny_dnn::result res = toNet(nn)->get_accuracy(train_images_, train_labels_);
-	return res;
+	tiny_dnn::result result;
+	if (train_images_.size() == 0)
+	{
+		result.num_total = 1;
+		return result;
+	}
+
+	result = toNet(nn)->get_accuracy(train_images_, train_labels_);
+
+	//ConfusionMatrix
+	std::cout << "ConfusionMatrix:" << std::endl;
+	result.print_detail(std::cout);
+	std::cout << result.num_success << "/" << result.num_total << std::endl;
+	printf("accuracy:%.3f%%\n", result.accuracy());
+
+	return result;
 }
 
 
@@ -501,6 +515,7 @@ extern "C" _LIBRARY_EXPORTS void* torch_load_new(const char* name)
 	void* nn2 = torch_model(std::string(name));
 	return nn2;
 }
+
 
 extern "C" _LIBRARY_EXPORTS void Train(
 	int n_minibatch,
@@ -720,7 +735,7 @@ extern "C" _LIBRARY_EXPORTS void torch_train_fc(
 	}
 	if (classification >= 2)
 	{
-		model.get()->add_Softmax(classification);
+		model.get()->add_LogSoftmax(1);
 	}
 
 
@@ -729,30 +744,16 @@ extern "C" _LIBRARY_EXPORTS void torch_train_fc(
 	{
 		torch::nn::init::xavier_uniform_(w->weight, torch::nn::init::calculate_gain(torch::kReLU));
 	}
-	for (auto w : model.get()->lstm)
-	{
-		//auto &x = w->all_weights();
-		//for (auto xx : x)
-		//{
-		//	torch::nn::init::xavier_uniform_(xx, torch::nn::init::calculate_gain(torch::kReLU));
-		//}
-	}
 #if 0
 	//uniform
 	for (auto w : model.get()->fc)
 	{
 		torch::nn::init::uniform_(w->weight, torch::nn::init::calculate_gain(torch::kReLU));
 	}
-	for (auto w : model.get()->lstm)
-	{
-	}
 	//gaussian
 	for (auto w : model.get()->fc)
 	{
 		torch::nn::init::normal_(w->weight, torch::nn::init::calculate_gain(torch::kReLU));
-	}
-	for (auto w : model.get()->lstm)
-	{
 	}
 #endif
 
