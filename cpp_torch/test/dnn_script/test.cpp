@@ -38,7 +38,7 @@ std::vector<tiny_dnn::vec_t> train_labels_, test_labels_;
 std::vector<tiny_dnn::vec_t> train_images_, test_images_;
 bool stop_ongoing_training_flag = false;
 
-void test_(void* nn)
+void test_test(void* nn)
 {
 	void* nn2 = torch_load_new("best_model.pt");
 
@@ -58,38 +58,71 @@ void test_(void* nn)
 
 	torch_delete_load_model(nn2);
 }
+void test_train(void* nn)
+{
+	void* nn2 = torch_load_new("best_model.pt");
+
+	float scale = getScale();
+
+	std::vector<tiny_dnn::vec_t> predict;
+
+	predict.resize(train_images_.size());
+#pragma omp parallel for
+	for (int i = 0; i < train_images_.size(); i++)
+	{
+		predict[i] = torch_model_predict(nn2, train_images_[i]);
+	}
+	tiny_dnn::result result = torch_get_accuracy_nn(nn2, train_images_, train_labels_, train_images_.size());
+
+	result.print_summary(std::cout);
+
+	torch_delete_load_model(nn2);
+}
 
 
 int main()
 {
 	bool MNIST = true;
 	bool isTrain = true;
-
+	
 	if (MNIST)
 	{
 		read_mnist_dataset("./data");
-		get_train_images(train_images_);
-		get_train_labels(train_labels_);
 	}
-	else
-	{
 
-		if (isTrain)
+	if (isTrain)
+	{
+		if (MNIST)
+		{
+			get_train_images(train_images_);
+			get_train_labels(train_labels_);
+		}
+		else
 		{
 			torch_getData("train_images_tr.csv", train_images_);
 			torch_getData("train_labels_tr.csv", train_labels_);
 		}
+	}
+	else
+	{
+		if (MNIST)
+		{
+			get_train_images(test_images_);
+			get_train_labels(test_labels_);
+		}
 		else
 		{
-			torch_getData("train_images_ts.csv", train_images_);
-			torch_getData("train_labels_ts.csv", train_labels_);
+			torch_getData("test_images_ts.csv", test_images_);
+			torch_getData("test_labels_ts.csv", test_labels_);
 		}
 	}
+
 	torch_train_init();
 	torch_setDevice("cpu");
 
 
 	int epoch = 1;
+	int batch = 1;
 	void* disp = NULL;
 	tiny_dnn::timer t;
 	float min_loss = std::numeric_limits<float>::max();
@@ -125,7 +158,7 @@ int main()
 				min_loss = loss;
 				torch_save("best_model.pt");
 			}
-			test_(torch_getNet());
+			test_train(torch_getNet());
 		}
 		++epoch;
 
@@ -134,20 +167,22 @@ int main()
 			torch_progress_display_restart(disp, train_images_.size());
 		}
 		t.restart();
+		batch = 1;
 	};
 
-	int batch = 1;
 	auto on_enumerate_minibatch = [&]() {
 		if (disp == NULL)
 		{
 			disp = torch_progress_display(train_images_.size());
 		}
+		printf("              ");
+		printf("\r%d/%d %.2f\r", getBatchSize()*batch, train_images_.size(), (double)(getBatchSize()*batch)/(double)train_images_.size());
 		//torch_progress_display_count(disp, getBatchSize());
 		batch++;
 	};
 
-	int n_epoch = 30;
-	int minbatch = 100;
+	int n_epoch = 10;
+	int minbatch = 64;
 	if (1)
 	{
 		std::string define_layers_file_name = "layer.txt";
@@ -161,7 +196,7 @@ int main()
 	}
 	else
 	{
-		test_(torch_getNet());
+		test_test(torch_getNet());
 	}
 	torch_delete_model();
 	return 0;

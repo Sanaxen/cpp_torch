@@ -402,13 +402,25 @@ extern "C" _LIBRARY_EXPORTS int torch_train_custom(
 			sscanf(buf, "scale=%f", &scale);
 			continue;
 		}
+		if (strstr(buf, "num_class="))
+		{
+			sscanf(buf, "num_class=%d", &num_class);
+			continue;
+		}
 	}
 	fclose(fp);
 
 	if (train_images_.size() > 0 && train_labels_.size() > 0)
 	{
 		send_train_images(train_images_);
+
+		auto scale_bak = scale;
+		if (num_class >= 2)
+		{
+			scale = 1.0;
+		}
 		send_train_labels(train_labels_);
+		scale = scale_bak;
 	}
 
 	kNumberOfEpochs = n_train_epochs;
@@ -431,11 +443,6 @@ extern "C" _LIBRARY_EXPORTS int torch_train_custom(
 		if (strstr(buf, "epoch="))
 		{
 			sscanf(buf, "epoch=%d", &kNumberOfEpochs);
-			continue;
-		}
-		if (strstr(buf, "num_class="))
-		{
-			sscanf(buf, "num_class=%d", &num_class);
 			continue;
 		}
 		if (strstr(buf, "train_batch="))
@@ -1096,11 +1103,6 @@ extern "C" _LIBRARY_EXPORTS int torch_train_custom(
 			model.get()->add_Tanh();
 			continue;
 		}
-		if (strstr(buf, "relu"))
-		{
-			model.get()->add_ReLU();
-			continue;
-		}
 		if (strstr(buf, "leaky_relu"))
 		{
 			float negative_slope = 0.01;
@@ -1117,6 +1119,11 @@ extern "C" _LIBRARY_EXPORTS int torch_train_custom(
 			model.get()->add_LeakyReLU(negative_slope);
 			continue;
 		}
+		if (strstr(buf, "relu"))
+		{
+			model.get()->add_ReLU();
+			continue;
+		}
 		if (strstr(buf, "selu"))
 		{
 			model.get()->add_SELU();
@@ -1127,14 +1134,14 @@ extern "C" _LIBRARY_EXPORTS int torch_train_custom(
 			model.get()->add_Sigmoid();
 			continue;
 		}
-		if (strstr(buf, "softmax"))
-		{
-			model.get()->add_Softmax(1);
-			continue;
-		}
 		if (strstr(buf, "log_softmax"))
 		{
 			model.get()->add_LogSoftmax(1);
+			continue;
+		}
+		if (strstr(buf, "softmax"))
+		{
+			model.get()->add_Softmax(1);
 			continue;
 		}
 	}
