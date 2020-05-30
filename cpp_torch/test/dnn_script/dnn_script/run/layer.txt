@@ -1,0 +1,44 @@
+device=cpu
+
+num_class=10
+
+learning_rate=0.0001
+
+input c=1 w=28 h=28
+
+conv2d
+	input_channels=1
+	output_channels=10
+	kernel_size=(5,5)
+
+maxpool2d
+	kernel_size=2
+
+relu
+
+conv2d
+	input_channels=10
+	output_channels=20
+	kernel_size=5
+
+conv_drop
+ rate=0.5
+
+maxpool2d
+	kernel_size=2
+
+relu
+
+fc 
+unit=50
+
+relu
+
+dropout
+ rate=0.5
+
+fc 
+	unit=10
+
+log_softmax
+
