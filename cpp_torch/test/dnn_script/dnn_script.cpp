@@ -101,6 +101,7 @@ extern "C" _LIBRARY_EXPORTS void torch_getData(const char* filename, std::vector
 }
 void scaling_data(std::vector<tiny_dnn::vec_t>& data, std::vector<tiny_dnn::vec_t>& dataset)
 {
+	data.clear();
 	std::vector<tiny_dnn::vec_t> yy;
 	for (int i = 0; i < dataset.size(); i++)
 	{
@@ -255,7 +256,13 @@ extern  _LIBRARY_EXPORTS tiny_dnn::vec_t torch_predict(tiny_dnn::vec_t x)
 {
 	for (auto& xx : x) xx /= scale;
 	tiny_dnn::vec_t y = nn_->predict(x);
-	for (auto& yy : y) yy *= scale;
+	if (num_class >= 2)
+	{
+	}
+	else
+	{
+		for (auto& yy : y) yy *= scale;
+	}
 	return y;
 }
 extern _LIBRARY_EXPORTS tiny_dnn::vec_t torch_model_predict(const void* nn, tiny_dnn::vec_t x)
@@ -266,7 +273,13 @@ extern _LIBRARY_EXPORTS tiny_dnn::vec_t torch_model_predict(const void* nn, tiny
 	for (auto& xx : x) xx /= scale;
 
 	tiny_dnn::vec_t y = nn2->predict(x);
-	for (auto& yy : y) yy *= scale;
+	if (num_class >= 2)
+	{
+	}
+	else
+	{
+		for (auto& yy : y) yy *= scale;
+	}
 	return y;
 }
 

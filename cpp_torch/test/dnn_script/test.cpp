@@ -52,7 +52,7 @@ void test_test(void* nn)
 	{
 		predict[i] = torch_model_predict(nn2, test_images_[i]);
 	}
-	tiny_dnn::result result = torch_get_accuracy_nn(nn2, test_images_, test_labels_, test_images_.size());
+	tiny_dnn::result result = torch_get_accuracy_nn(nn2, test_images_, test_labels_, getBatchSize());
 
 	result.print_summary(std::cout);
 
@@ -63,6 +63,7 @@ void test_train(void* nn)
 	void* nn2 = torch_load_new("best_model.pt");
 
 	float scale = getScale();
+	printf("scale=%f\n", scale);
 
 	std::vector<tiny_dnn::vec_t> predict;
 
@@ -72,7 +73,8 @@ void test_train(void* nn)
 	{
 		predict[i] = torch_model_predict(nn2, train_images_[i]);
 	}
-	tiny_dnn::result result = torch_get_accuracy_nn(nn2, train_images_, train_labels_, train_images_.size());
+
+	tiny_dnn::result result = torch_get_accuracy_nn(nn2, train_images_, train_labels_, getBatchSize());
 
 	result.print_summary(std::cout);
 
@@ -175,9 +177,9 @@ int main()
 		{
 			disp = torch_progress_display(train_images_.size());
 		}
-		printf("              ");
-		printf("\r%d/%d %.2f\r", getBatchSize()*batch, train_images_.size(), (double)(getBatchSize()*batch)/(double)train_images_.size());
-		//torch_progress_display_count(disp, getBatchSize());
+		//printf("              ");
+		//printf("\r%d/%d %.2f\r", getBatchSize()*batch, train_images_.size(), (double)(getBatchSize()*batch)/(double)train_images_.size());
+		torch_progress_display_count(disp, getBatchSize());
 		batch++;
 	};
 
