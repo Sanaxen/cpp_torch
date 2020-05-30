@@ -470,8 +470,8 @@ namespace cpp_torch
 
 					optimizer->zero_grad();
 					auto output = model.get()->forward(data);
-					//dump_dim(output);
-					//dump_dim(targets);
+					//dump_dim("output", output);
+					//dump_dim("targets", targets);
 
 					targets = targets.reshape_as(output);
 
