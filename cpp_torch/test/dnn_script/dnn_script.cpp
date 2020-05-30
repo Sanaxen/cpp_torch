@@ -331,8 +331,8 @@ extern "C" _LIBRARY_EXPORTS void torch_progress_display_restart(void* disp_, siz
 }
 extern "C" _LIBRARY_EXPORTS void torch_progress_display_count(void* disp_, int count)
 {
-	cpp_torch::progress_display* disp = (cpp_torch::progress_display*)disp_;
-	(*disp) += count;
+	cpp_torch::progress_display& disp = *(cpp_torch::progress_display*)disp_;
+	disp += count;
 }
 extern "C" _LIBRARY_EXPORTS void torch_progress_display_delete(void* disp_)
 {
@@ -376,18 +376,6 @@ extern "C" _LIBRARY_EXPORTS int torch_train_custom(
 	std::function <void(void)> on_enumerate_epoch
 )
 {
-	if (train_images_.size() > 0 && train_labels_.size() > 0)
-	{
-		send_train_images(train_images_);
-		send_train_labels(train_labels_);
-	}
-
-	kNumberOfEpochs = n_train_epochs;
-	kTrainBatchSize = n_minibatch;
-
-	cpp_torch::Net model;
-
-	model.get()->device = device;
 	char buf[4096];
 	FILE* fp = fopen(define_layers_file_name.c_str(), "r");
 	if (fp == NULL)
@@ -414,6 +402,32 @@ extern "C" _LIBRARY_EXPORTS int torch_train_custom(
 			sscanf(buf, "scale=%f", &scale);
 			continue;
 		}
+	}
+	fclose(fp);
+
+	if (train_images_.size() > 0 && train_labels_.size() > 0)
+	{
+		send_train_images(train_images_);
+		send_train_labels(train_labels_);
+	}
+
+	kNumberOfEpochs = n_train_epochs;
+	kTrainBatchSize = n_minibatch;
+
+	cpp_torch::Net model;
+
+	model.get()->device = device;
+	
+	fp = fopen(define_layers_file_name.c_str(), "r");
+	if (fp == NULL)
+	{
+		return -1;
+	}
+
+	p = NULL;
+	while (fgets(buf, 4096, fp) != NULL)
+	{
+		if (buf[0] == '\n') continue;
 		if (strstr(buf, "epoch="))
 		{
 			sscanf(buf, "epoch=%d", &kNumberOfEpochs);
@@ -569,6 +583,18 @@ extern "C" _LIBRARY_EXPORTS int torch_train_custom(
 				while (isspace(*p))p++;
 			} while (*p != '\0');
 
+			if (kernel_size[1] <= 0)
+			{
+				kernel_size[1] = kernel_size[0];
+			}
+			if (stride[1] <= 0)
+			{
+				stride[1] = stride[0];
+			}
+			if (padding[1] <= 0)
+			{
+				padding[1] = padding[0];
+			}
 			if (input_channels <= 0 || output_channels <= 0)
 			{
 				printf("ERROR:%s", buf);
@@ -675,6 +701,18 @@ extern "C" _LIBRARY_EXPORTS int torch_train_custom(
 				while (isspace(*p))p++;
 			} while (*p != '\0');
 
+			if (kernel_size[1] <= 0)
+			{
+				kernel_size[1] = kernel_size[0];
+			}
+			if (stride[1] <= 0)
+			{
+				stride[1] = stride[0];
+			}
+			if (padding[1] <= 0)
+			{
+				padding[1] = padding[0];
+			}
 			if (input_channels <= 0 || output_channels <= 0)
 			{
 				model.get()->add_conv_transpose2d(
@@ -709,7 +747,7 @@ extern "C" _LIBRARY_EXPORTS int torch_train_custom(
 			int input_channels = -1;
 			int output_channels = -1;
 			std::vector<int> kernel_size = { -1, -1 };
-			std::vector<int> stride = { 1, 1 };
+			std::vector<int> stride = { 0, 0 };
 			std::vector<int> padding = { 0, 0 };
 			std::vector<int> dilation = { 1, 1 };
 			do {
@@ -758,6 +796,30 @@ extern "C" _LIBRARY_EXPORTS int torch_train_custom(
 				while (isspace(*p))p++;
 			} while (*p != '\0');
 
+			if (kernel_size[0] <= 0 )
+			{
+				printf("ERROR:%s", buf);
+				return -1;
+			}
+			if (kernel_size[1] <= 0)
+			{
+				kernel_size[1] = kernel_size[0];
+			}
+			if (stride[1] <= 0)
+			{
+				stride[1] = stride[0];
+			}
+			if (padding[1] <= 0)
+			{
+				padding[1] = padding[0];
+			}
+
+			if (stride[0] <= 0 || stride[1] <= 0)
+			{
+				stride[0] = kernel_size[0];
+				stride[1] = kernel_size[1];
+			}
+
 			if (input_channels <= 0 || output_channels <= 0)
 			{
 				model.get()->add_maxpool2d(
@@ -792,7 +854,7 @@ extern "C" _LIBRARY_EXPORTS int torch_train_custom(
 			int input_channels = -1;
 			int output_channels = -1;
 			std::vector<int> kernel_size = { -1, -1 };
-			std::vector<int> stride = { 1, 1 };
+			std::vector<int> stride = { 0, 0 };
 			std::vector<int> padding = { 0, 0 };
 			do {
 				fgets(buf, 4096, fp);
@@ -835,6 +897,28 @@ extern "C" _LIBRARY_EXPORTS int torch_train_custom(
 				while (isspace(*p))p++;
 			} while (*p != '\0');
 
+			if (kernel_size[1] <= 0)
+			{
+				kernel_size[1] = kernel_size[0];
+			}
+			if (stride[1] <= 0)
+			{
+				stride[1] = stride[0];
+			}
+			if (padding[1] <= 0)
+			{
+				padding[1] = padding[0];
+			}
+			if (kernel_size[0] <= 0 )
+			{
+				printf("ERROR:%s", buf);
+				return -1;
+			}
+			if (stride[0] <= 0 || stride[1] <= 0)
+			{
+				stride[0] = kernel_size[0];
+				stride[1] = kernel_size[1];
+			}
 			if (input_channels <= 0 || output_channels <= 0)
 			{
 				model.get()->add_avgpool2d(

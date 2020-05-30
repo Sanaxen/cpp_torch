@@ -142,12 +142,12 @@ int main()
 		{
 			disp = torch_progress_display(train_images_.size());
 		}
-		torch_progress_display_count(disp, getBatchSize());
+		//torch_progress_display_count(disp, getBatchSize());
 		batch++;
 	};
 
 	int n_epoch = 30;
-	int minbatch = 256;
+	int minbatch = 100;
 	if (1)
 	{
 		std::string define_layers_file_name = "layer.txt";

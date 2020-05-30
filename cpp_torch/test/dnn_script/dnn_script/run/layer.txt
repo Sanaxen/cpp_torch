@@ -1,4 +1,5 @@
-device=cpu
+device=gpu
+scale=128
 
 num_class=10
 
