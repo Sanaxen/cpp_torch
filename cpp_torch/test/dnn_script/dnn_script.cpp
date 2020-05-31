@@ -222,7 +222,7 @@ extern "C" _LIBRARY_EXPORTS float torch_get_loss_nn(void* nn, std::vector<tiny_d
 extern  _LIBRARY_EXPORTS tiny_dnn::result torch_get_accuracy_nn(void* nn, std::vector<tiny_dnn::vec_t>& train_images_, std::vector<tiny_dnn::vec_t>& train_labels_, int batch)
 {
 	tiny_dnn::result result;
-	if (train_images_.size())
+	if (train_images_.size()==0)
 	{
 		result.num_total = 1;
 		return result;
@@ -1216,7 +1216,7 @@ extern "C" _LIBRARY_EXPORTS int torch_train_custom(
 
 	torch::optim::Optimizer* optimizer = nullptr;
 
-	float moment = 0;
+	float moment = 0.5;
 	auto optimizerSGD = torch::optim::SGD(
 		model.get()->parameters(), torch::optim::SGDOptions(learning_rate).momentum(moment));
 
