@@ -36,15 +36,6 @@ namespace rnn_dll_variables
 	int test_mode = 0;
 	float maxvalue = 0.0;
 	float minvalue = 0.0;
-	int ntrain_images = 0;
-	int ntrain_images_0 = 0;
-	int ntrain_labels = 0;
-	int ntrain_labels_0 = 0;
-
-	int ntest_images = 0;
-	int ntest_images_0 = 0;
-	int ntest_labels = 0;
-	int ntest_labels_0 = 0;
 
 	int x_dim = 0;
 	int y_dim = 0;
@@ -154,40 +145,7 @@ extern "C" _LIBRARY_EXPORTS void torch_read_params(bool train)
 
 	while (fgets(buf, 100000, fp) != NULL)
 	{
-		if (strstr(buf, "train_images[0]"))
-		{
-			sscanf(buf, "train_images[0]:%d", &ntrain_images_0);
-		}
-		if (strstr(buf, "train_images"))
-		{
-			sscanf(buf, "train_images:%d", &ntrain_images);
-		}
-		if (strstr(buf, "test_images[0]"))
-		{
-			sscanf(buf, "test_images[0]:%d", &ntest_images_0);
-		}
-		if (strstr(buf, "test_images"))
-		{
-			sscanf(buf, "test_images:%d", &ntest_images);
-		}
 
-
-		if (strstr(buf, "train_labels[0]"))
-		{
-			sscanf(buf, "train_labels[0]:%d", &ntrain_labels_0);
-		}
-		if (strstr(buf, "train_labels"))
-		{
-			sscanf(buf, "train_labels:%d", &ntrain_labels);
-		}
-		if (strstr(buf, "test_labels[0]"))
-		{
-			sscanf(buf, "test_labels[0]:%d", &ntest_labels_0);
-		}
-		if (strstr(buf, "test_labels"))
-		{
-			sscanf(buf, "test_labels:%d", &ntest_labels);
-		}
 		if (strstr(buf, "test_mode"))
 		{
 			sscanf(buf, "test_mode:%d", &test_mode);
@@ -296,14 +254,6 @@ extern "C" _LIBRARY_EXPORTS void torch_read_params(bool train)
 	}
 
 	printf("scale:%f\n", scale);
-	printf("ntrain_images:%d\n", ntrain_images);
-	printf("ntrain_images_0:%d\n", ntrain_images_0);
-	printf("ntrain_labels:%d\n", ntrain_labels);
-	printf("ntrain_labels_0:%d\n", ntrain_labels_0);
-	printf("ntest_images:%d\n", ntest_images);
-	printf("ntest_images_0:%d\n", ntest_images_0);
-	printf("ntest_labels:%d\n", ntest_labels);
-	printf("ntest_labels_0:%d\n", ntest_labels_0);
 
 	printf("x_dim:%d\n", x_dim);
 	printf("y_dim:%d\n", y_dim);
