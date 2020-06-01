@@ -41,6 +41,8 @@ etc ..
 #define _LIBRARY_EXPORTS __declspec(dllimport)
 #endif
 
+extern "C" _LIBRARY_EXPORTS void read_mnist_dataset(const std::string &data_dir_path);
+
 extern "C" _LIBRARY_EXPORTS int getBatchSize();
 extern "C" _LIBRARY_EXPORTS int getNumberOfEpochs();
 extern "C" _LIBRARY_EXPORTS int getSequence_length();
@@ -56,6 +58,14 @@ extern "C" _LIBRARY_EXPORTS void* torch_setDevice(const char* device_name);
 extern "C" _LIBRARY_EXPORTS void torch_getData(const char* filename, std::vector<tiny_dnn::vec_t>& data);
 extern "C" _LIBRARY_EXPORTS void send_train_images(std::vector<tiny_dnn::vec_t>& data);
 extern "C" _LIBRARY_EXPORTS void send_train_labels(std::vector<tiny_dnn::vec_t>& data);
+extern "C" _LIBRARY_EXPORTS void get_train_images(std::vector<tiny_dnn::vec_t>& data);
+extern "C" _LIBRARY_EXPORTS void get_train_labels(std::vector<tiny_dnn::vec_t>& data);
+
+extern "C" _LIBRARY_EXPORTS void send_test_images(std::vector<tiny_dnn::vec_t>& data);
+extern "C" _LIBRARY_EXPORTS void send_test_labels(std::vector<tiny_dnn::vec_t>& data);
+extern "C" _LIBRARY_EXPORTS void get_test_images(std::vector<tiny_dnn::vec_t>& data);
+extern "C" _LIBRARY_EXPORTS void get_test_labels(std::vector<tiny_dnn::vec_t>& data);
+
 extern "C" _LIBRARY_EXPORTS void torch_read_params(bool train);
 extern "C" _LIBRARY_EXPORTS void torch_read_train_params();
 extern "C" _LIBRARY_EXPORTS void torch_read_test_params();
@@ -79,6 +89,16 @@ extern "C" _LIBRARY_EXPORTS void torch_train(
 	std::function <void(void)> on_enumerate_minibatch
 );
 extern "C" _LIBRARY_EXPORTS void Train(
+	int n_minibatch,
+	int n_train_epochs,
+	std::function <void(void)> on_enumerate_minibatch,
+	std::function <void(void)> on_enumerate_epoch
+);
+
+extern "C" _LIBRARY_EXPORTS int torch_train_custom(
+	std::string define_layers_file_name,
+	std::vector<tiny_dnn::vec_t>& train_images_,
+	std::vector<tiny_dnn::vec_t>& train_labels_,
 	int n_minibatch,
 	int n_train_epochs,
 	std::function <void(void)> on_enumerate_minibatch,

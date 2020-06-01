@@ -21,9 +21,6 @@
   <ItemGroup>
     <ClCompile Include="..\test.cpp" />
   </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="..\tiny_dnn2libtorch_dll.h" />
-  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>
     <ProjectGuid>{91AD548D-1A84-4C25-91C9-E2F8B3642A17}</ProjectGuid>
@@ -99,14 +96,15 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>..\..\rnn6</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>..\..\dnn_script\dnn_script\x64\Release</AdditionalLibraryDirectories>
-      <AdditionalDependencies>dnn_script.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>..\..\rnn6\rnn6\x64\Release</AdditionalLibraryDirectories>
+      <AdditionalDependencies>rnn6.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
