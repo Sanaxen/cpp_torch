@@ -7,6 +7,9 @@
 	Use of this source code is governed by a MIT license that can be found
 	in the LICENSE file.
 */
+#ifdef USE_TORCHVISION_060
+#pragma comment(lib, "../torchvision/lib/torchvision.lib")
+#endif
 
 #ifdef USE_LIBTORCH_150
 #pragma comment(lib, "c10.lib")
