@@ -744,6 +744,9 @@ namespace cpp_torch
 			torch::Tensor images_torch = toTorchTensors(X).view({ 1, in_channels, in_H, in_W }).to(device);
 
 			torch::Tensor y = model.get()->forward(images_torch);
+
+			//cpp_torch::dump_dim("torch::Tensor y", y);
+			//std::cout << " " << out_data_size() << std::endl;
 			tiny_dnn::vec_t t = toTensor_t(y, out_data_size());
 			return t;
 		}
