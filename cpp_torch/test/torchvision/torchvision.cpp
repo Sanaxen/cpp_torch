@@ -19,7 +19,7 @@ const char* kDataRoot = "./data";
 const int64_t kTrainBatchSize = 64;
 
 // The batch size for testing.
-const int64_t kTestBatchSize = 32;
+const int64_t kTestBatchSize = 16;
 
 // The number of epochs to train.
 const int64_t kNumberOfEpochs = 500;
@@ -205,17 +205,21 @@ auto main() -> int {
 	auto images = train_images;
 	auto labels = train_labels;
 
-	size_t n = train_images.size() - train_images.size() % kTestBatchSize;
+	std::cout << "train_images " << train_images.size();
+	index.resize(1000);
+	std::cout << "-> " << train_images.size() << std::endl;
+
 #pragma omp parallel for
 	for (int i = 0; i < train_images.size(); i++)
 	{
-		train_images[index[i]] = images[i];
-		train_labels[index[i]] = labels[i];
+		train_images[i] = images[index[i]];
+		train_labels[i] = labels[index[i]];
 	}
 
 	printf("train start\n"); fflush(stdout);
 	nn.train(&optimizer, train_images, train_labels, kTrainBatchSize, kNumberOfEpochs, on_enumerate_minibatch, on_enumerate_epoch);
 	
+
 	//for (int i = 0; i < train_images.size(); i++)
 	//{
 	//	auto p = nn.predict(train_images[i]);
