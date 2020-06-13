@@ -12,17 +12,17 @@
 
 #define USE_CUDA
 
-// Where to find the MNIST dataset.
+// Where to find the dataset.
 const char* kDataRoot = "./data";
 
 // The batch size for training.
 const int64_t kTrainBatchSize = 64;
 
 // The batch size for testing.
-const int64_t kTestBatchSize = 1000;
+const int64_t kTestBatchSize = 32;
 
 // The number of epochs to train.
-const int64_t kNumberOfEpochs = 10;
+const int64_t kNumberOfEpochs = 500;
 
 // After how many batches to log a new update with the loss value.
 const int64_t kLogInterval = 10;
@@ -46,6 +46,8 @@ void load_image_(std::vector<std::string>& files, int label)
 
 			cv::resize(cvmat, cvmat, cv::Size(input_image_size, input_image_size), 0, 0, INTER_CUBIC);
 			//std::cout << "size " << cvmat.size() << std::endl;
+			//cv::imshow("", cvmat);
+			//cv::waitKey(1);
 
 			cpp_torch::Image& imgx = cpp_torch::cvutil::cvMatToImage(cvmat);
 			tiny_dnn::vec_t& vx = image2vec_t(&imgx, 3, input_image_size, input_image_size, 1.0/255.0);
@@ -59,13 +61,19 @@ void load_image_(std::vector<std::string>& files, int label)
 }
 void load_images()
 {
-	std::vector<std::string>& apple = cpp_torch::getImageFiles(kDataRoot + std::string("/apple"));
+	std::vector<std::string>& pineapple = cpp_torch::getImageFiles(kDataRoot + std::string("/pineapple"));
 	std::vector<std::string>& banana = cpp_torch::getImageFiles(kDataRoot + std::string("/banana"));
 	std::vector<std::string>& orange = cpp_torch::getImageFiles(kDataRoot + std::string("/orange"));
-	
-	load_image_(apple, 1);
-	load_image_(banana, 2);
-	load_image_(orange, 3);
+
+#if 0
+	load_image_(pineapple, 322);
+	load_image_(banana, 323);
+	load_image_(orange, 319);
+#else
+	load_image_(pineapple, 0);
+	load_image_(banana, 1);
+	load_image_(orange, 2);
+#endif
 }
 
 auto main() -> int {
@@ -96,25 +104,67 @@ auto main() -> int {
 
 
 	auto model = vision::models::ResNet18();
-	//model->eval();
-	//torch::load(model, "data/script_module.pt");
+	model->eval();
+	torch::load(model, "data/script_module.pt");
+	torch::jit::script::Module jit = torch::jit::load("data/script_module.pt");
 
-	model->fc.get()->options.out_features(3);
+	int num_class = 1000;
+
+	//Transfer Learning
+	bool TransferLearning = true;
+	std::vector<torch::Tensor> trainable_params;
+	if (TransferLearning)
+	{
+		num_class = 3;
+		model->unregister_module("fc");
+
+		model->fc = torch::nn::Linear(torch::nn::LinearImpl(512, num_class));
+		model->register_module("fc", model->fc);
+
+		auto params = model->named_parameters(true /*recurse*/);
+		for (auto& param : params)
+		{
+			auto layer_name = param.key();
+			if ("fc.weight" == layer_name || "fc.bias" == layer_name)
+			{
+				param.value().set_requires_grad(true);
+				trainable_params.push_back(param.value());
+			}
+			else
+			{
+				param.value().set_requires_grad(false);
+			}
+		}
+	}
+	else
+	{
+		num_class = 3;
+		model->unregister_module("fc");
+
+		model->fc = torch::nn::Linear(torch::nn::LinearImpl(512, num_class));
+		model->register_module("fc", model->fc);
+		trainable_params = model.get()->parameters();
+	}
 
 	load_images();
-	//model->fc.get()->reset_parameters();
 	
 	cpp_torch::network_torch<vision::models::ResNet18> nn(model, device);
 
 	nn.input_dim(3, 224, 224);
-	nn.output_dim(1, 1, 1000);
+	nn.output_dim(1, 1, num_class);
 
-	auto optimizer =
-		torch::optim::Adam(model.get()->parameters(),
-			torch::optim::AdamOptions(0.0025));
-	
-	// create callback
+	cpp_torch::progress_display disp(train_images.size());
 	tiny_dnn::timer t;
+
+	//auto optimizer =
+	//	torch::optim::Adam(trainable_params,
+	//		torch::optim::AdamOptions(0.001));
+	
+	auto optimizer =
+		torch::optim::SGD(trainable_params,
+			torch::optim::SGDOptions(0.001).weight_decay(1.0e-6).momentum(0.9).nesterov(true));
+
+	// create callback
 	int epoch = 1;
 	auto on_enumerate_epoch = [&]() {
 		std::cout << "\nEpoch " << epoch << "/" << kNumberOfEpochs << " finished. "
@@ -123,14 +173,21 @@ auto main() -> int {
 
 		if (epoch % kLogInterval == 0)
 		{
-			tiny_dnn::result res = nn.test(train_images, train_labels);
-			std::cout << res.num_success << "/" << res.num_total << std::endl;
+			float loss = nn.get_loss(train_images, train_labels, kTestBatchSize);
+			std::cout << "loss= " << loss << std::endl;
+			//tiny_dnn::result res = nn.test(train_images, train_labels);
+			//std::cout << res.num_success << "/" << res.num_total << std::endl;
 		}
 		++epoch;
+		if (epoch <= kNumberOfEpochs)
+		{
+			disp.restart(train_images.size());
+		}
 		t.restart();
 	};
 
 	auto on_enumerate_minibatch = [&]() {
+		disp += kTrainBatchSize;
 	};
 
 	std::random_device rnd;
@@ -147,15 +204,17 @@ auto main() -> int {
 	}
 	auto images = train_images;
 	auto labels = train_labels;
+
+	size_t n = train_images.size() - train_images.size() % kTestBatchSize;
 #pragma omp parallel for
 	for (int i = 0; i < train_images.size(); i++)
 	{
 		train_images[index[i]] = images[i];
 		train_labels[index[i]] = labels[i];
 	}
-	//train_images.resize(640);
-	//train_labels.resize(640);
-	nn.train(&optimizer, train_images, train_labels, 128, 100, on_enumerate_minibatch, on_enumerate_epoch);
+
+	printf("train start\n"); fflush(stdout);
+	nn.train(&optimizer, train_images, train_labels, kTrainBatchSize, kNumberOfEpochs, on_enumerate_minibatch, on_enumerate_epoch);
 	
 	//for (int i = 0; i < train_images.size(); i++)
 	//{
