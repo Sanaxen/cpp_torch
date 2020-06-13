@@ -575,6 +575,8 @@ namespace cpp_torch
 				return false;
 			}
 
+			torch::NoGradGuard no_grad;
+			model->eval();
 			model.get()->train(false);
 			float loss_ave = 0.0;
 			int correct = 0;
@@ -709,6 +711,8 @@ namespace cpp_torch
 
 
 		torch::Tensor fprop(torch::Tensor &in) {
+			torch::NoGradGuard no_grad;
+			model->eval();
 			model.get()->train(false);
 			return model.get()->forward(in);
 		}
@@ -718,6 +722,8 @@ namespace cpp_torch
 		 **/
 		inline torch::Tensor predict(torch::Tensor& X)
 		{
+			torch::NoGradGuard no_grad;
+			model->eval();
 			model.get()->train(false);
 			torch::Tensor y =  model.get()->forward(X.to(device));
 
@@ -728,6 +734,8 @@ namespace cpp_torch
 		 **/
 		inline std::vector<tiny_dnn::tensor_t> predict(torch::Tensor& X, const int batch)
 		{
+			torch::NoGradGuard no_grad;
+			model->eval();
 			model.get()->train(false);
 			torch::Tensor y = model.get()->forward(X.to(device));
 
@@ -740,6 +748,8 @@ namespace cpp_torch
 		**/
 		inline tiny_dnn::vec_t predict(tiny_dnn::vec_t& X)
 		{
+			torch::NoGradGuard no_grad;
+			model->eval();
 			model.get()->train(false);
 			torch::Tensor images_torch = toTorchTensors(X).view({ 1, in_channels, in_H, in_W }).to(device);
 
@@ -755,6 +765,8 @@ namespace cpp_torch
 		**/
 		inline tiny_dnn::label_t predict_label(tiny_dnn::vec_t& X)
 		{
+			torch::NoGradGuard no_grad;
+			model->eval();
 			model.get()->train(false);
 			torch::Tensor images_torch = toTorchTensors(X).view({ 1, in_channels, in_H, in_W }).to(device);
 
