@@ -216,6 +216,7 @@ namespace cpp_torch
 	{
 		std::vector<float_t> Tolerance_Set;
 		float loss_value = 0.0;
+		float clip_grad_value = 0.0;
 	public:
 		int in_channels = 1;
 		int in_H = 1;
@@ -248,6 +249,14 @@ namespace cpp_torch
 			}
 		}
 
+		inline void set_clip_grad_norm(float v)
+		{
+			clip_grad_value = v;
+		}
+		inline float get_clip_grad_norm()
+		{
+			return clip_grad_value;
+		}
 		inline void input_dim(int c, int w, int h)
 		{
 			in_channels = c;
@@ -486,6 +495,11 @@ namespace cpp_torch
 					}
 					AT_ASSERT(!std::isnan(loss.template item<float_t>()));
 					loss.backward();
+
+					if ( fabs(clip_grad_value) > 0.0)
+					{
+						torch::nn::utils::clip_grad_norm_(model->parameters(), clip_grad_value);
+					}
 					optimizer->step();
 
 					loss_value = loss.template item<float_t>();
