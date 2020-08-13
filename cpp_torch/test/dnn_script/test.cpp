@@ -31,7 +31,7 @@ namespace tiny_dnn {
 	};
 };
 #include "utils.h"
-#include "tiny_dnn2libtorch_dnn_scriptdll.h"
+#include "tiny_dnn2libtorch_dll.h"
 #include <iostream>
 
 std::vector<tiny_dnn::vec_t> train_labels_, test_labels_;
