@@ -493,6 +493,10 @@ namespace cpp_torch
 					{
 						loss = torch::mse_loss(output, targets);
 					}
+					if (std::isnan(loss.template item<float_t>()))
+					{
+						std::cout << "loss value is nan" << std::endl;
+					}
 					AT_ASSERT(!std::isnan(loss.template item<float_t>()));
 					loss.backward();
 
