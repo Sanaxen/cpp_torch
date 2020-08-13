@@ -2,6 +2,7 @@
 
 **header only, deep learning framework with no dependencies other than libtorch**  
 
+Enabled to build with **libtorch1.6**  
 ---
 Enabled to build with **libtorch1.5**  
 
