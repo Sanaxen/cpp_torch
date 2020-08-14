@@ -1,6 +1,7 @@
 
 ### Enabled to build with **libtorch1.5**  
-### CUDA 9.2 is required for calculation using GPU.  
+#### [CUDA 9.2](https://developer.nvidia.com/cuda-92-download-archive) is required for calculation using GPU.  
+#### also needs [cuDNN v7.6.5 (November 5th, 2019), for CUDA 9.2](https://developer.nvidia.com/cudnn)  
 
 !~~!Currently, the cause is unknown, but the result is incorrect in CPU mode of libtorch 1.5.~~  
 It's not a smart method, but it has been fixed to give the correct result.  
