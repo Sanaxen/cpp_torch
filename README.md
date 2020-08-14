@@ -2,7 +2,8 @@
 
 **header only, deep learning framework with no dependencies other than libtorch**  
 
-Enabled to build with **libtorch1.6**  
+### Enabled to build with **libtorch1.6**  
+### CUDA 10.2 is required for calculation using GPU.  
 ---
  [Enabled to build with **libtorch1.5** ](./README_libtorch1.5.md)
 
