@@ -1,5 +1,6 @@
 
-Enabled to build with **libtorch1.5**  
+### Enabled to build with **libtorch1.5**  
+### CUDA 9.2 is required for calculation using GPU.  
 
 !~~!Currently, the cause is unknown, but the result is incorrect in CPU mode of libtorch 1.5.~~  
 It's not a smart method, but it has been fixed to give the correct result.  
