@@ -54,7 +54,7 @@ endif()
 add_library(TorchVision::TorchVision SHARED IMPORTED)
 
 set_target_properties(TorchVision::TorchVision PROPERTIES
-  INTERFACE_INCLUDE_DIRECTORIES "D:/tmp/vision-0.7.0/;${_IMPORT_PREFIX}/include"
+  INTERFACE_INCLUDE_DIRECTORIES "C:/Users/neutral/Desktop/libtorch/vision-0.6.0/;${_IMPORT_PREFIX}/include"
 )
 
 # Load information for each installed configuration.
