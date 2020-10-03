@@ -449,14 +449,20 @@ extern "C" _LIBRARY_EXPORTS void* torch_model(std::string& ptfile)
 
 extern  _LIBRARY_EXPORTS tiny_dnn::vec_t torch_predict(tiny_dnn::vec_t x)
 {
-	for (auto& xx : x) xx /= scale;
+	if (scale != 1.0)
+	{
+		for (auto& xx : x) xx /= scale;
+	}
 	tiny_dnn::vec_t y = nn_->predict(x);
 	if (num_class >= 2)
 	{
 	}
 	else
 	{
-		for (auto& yy : y) yy *= scale;
+		if (scale != 1.0)
+		{
+			for (auto& yy : y) yy *= scale;
+		}
 	}
 	return y;
 }
@@ -465,15 +471,20 @@ extern _LIBRARY_EXPORTS tiny_dnn::vec_t torch_model_predict(const void* nn, tiny
 	cpp_torch::network_torch<cpp_torch::Net>* nn2
 		= (cpp_torch::network_torch<cpp_torch::Net>*)(nn);
 
-	for (auto& xx : x) xx /= scale;
-
+	if (scale != 1.0)
+	{
+		for (auto& xx : x) xx /= scale;
+	}
 	tiny_dnn::vec_t y = nn2->predict(x);
 	if (num_class >= 2)
 	{
 	}
 	else
 	{
-		for (auto& yy : y) yy *= scale;
+		if (scale != 1.0)
+		{
+			for (auto& yy : y) yy *= scale;
+		}
 	}
 	return y;
 }
@@ -1495,7 +1506,7 @@ extern "C" _LIBRARY_EXPORTS void torch_train(
 
 	if (rnn_layers <= 0) rnn_layers = 1;
 #ifdef RNN_LAYERS_OPT
-	model.get()->add_recurrent(std::string("lstm"), sequence_length, hidden_size, rnn_layers, 0.1);
+	model.get()->add_recurrent(std::string("lstm"), sequence_length, hidden_size, rnn_layers, dropout);
 	model.get()->add_Tanh();
 #else
 	model.get()->add_recurrent(std::string("lstm"), sequence_length, hidden_size);
