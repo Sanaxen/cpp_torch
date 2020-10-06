@@ -62,11 +62,12 @@ namespace rnn_dll_variables
 	int num_class = 0;
 
 	std::string optimizer_name = "adam";
-	bool batch_shuffle = false;
+	bool batch_shuffle = true;
 
 	float moment = 0.01;
 	float scale = 1.0;
 
+	bool state_reset_mode = false;
 
 	std::vector<tiny_dnn::vec_t> train_labels, test_labels;
 	std::vector<tiny_dnn::vec_t> train_images, test_images;
@@ -92,29 +93,38 @@ extern "C" _LIBRARY_EXPORTS void read_mnist_dataset(const std::string &data_dir_
 	cpp_torch::label2vec(te_labels, test_labels, 10);
 }
 
-void state_reset(std::string& rnn_type , cpp_torch::Net& model)
+cpp_torch::network_torch<cpp_torch::Net>* toNet(void* nn)
 {
-	//if (rnn_type == "lstm")
-	//{
-	//	for (int i = 0; i < model.get()->lstm.size(); i++)
-	//	{
-	//		model.get()->lstm[i].get()->initial_state();
-	//	}
-	//}
-	//if (rnn_type == "gru")
-	//{
-	//	for (int i = 0; i < model.get()->gru.size(); i++)
-	//	{
-	//		model.get()->gru[i].get()->reset();
-	//	}
-	//}
-	//if (rnn_type == "rnn")
-	//{
-	//	for (int i = 0; i < model.get()->rnn.size(); i++)
-	//	{
-	//		model.get()->rnn[i].get()->reset();
-	//	}
-	//}
+	return (cpp_torch::network_torch<cpp_torch::Net>*)nn;
+}
+
+extern "C" _LIBRARY_EXPORTS void state_reset(std::string& rnn_type , void* nn)
+{
+	//return;
+	if (!state_reset_mode) return;
+
+	cpp_torch::Net& model = toNet(nn)->model;
+	if (rnn_type == "lstm")
+	{
+		for (int i = 0; i < model.get()->lstm.size(); i++)
+		{
+			model.get()->lstm[i].get()->reset_parameters();
+		}
+	}
+	if (rnn_type == "gru")
+	{
+		for (int i = 0; i < model.get()->gru.size(); i++)
+		{
+			model.get()->gru[i].get()->reset_parameters();
+		}
+	}
+	if (rnn_type == "rnn")
+	{
+		for (int i = 0; i < model.get()->rnn.size(); i++)
+		{
+			model.get()->rnn[i].get()->reset_parameters();
+		}
+	}
 }
 
 
@@ -138,10 +148,6 @@ void scaling_data(std::vector<tiny_dnn::vec_t>& data, std::vector<tiny_dnn::vec_
 	}
 }
 
-cpp_torch::network_torch<cpp_torch::Net>* toNet(void* nn)
-{
-	return (cpp_torch::network_torch<cpp_torch::Net>*)nn;
-}
 
 extern "C" _LIBRARY_EXPORTS void send_train_images(std::vector<tiny_dnn::vec_t>& data)
 {
@@ -316,6 +322,20 @@ extern "C" _LIBRARY_EXPORTS void torch_read_params(bool train)
 			sscanf(buf, "classification:%d", &classification);
 			if (classification >= 2) num_class = classification;
 		}
+		if (strstr(buf, "state_reset_mode"))
+		{
+			int dmy = 0;
+			sscanf(buf, "state_reset_mode:%d", &dmy);
+			if (dmy) state_reset_mode = true;
+			else state_reset_mode = false;
+		}
+		if (strstr(buf, "batch_shuffle"))
+		{
+			int dmy = 0;
+			sscanf(buf, "batch_shuffle:%d", &dmy);
+			if (dmy) batch_shuffle = true;
+			else batch_shuffle = false;
+		}
 		//
 
 		if (train)
@@ -362,6 +382,8 @@ extern "C" _LIBRARY_EXPORTS void torch_read_params(bool train)
 	printf("n_train_epochs:%d\n", n_train_epochs);
 	printf("n_minibatch:%d\n", n_minibatch);
 	printf("rnn_type:%s\n", rnn_type);
+	printf("state_reset_mode:%d\n", state_reset_mode ? 1 : 0);
+	printf("batch_shuffle:%d\n", batch_shuffle ? 1 : 0);
 
 	printf("(fc)input_size:%d\n", input_size);
 	printf("(fc)regression:%s\n", regression);
@@ -514,10 +536,16 @@ extern "C" _LIBRARY_EXPORTS void* torch_getDevice()
 {
 	return(void*)(&device);
 }
+extern "C" _LIBRARY_EXPORTS void torch_setDeviceIndex(const int id)
+{
+	device.set_index(id);
+}
 extern "C" _LIBRARY_EXPORTS void* torch_setDevice(const char* device_name)
 {
+	printf("device_name:%s\n", device_name);
 	torch::DeviceType device_type;
 
+	c10::DeviceIndex id = c10::DeviceIndex (-1);
 	if (std::string(device_name) == std::string("gpu") || std::string(device_name) == std::string("cuda"))
 	{
 		if (torch::cuda::is_available()) {
@@ -531,11 +559,27 @@ extern "C" _LIBRARY_EXPORTS void* torch_setDevice(const char* device_name)
 		}
 	}
 	else
+	if (strstr(device_name,"gpu:") || strstr(device_name,"cuda:"))
+	{
+		if (torch::cuda::is_available()) {
+			std::cout << "CUDA available! Training on GPU." << std::endl;
+			device_type = torch::kCUDA;
+		}
+		else
+		{
+			std::cout << "CUDA no available -> Training on CPU." << std::endl;
+			device_type = torch::kCPU;
+		}
+		char* p = strchr((char*)device_name, ':');
+		id = c10::DeviceIndex(atoi(p+1));
+	}
+	else
 	{
 		std::cout << "Training on CPU." << std::endl;
 		device_type = torch::kCPU;
 	}
-	device = torch::Device(device_type);
+	printf("DeviceIndex:%d\n", id);
+	device = torch::Device(device_type, id);
 }
 
 extern "C" _LIBRARY_EXPORTS void* torch_progress_display(size_t length)
@@ -1574,7 +1618,7 @@ extern "C" _LIBRARY_EXPORTS void torch_train(
 	nn_->input_dim(1, 1, train_images[0].size());
 	nn_->output_dim(1, 1, train_labels[0].size());
 	nn_->classification = false;
-	nn_->batch_shuffle = false;
+	nn_->batch_shuffle = batch_shuffle;
 
 
 	torch::optim::Optimizer* optimizer = nullptr;
@@ -1695,7 +1739,7 @@ extern "C" _LIBRARY_EXPORTS void torch_train_fc(
 	nn_->input_dim(1, 1, train_images[0].size());
 	nn_->output_dim(1, 1, train_labels[0].size());
 	nn_->classification = (classification >= 2);
-	nn_->batch_shuffle = true;
+	nn_->batch_shuffle = batch_shuffle;
 
 
 	torch::optim::Optimizer* optimizer = nullptr;

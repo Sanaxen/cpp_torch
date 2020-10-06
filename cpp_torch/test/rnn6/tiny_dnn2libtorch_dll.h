@@ -54,6 +54,7 @@ extern "C" _LIBRARY_EXPORTS float getTolerance();
 extern "C" _LIBRARY_EXPORTS int torch_train_init(void);
 extern "C" _LIBRARY_EXPORTS void* torch_getDevice();
 extern "C" _LIBRARY_EXPORTS void* torch_setDevice(const char* device_name);
+extern "C" _LIBRARY_EXPORTS void torch_setDeviceIndex(const int id);
 
 extern "C" _LIBRARY_EXPORTS void torch_getData(const char* filename, std::vector<tiny_dnn::vec_t>& data);
 extern "C" _LIBRARY_EXPORTS void send_train_images(std::vector<tiny_dnn::vec_t>& data);
@@ -133,6 +134,7 @@ extern  _LIBRARY_EXPORTS tiny_dnn::vec_t torch_model_predict(const void* nn, tin
 extern  _LIBRARY_EXPORTS tiny_dnn::vec_t torch_predict(tiny_dnn::vec_t x);
 
 extern "C" _LIBRARY_EXPORTS void torch_stop_ongoing_training();
+extern "C" _LIBRARY_EXPORTS void state_reset(std::string& rnn_type, void* nn);
 
 
 
