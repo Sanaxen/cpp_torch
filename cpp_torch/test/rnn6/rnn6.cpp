@@ -465,6 +465,9 @@ extern "C" _LIBRARY_EXPORTS void* torch_model(std::string& ptfile)
 
 	nn2->load(ptfile);
 
+	//CUDA information is also included in the data that has been learned and serialized by CUDA.
+	//nn2->model.get()->to(device);
+
 	return (void*)nn2;
 }
 
@@ -620,6 +623,9 @@ extern "C" _LIBRARY_EXPORTS void torch_save(const char* name)
 extern "C" _LIBRARY_EXPORTS void torch_load(const char* name)
 {
 	nn_->load(std::string(name));
+	
+	//CUDA information is also included in the data that has been learned and serialized by CUDA.
+	//nn_->model.get()->to(device);
 }
 extern "C" _LIBRARY_EXPORTS void* torch_load_new(const char* name)
 {

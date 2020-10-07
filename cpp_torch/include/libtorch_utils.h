@@ -1037,7 +1037,10 @@ namespace cpp_torch
 		{
 			try
 			{
-				torch::load(model, filename);
+				//CUDA information is also included in the data that has been learned and serialized by CUDA.
+				// map_location = device 
+				torch::load(model, filename/*, device*/);
+				model.get()->to(device);
 			}
 			catch (c10::Error& err)
 			{
