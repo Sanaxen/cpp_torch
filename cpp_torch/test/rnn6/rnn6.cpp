@@ -433,6 +433,8 @@ extern "C" _LIBRARY_EXPORTS float torch_get_Loss(int batch)
 }
 extern "C" _LIBRARY_EXPORTS float torch_get_loss_nn(void* nn, std::vector<tiny_dnn::vec_t>& train_images_, std::vector<tiny_dnn::vec_t>& train_labels_, int batch)
 {
+	//printf("train_images_:%d\n", train_images_.size());
+
 	float loss = toNet(nn)->get_loss(train_images_, train_labels_, batch);
 	return loss;
 }
@@ -1587,6 +1589,11 @@ extern "C" _LIBRARY_EXPORTS void torch_train(
 	model.get()->add_fc(train_labels[0].size());
 	model.get()->add_Tanh();
 
+	if (classification >= 2)
+	{
+		model.get()->add_LogSoftmax(1);
+	}
+
 	//xavier
 	for (auto w : model.get()->fc)
 	{
@@ -1623,7 +1630,8 @@ extern "C" _LIBRARY_EXPORTS void torch_train(
 
 	nn_->input_dim(1, 1, train_images[0].size());
 	nn_->output_dim(1, 1, train_labels[0].size());
-	nn_->classification = false;
+	//nn_->classification = false;
+	nn_->classification = (classification >= 2);
 	nn_->batch_shuffle = batch_shuffle;
 
 

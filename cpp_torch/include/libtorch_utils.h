@@ -127,11 +127,16 @@ namespace cpp_torch
 
 		tiny_dnn::tensor_t t;
 		tiny_dnn::vec_t v(size);
+#if 0
 #pragma omp parallel for
 		for (int j = 0; j < size; j++)
 		{
 			v[j] = xx[0][0][0][j].template item<float_t>();
 		}
+#else
+		const float* p = xx.cpu().data<float>();
+		v.assign(p, p + size);
+#endif
 		t.push_back(v);
 		return t;
 	}
@@ -140,11 +145,16 @@ namespace cpp_torch
 		torch::Tensor& xx = x.view({ 1, 1,1, size });
 
 		tiny_dnn::vec_t v(size);
+#if 0
 #pragma omp parallel for
 		for (int j = 0; j < size; j++)
 		{
 			v[j] = xx[0][0][0][j].template item<float_t>();
 		}
+#else
+		const float* p = xx.cpu().data<float>();
+		v.assign(p, p + size);
+#endif
 		return v;
 	}
 
@@ -353,6 +363,24 @@ namespace cpp_torch
 		)
 		{
 			bool shuffle = batch_shuffle;
+
+			int batch_tmp = kTrainBatchSize;
+			if (batch_tmp > images.size())
+			{
+				batch_tmp = images.size();
+			}
+
+			printf("%d -> lost:%d\n", images.size(), images.size() % kTrainBatchSize);
+			for (int i = batch_tmp; i >= 2; i--)
+			{
+				if (images.size() % i == 0)
+				{
+					batch_tmp = i;
+					break;
+				}
+			}
+			printf("Please change:kTrainBatchSize:%d -> %d\n", kTrainBatchSize, batch_tmp);
+
 			const int batchNum = (int64_t)((float)images.size() / (float)kTrainBatchSize + 0.5);
 
 			batch_x = std::vector< torch::Tensor>(batchNum);
@@ -598,6 +626,24 @@ namespace cpp_torch
 			model.get()->train(false);
 			float loss_ave = 0.0;
 			int correct = 0;
+
+			int batch_tmp = kTestBatchSize;
+			if (batch_tmp > images.size())
+			{
+				batch_tmp = images.size();
+			}
+
+			printf("%d -> lost:%d\n", images.size(), images.size() % kTestBatchSize);
+			for (int i = batch_tmp; i >= 2; i--)
+			{
+				if (images.size() % i == 0) 
+				{
+					batch_tmp = i;
+					break;
+				}
+			}
+			printf("Please change:kTestBatchSize:%d -> %d\n", kTestBatchSize, batch_tmp);
+
 			int testNum = images.size() / kTestBatchSize;
 			if (testNum == 0)
 			{
@@ -841,8 +887,27 @@ namespace cpp_torch
 			std::vector<torch::Tensor> images;
 			std::vector<torch::Tensor> labels;
 
+			//printf("in:%d\n", in.size());
 			toTorchTensors(in, images);
 			toTorchTensors(t, labels);
+
+			int batch_tmp = BatchSize;
+			if (batch_tmp > in.size())
+			{
+				batch_tmp = in.size();
+			}
+
+			printf("lost:%d\n", in.size() % BatchSize);
+			for (int i = batch_tmp; i >= 2; i--)
+			{
+				if (images.size() % i == 0)
+				{
+					batch_tmp = i;
+					break;
+				}
+			}
+			printf("change:BatchSize:%d -> %d\n", BatchSize, batch_tmp);
+			BatchSize = batch_tmp;
 
 			const int batchNum = in.size() / BatchSize;
 			if (batchNum == 0)
@@ -896,7 +961,7 @@ namespace cpp_torch
 				loss_list[i] = loss.template item<float_t>();
 			}
 
-			for (size_t i = 0; i < in.size(); i++) {
+			for (size_t i = 0; i < batchNum; i++) {
 				sum_loss += loss_list[i];
 			}
 			return sum_loss;
