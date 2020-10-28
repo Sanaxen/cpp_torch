@@ -43,12 +43,15 @@ namespace rnn_dll_variables
 	int x_dim = 0;
 	int y_dim = 0;
 	int sequence_length = 0;
+	int out_sequence_length = 0;
+	int target_position = 0;
 	int rnn_layers = 0;
 	int n_layers = 0;
 	int n_hidden_size = 0;
 	int fc_hidden_size = 0;
 	float dropout = 0;
 	float learning_rate = 0;
+	float clip_gradients = 0;
 	char opt_type[32] = { '\0' };
 	int n_train_epochs = 0;
 	int n_minibatch = 0;
@@ -68,6 +71,7 @@ namespace rnn_dll_variables
 	float scale = 1.0;
 
 	bool state_reset_mode = false;
+	int pycode_dump_only = 0;
 
 	std::vector<tiny_dnn::vec_t> train_labels, test_labels;
 	std::vector<tiny_dnn::vec_t> train_images, test_images;
@@ -261,6 +265,18 @@ extern "C" _LIBRARY_EXPORTS void torch_read_params(bool train)
 		{
 			sscanf(buf, "sequence_length:%d", &sequence_length);
 		}
+		if (strstr(buf, "out_sequence_length"))
+		{
+			sscanf(buf, "out_sequence_length:%d", &out_sequence_length);
+		}
+		if (strstr(buf, "target_position"))
+		{
+			sscanf(buf, "target_position:%d", &target_position);
+		}
+		if (strstr(buf, "clip_gradients"))
+		{
+			sscanf(buf, "clip_gradients:%f", &clip_gradients);
+		}
 		if (strstr(buf, "rnn_layers"))
 		{
 			sscanf(buf, "rnn_layers:%d", &rnn_layers);
@@ -337,6 +353,11 @@ extern "C" _LIBRARY_EXPORTS void torch_read_params(bool train)
 			else batch_shuffle = false;
 		}
 		//
+		if (strstr(buf, "pycode_dump_only"))
+		{
+			sscanf(buf, "pycode_dump_only:%d", &pycode_dump_only);
+		}
+		//
 
 		if (train)
 		{
@@ -372,6 +393,9 @@ extern "C" _LIBRARY_EXPORTS void torch_read_params(bool train)
 	printf("x_dim:%d\n", x_dim);
 	printf("y_dim:%d\n", y_dim);
 	printf("sequence_length:%d\n", sequence_length);
+	printf("out_sequence_length:%d\n", out_sequence_length);
+	printf("target_position:%d\n", target_position);
+	printf("clip_gradients:%f\n", clip_gradients);
 	printf("rnn_layers:%d\n", rnn_layers);
 	printf("n_layers:%d\n", n_layers);
 	printf("n_hidden_size:%d\n", n_hidden_size);
@@ -390,6 +414,7 @@ extern "C" _LIBRARY_EXPORTS void torch_read_params(bool train)
 	printf("(fc)classification:%d\n", classification);
 	//
 	printf("test_mode:%d\n", test_mode);
+	printf("pycode_dump_only:%d\n", pycode_dump_only);
 }
 
 extern "C" _LIBRARY_EXPORTS int getBatchSize()
@@ -698,6 +723,7 @@ extern "C" _LIBRARY_EXPORTS int torch_train_custom(
 	cpp_torch::Net model;
 
 	model.get()->device = device;
+	model.get()->pycode_dump_only = pycode_dump_only;
 
 	fp = fopen(define_layers_file_name.c_str(), "r");
 	if (fp == NULL)
@@ -1546,7 +1572,8 @@ extern "C" _LIBRARY_EXPORTS void torch_train(
 	if (hidden_size <= 0) hidden_size = 64;
 
 	model.get()->device = device;
-	
+	model.get()->pycode_dump_only = pycode_dump_only;
+
 	model.get()->setInput(1, 1, input_size);
 
 	size_t usize = input_size * 1;
@@ -1633,7 +1660,7 @@ extern "C" _LIBRARY_EXPORTS void torch_train(
 	//nn_->classification = false;
 	nn_->classification = (classification >= 2);
 	nn_->batch_shuffle = batch_shuffle;
-
+	nn_->set_clip_grad_norm(clip_gradients);
 
 	torch::optim::Optimizer* optimizer = nullptr;
 
@@ -1689,6 +1716,7 @@ extern "C" _LIBRARY_EXPORTS void torch_train_fc(
 
 
 	model.get()->device = device;
+	model.get()->pycode_dump_only = pycode_dump_only;
 
 	model.get()->setInput(1, 1, train_images[0].size());
 

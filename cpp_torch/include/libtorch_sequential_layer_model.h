@@ -87,6 +87,8 @@ namespace cpp_torch
 		int dropout_count = 0;
 		int pixel_shuffle_count = 0;
 
+		int pycode_dump_only = 0;
+		FILE* pycode_dump = NULL;
 		std::vector<torch::nn::Conv2d> conv2d;
 		std::vector<torch::nn::ConvTranspose2d> conv_transpose2d;
 		std::vector<torch::nn::Linear> fc;
@@ -101,6 +103,7 @@ namespace cpp_torch
 		std::vector<cpp_torch::LayerInOut> layer;
 		void setInput(int channels, int w, int h)
 		{
+			pycode_dump = fopen("torch_pycode.dmp", "w");
 			cpp_torch::LayerInOut inout;
 			inout.name = "input";
 			inout.type = cpp_torch::LayerType::INITIAL;
@@ -109,6 +112,28 @@ namespace cpp_torch
 			inout.out_ = { channels, h, w };
 			layer.push_back(inout);
 
+			if (pycode_dump)
+			{
+				fprintf(pycode_dump, "#input %d\n#", inout.in_.size());
+				for (int i = 0; i < inout.in_.size(); i++)
+				{
+					fprintf(pycode_dump, "%d", inout.in_[i]);
+					if (i < inout.in_.size() - 1)fprintf(pycode_dump, ",");
+					else fprintf(pycode_dump, "\n");
+				}
+				fprintf(pycode_dump, "#output %d\n#", inout.out_.size());
+				for (int i = 0; i < inout.out_.size(); i++)
+				{
+					fprintf(pycode_dump, "%d", inout.out_[i]);
+					if (i < inout.out_.size() - 1)fprintf(pycode_dump, ",");
+					else fprintf(pycode_dump, "\n");
+				}
+				fprintf(pycode_dump, "class Net(nn.Module):\n");
+				fprintf(pycode_dump, "    def __init__(self, ngpu):\n");
+				fprintf(pycode_dump, "        super(Net, self).__init__()\n");
+				fprintf(pycode_dump, "        self.ngpu = ngpu\n");
+				fprintf(pycode_dump, "        self.main = nn.Sequential(\n");
+			}
 			std::cout << "input {" << inout.in_ << "}->{" << inout.out_ << "}" << std::endl;
 		}
 
@@ -138,6 +163,10 @@ namespace cpp_torch
 			inout.out_ = { 1,1, out };
 			layer.emplace_back(inout);
 
+			if (pycode_dump)
+			{
+				fprintf(pycode_dump, "            nn.Linear(%d,%d,bias=%s),\n", in, out, bias ? "True" : "False");
+			}
 			std::cout << "fc {" << inout.in_ << "}->{" << inout.out_ << "}" << std::endl;
 		}
 
@@ -184,6 +213,10 @@ namespace cpp_torch
 			inout.stride = stride;
 			layer.emplace_back(inout);
 
+			if (pycode_dump)
+			{
+				fprintf(pycode_dump, "            nn.Conv2d(%d,%d,%d,stride=%d,padding=%d,dilation=%d,bias=%s),\n", input_channels, output_channels, kernel_size[0], stride[0], padding[0], dilation[0], bias ? "True" : "False");
+			}
 			std::cout << "conv {" << inout.in_ << "}->{" << inout.out_ << "}" << std::endl;
 		}
 		/**
@@ -247,6 +280,10 @@ namespace cpp_torch
 			inout.stride = stride;
 			layer.emplace_back(inout);
 
+			if (pycode_dump)
+			{
+				fprintf(pycode_dump, "            nn.ConvTranspose2d(%d,%d,%d,stride=%d,padding=%d,dilation=%d,bias=%s),\n", input_channels, output_channels, kernel_size[0], stride[0], padding[0], dilation[0], bias ? "True" : "False");
+			}
 			std::cout << "conv_transpose {" << inout.in_ << "}->{" << inout.out_ << "}" << std::endl;
 		}
 		/**
@@ -303,6 +340,10 @@ namespace cpp_torch
 
 			layer.emplace_back(inout);
 
+			if (pycode_dump)
+			{
+				fprintf(pycode_dump, "            nn.MaxPool2d(%d,stride=%d,padding=%d,dilation=%d),\n", kernel_size[0], stride[0], padding[0], dilation[0]);
+			}
 			std::cout << "maxpool {" << inout.in_ << "}->{" << inout.out_ << "}" << std::endl;
 		}
 		/**
@@ -367,6 +408,10 @@ namespace cpp_torch
 
 			layer.emplace_back(inout);
 
+			if (pycode_dump)
+			{
+				fprintf(pycode_dump, "            nn.AvgPool2d(%d,stride=%d,padding=%d),\n", kernel_size[0], stride[0], padding[0]);
+			}
 			std::cout << "avgpool {" << inout.in_ << "}->{" << inout.out_ << "}" << std::endl;
 		}
 
@@ -419,6 +464,10 @@ namespace cpp_torch
 			inout.out_ = inout.in_;
 			layer.emplace_back(inout);
 
+			if (pycode_dump)
+			{
+				fprintf(pycode_dump, "            nn.Dropout2d(%f),\n", rate);
+			}
 			std::cout << "conv_drop {" << inout.in_ << "}->{" << inout.out_ << "}" << std::endl;
 		}
 
@@ -448,6 +497,10 @@ namespace cpp_torch
 
 			layer.emplace_back(inout);
 
+			if (pycode_dump)
+			{
+				fprintf(pycode_dump, "            nn.Dropout(%f),\n", rate);
+			}
 			std::cout << "drop {" << inout.in_ << "}->{" << inout.out_ << "}" << std::endl;
 		}
 
@@ -477,6 +530,10 @@ namespace cpp_torch
 
 			layer.emplace_back(inout);
 
+			if (pycode_dump)
+			{
+				fprintf(pycode_dump, "            nn.PixelShuffle(%d),\n", upscale_factor);
+			}
 			std::cout << "pixel_shuffle {" << inout.in_ << "}->{" << inout.out_ << "}" << std::endl;
 		}
 
@@ -502,6 +559,10 @@ namespace cpp_torch
 			layer.emplace_back(inout);
 
 
+			if (pycode_dump)
+			{
+				fprintf(pycode_dump, "            nn.BatchNorm2d(%d,eps=%f,momentum=%f),\n", inout.in_[0], eps, momentum);
+			}
 			std::cout << "bn2d {" << inout.in_ << "}->{" << inout.out_ << "}" << std::endl;
 		}
 
@@ -548,6 +609,15 @@ namespace cpp_torch
 				if (dropout > 0.0) opt = opt.dropout(dropout);
 
 				rnn.emplace_back(register_module(rnn_type + std::to_string(id), torch::nn::RNN(opt)));
+				
+				if (pycode_dump)
+				{
+					string ac = "";
+					if (activatin == "ReLU") ac = "rule";
+					if (activatin == "TanH") ac = "tanh";
+
+					fprintf(pycode_dump, "            nn.RNN(%d,%d,num_layers=%d,dropout=%f,nonlinearity='%s', batch_first=True),\n", inout.rnn_sequence_single_size, inout.rnn_hidden_size, num_layers, dropout, ac.c_str());
+				}
 			}
 			if (rnn_type == "lstm")
 			{
@@ -558,6 +628,10 @@ namespace cpp_torch
 				if (dropout > 0.0) opt = opt.dropout(dropout);
 
 				lstm.emplace_back(register_module(rnn_type + std::to_string(id), torch::nn::LSTM(opt)));
+				if (pycode_dump)
+				{
+					fprintf(pycode_dump, "            nn.LSTM(%d,%d,num_layers=%d,dropout=%f, batch_first=True),\n", inout.rnn_sequence_single_size, inout.rnn_hidden_size, num_layers, dropout);
+				}
 			}
 			if (rnn_type == "gru")
 			{ 
@@ -568,6 +642,10 @@ namespace cpp_torch
 				if (dropout > 0.0) opt = opt.dropout(dropout);
 
 				gru.emplace_back(register_module(rnn_type + std::to_string(id), torch::nn::GRU(opt)));
+				if (pycode_dump)
+				{
+					fprintf(pycode_dump, "            nn.GRU(%d,%d,num_layers=%d,dropout=%f, batch_first=True),\n", inout.rnn_sequence_single_size, inout.rnn_hidden_size, num_layers, dropout);
+				}
 			}
 			if (id == -1)
 			{
@@ -591,6 +669,10 @@ namespace cpp_torch
 		inout.in_ = layer[i - 1].out_;					\
 		inout.out_ = inout.in_;							\
 		layer.push_back(inout);							\
+		if (pycode_dump)								\
+		{												\
+			fprintf(pycode_dump, "            nn.%s(),\n", inout.name.c_str());\
+		}												\
 		}
 		
 
@@ -605,6 +687,10 @@ namespace cpp_torch
 		inout.out_ = inout.in_;							\
 		inout.dim = d;									\
 		layer.push_back(inout);							\
+		if (pycode_dump)								\
+		{												\
+			fprintf(pycode_dump, "            nn.%s(dim=%d),\n", inout.name.c_str(),inout.dim);\
+		}												\
 		}
 
 #define ACTIVATION_LAYER2( id_name ) void add_##id_name(float_t negative_slope)	\
@@ -618,6 +704,10 @@ namespace cpp_torch
 		inout.out_ = inout.in_;							\
 		inout.negative_slope = negative_slope;			\
 		layer.push_back(inout);							\
+		if (pycode_dump)								\
+		{												\
+			fprintf(pycode_dump, "            nn.%s(%f,inplace=True),\n", inout.name.c_str(),negative_slope);\
+		}												\
 		}
 
 		ACTIVATION_LAYER(ReLU)
@@ -634,6 +724,21 @@ namespace cpp_torch
 		int debug_dmp = 0;
 		torch::Tensor forward(torch::Tensor x)
 		{
+			if (pycode_dump)
+			{
+				fprintf(pycode_dump, "        )\n\n");
+				fprintf(pycode_dump, "    def forward(self, input):\n");
+				fprintf(pycode_dump, "        if input.is_cuda and self.ngpu > 1:\n");
+				fprintf(pycode_dump, "            output = nn.parallel.data_parallel(self.main, input, range(self.ngpu))\n");
+				fprintf(pycode_dump, "        else:\n");
+				fprintf(pycode_dump, "            output = self.main(input)\n");
+				fprintf(pycode_dump, "        return output\n");
+				fprintf(pycode_dump, "        \n\n");
+				fclose(pycode_dump);
+				if (pycode_dump_only) exit(0);
+			}
+			pycode_dump = NULL;
+
 			const int batch = x.sizes()[0];
 
 			for (int i = 1; i < layer.size(); i++)
@@ -645,6 +750,7 @@ namespace cpp_torch
 					x = x.view({ batch, -1 });
 					x = fc[layer[i].id]->forward(x);
 					if (debug_dmp)cpp_torch::dump_dim(fc[layer[i].id]->name(), x);
+					
 					continue;
 				}
 				if (layer[i].type == cpp_torch::LayerType::CONV2D)
@@ -652,6 +758,7 @@ namespace cpp_torch
 					x = x.view({ -1, layer[i - 1].out_[0], layer[i - 1].out_[1], layer[i - 1].out_[2] });
 					x = conv2d[layer[i].id]->forward(x);
 					if (debug_dmp)cpp_torch::dump_dim(conv2d[layer[i].id]->name(), x);
+					
 					continue;
 				}
 				if (layer[i].type == cpp_torch::LayerType::CONV_TRANSPOSE2D)
@@ -659,6 +766,7 @@ namespace cpp_torch
 					x = x.view({ -1, layer[i - 1].out_[0], layer[i - 1].out_[1], layer[i - 1].out_[2] });
 					x = conv_transpose2d[layer[i].id]->forward(x);
 					if (debug_dmp)cpp_torch::dump_dim(conv_transpose2d[layer[i].id]->name(), x);
+					
 					continue;
 				}
 
@@ -673,6 +781,7 @@ namespace cpp_torch
 					);
 
 					if (debug_dmp)cpp_torch::dump_dim(layer[i].name, x);
+					
 					continue;
 				}
 				if (layer[i].type == cpp_torch::LayerType::AVGPOOL2D)
@@ -684,6 +793,7 @@ namespace cpp_torch
 						{ layer[i].padding[0], layer[i].padding[1] },
 						layer[i].ceil_mode, layer[i].count_include_pad);
 					if (debug_dmp)cpp_torch::dump_dim(layer[i].name, x);
+					
 					continue;
 				}
 
@@ -692,6 +802,7 @@ namespace cpp_torch
 					const int in = layer[i - 1].out_[0]*layer[i - 1].out_[1]*layer[i - 1].out_[2];
 					x = conv_drop[layer[i].id]->forward(x);
 					if (debug_dmp)cpp_torch::dump_dim(conv_drop[layer[i].id]->name(), x);
+					
 					continue;
 				}
 				if (layer[i].type == cpp_torch::LayerType::DROPOUT)
@@ -700,6 +811,7 @@ namespace cpp_torch
 					x = x.view({ -1, in });
 					x = torch::dropout(x, layer[i].dropout_rate, is_training());
 					if (debug_dmp)cpp_torch::dump_dim(layer[i].name, x);
+					
 					continue;
 				}
 				if (layer[i].type == cpp_torch::LayerType::BATCHNORMAL2D)

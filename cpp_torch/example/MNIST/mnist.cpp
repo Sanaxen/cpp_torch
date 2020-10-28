@@ -199,6 +199,7 @@ void learning_and_test_mnist_dataset(torch::Device device)
 
 	std::cout << "end training." << std::endl;
 
+	model.get()->train(false);
 	float_t loss = nn.get_loss(train_images, train_labels, kTestBatchSize);
 	printf("loss:%f\n", loss);
 
