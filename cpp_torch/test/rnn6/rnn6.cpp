@@ -411,7 +411,7 @@ extern "C" _LIBRARY_EXPORTS void torch_read_params(bool train)
 
 	printf("(fc)input_size:%d\n", input_size);
 	printf("(fc)regression:%s\n", regression);
-	printf("(fc)classification:%d\n", classification);
+	printf("classification:%d\n", classification);
 	//
 	printf("test_mode:%d\n", test_mode);
 	printf("pycode_dump_only:%d\n", pycode_dump_only);
