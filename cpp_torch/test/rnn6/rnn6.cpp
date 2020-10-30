@@ -1671,11 +1671,31 @@ extern "C" _LIBRARY_EXPORTS void torch_train(
 		torch::optim::Adam(model.get()->parameters(),
 			torch::optim::AdamOptions(learning_rate));
 
-	if (std::string(opt_type) == "SGD")
+	auto optimizerRMSprop =
+		torch::optim::RMSprop(model.get()->parameters(), 
+			torch::optim::RMSpropOptions(learning_rate));
+
+	auto optimizerAdagrad =
+		torch::optim::Adagrad(model.get()->parameters(),
+			torch::optim::AdagradOptions(learning_rate));
+
+	if (std::string(opt_type) == "sgd")
 	{
 		optimizer = &optimizerSGD;
 	}
 	if (std::string(opt_type) == "adam")
+	{
+		optimizer = &optimizerAdam;
+	}
+	if (std::string(opt_type) == "adagrad")
+	{
+		optimizer = &optimizerAdagrad;
+	}
+	if (std::string(opt_type) == "rmsprop")
+	{
+		optimizer = &optimizerRMSprop;
+	}
+	if (optimizer == nullptr)
 	{
 		optimizer = &optimizerAdam;
 	}
@@ -1793,11 +1813,31 @@ extern "C" _LIBRARY_EXPORTS void torch_train_fc(
 		torch::optim::Adam(model.get()->parameters(),
 			torch::optim::AdamOptions(learning_rate));
 
-	if (std::string(opt_type) == "SGD")
+	auto optimizerRMSprop =
+		torch::optim::RMSprop(model.get()->parameters(),
+			torch::optim::RMSpropOptions(learning_rate));
+
+	auto optimizerAdagrad =
+		torch::optim::Adagrad(model.get()->parameters(),
+			torch::optim::AdagradOptions(learning_rate));
+
+	if (std::string(opt_type) == "sgd")
 	{
 		optimizer = &optimizerSGD;
 	}
 	if (std::string(opt_type) == "adam")
+	{
+		optimizer = &optimizerAdam;
+	}
+	if (std::string(opt_type) == "adagrad")
+	{
+		optimizer = &optimizerAdagrad;
+	}
+	if (std::string(opt_type) == "rmsprop")
+	{
+		optimizer = &optimizerRMSprop;
+	}
+	if (optimizer == nullptr)
 	{
 		optimizer = &optimizerAdam;
 	}
