@@ -159,7 +159,13 @@ extern "C" _LIBRARY_EXPORTS void send_train_images(std::vector<tiny_dnn::vec_t>&
 }
 extern "C" _LIBRARY_EXPORTS void send_train_labels(std::vector<tiny_dnn::vec_t>& data)
 {
+	float scale_ = scale;
+	if (classification >= 2)
+	{
+		scale = 1.0;
+	}
 	scaling_data(train_labels, data);
+	scale = scale_;
 }
 extern "C" _LIBRARY_EXPORTS void send_test_images(std::vector<tiny_dnn::vec_t>& data)
 {
@@ -167,7 +173,13 @@ extern "C" _LIBRARY_EXPORTS void send_test_images(std::vector<tiny_dnn::vec_t>& 
 }
 extern "C" _LIBRARY_EXPORTS void send_test_labels(std::vector<tiny_dnn::vec_t>& data)
 {
+	float scale_ = scale;
+	if (classification >= 2)
+	{
+		scale = 1.0;
+	}
 	scaling_data(test_labels, data);
+	scale = scale_;
 }
 
 extern "C" _LIBRARY_EXPORTS void get_train_images(std::vector<tiny_dnn::vec_t>& data)
@@ -186,6 +198,12 @@ extern "C" _LIBRARY_EXPORTS void get_train_images(std::vector<tiny_dnn::vec_t>& 
 }
 extern "C" _LIBRARY_EXPORTS void get_train_labels(std::vector<tiny_dnn::vec_t>& data)
 {
+	float scale_ = scale;
+	if (classification >= 2)
+	{
+		scale = 1.0;
+	}
+
 	data.clear();
 	std::vector<tiny_dnn::vec_t> yy;
 	for (int i = 0; i < train_labels.size(); i++)
@@ -197,6 +215,7 @@ extern "C" _LIBRARY_EXPORTS void get_train_labels(std::vector<tiny_dnn::vec_t>& 
 		}
 		data.push_back(y);
 	}
+	scale = scale_;
 }
 
 extern "C" _LIBRARY_EXPORTS void get_test_images(std::vector<tiny_dnn::vec_t>& data)
@@ -215,6 +234,11 @@ extern "C" _LIBRARY_EXPORTS void get_test_images(std::vector<tiny_dnn::vec_t>& d
 }
 extern "C" _LIBRARY_EXPORTS void get_test_labels(std::vector<tiny_dnn::vec_t>& data)
 {
+	float scale_ = scale;
+	if (classification >= 2)
+	{
+		scale = 1.0;
+	}
 	data.clear();
 	std::vector<tiny_dnn::vec_t> yy;
 	for (int i = 0; i < test_labels.size(); i++)
@@ -226,6 +250,7 @@ extern "C" _LIBRARY_EXPORTS void get_test_labels(std::vector<tiny_dnn::vec_t>& d
 		}
 		data.push_back(y);
 	}
+	scale = scale_;
 }
 
 extern "C" _LIBRARY_EXPORTS void torch_read_train_params()
