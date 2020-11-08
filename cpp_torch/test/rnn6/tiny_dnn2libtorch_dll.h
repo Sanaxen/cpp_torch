@@ -41,6 +41,8 @@ etc ..
 #define _LIBRARY_EXPORTS __declspec(dllimport)
 #endif
 
+extern "C" _LIBRARY_EXPORTS int cuda_is_available();
+
 extern "C" _LIBRARY_EXPORTS void read_mnist_dataset(const std::string &data_dir_path);
 
 extern "C" _LIBRARY_EXPORTS int getBatchSize();

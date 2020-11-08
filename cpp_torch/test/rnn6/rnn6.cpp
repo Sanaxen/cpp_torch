@@ -102,6 +102,16 @@ cpp_torch::network_torch<cpp_torch::Net>* toNet(void* nn)
 	return (cpp_torch::network_torch<cpp_torch::Net>*)nn;
 }
 
+extern "C" _LIBRARY_EXPORTS int cuda_is_available()
+{
+	torch::DeviceType device_type;
+	if (torch::cuda::is_available()) {
+		std::cout << "CUDA available! Training on GPU." << std::endl;
+		return 0;
+	}
+	return -1;
+}
+
 extern "C" _LIBRARY_EXPORTS void state_reset(std::string& rnn_type , void* nn)
 {
 	//return;
