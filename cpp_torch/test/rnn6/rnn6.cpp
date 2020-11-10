@@ -417,13 +417,13 @@ extern "C" _LIBRARY_EXPORTS void torch_read_params(bool train)
 		learning_rate *= 0.0001;
 	}
 
-	scale = maxvalue;
-	if (fabs(maxvalue) < fabs(minvalue))
-	{
-		scale = minvalue;
-	}
+	//scale = maxvalue;
+	//if (fabs(maxvalue) < fabs(minvalue))
+	//{
+	//	scale = minvalue;
+	//}
 
-	printf("scale:%f\n", scale);
+	//printf("scale:%f\n", scale);
 
 	printf("x_dim:%d\n", x_dim);
 	printf("y_dim:%d\n", y_dim);
