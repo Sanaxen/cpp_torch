@@ -370,16 +370,16 @@ namespace cpp_torch
 				batch_tmp = images.size();
 			}
 
-			printf("%d -> lost:%d\n", images.size(), images.size() % kTrainBatchSize);
-			for (int i = batch_tmp; i >= 2; i--)
-			{
-				if (images.size() % i == 0)
-				{
-					batch_tmp = i;
-					break;
-				}
-			}
-			printf("Please change:kTrainBatchSize:%d -> %d\n", kTrainBatchSize, batch_tmp);
+			//printf("%d -> lost:%d\n", images.size(), images.size() % kTrainBatchSize);
+			//for (int i = batch_tmp; i >= 2; i--)
+			//{
+			//	if (images.size() % i == 0)
+			//	{
+			//		batch_tmp = i;
+			//		break;
+			//	}
+			//}
+			//printf("Please change:kTrainBatchSize:%d -> %d\n", kTrainBatchSize, batch_tmp);
 
 			const int batchNum = (int64_t)((float)images.size() / (float)kTrainBatchSize + 0.5);
 
@@ -920,7 +920,7 @@ namespace cpp_torch
 			std::vector< torch::Tensor> batch_y(batchNum);
 
 			std::vector<float_t> loss_list(in.size(), 0.0);
-#pragma omp parallel for
+//#pragma omp parallel for
 			for (int i = 0; i < batchNum; i++) {
 
 				//if (!pre_make_batch)

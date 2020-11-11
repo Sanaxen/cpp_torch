@@ -59,6 +59,7 @@ namespace rnn_dll_variables
 	float tolerance = 1.0e-6;
 	char rnn_type[16] = { '\0' };
 
+	char weight_init_type[16] = { '\0' };
 	char regression[16] = { '\0' };
 	int input_size = 0;
 	int classification = 0;
@@ -392,6 +393,10 @@ extern "C" _LIBRARY_EXPORTS void torch_read_params(bool train)
 		{
 			sscanf(buf, "pycode_dump_only:%d", &pycode_dump_only);
 		}
+		if (strstr(buf, "weight_init_type"))
+		{
+			sscanf(buf, "weight_init_type:%s", weight_init_type);
+		}
 		//
 
 		if (train)
@@ -443,6 +448,7 @@ extern "C" _LIBRARY_EXPORTS void torch_read_params(bool train)
 	printf("rnn_type:%s\n", rnn_type);
 	printf("state_reset_mode:%d\n", state_reset_mode ? 1 : 0);
 	printf("batch_shuffle:%d\n", batch_shuffle ? 1 : 0);
+	printf("weight_init_type:%s\n", weight_init_type);
 
 	printf("(fc)input_size:%d\n", input_size);
 	printf("(fc)regression:%s\n", regression);
@@ -1657,10 +1663,45 @@ extern "C" _LIBRARY_EXPORTS void torch_train(
 	}
 
 	//xavier
-	for (auto w : model.get()->fc)
+	if (std::string(weight_init_type) == "xavier")
 	{
-		torch::nn::init::xavier_uniform_(w->weight, torch::nn::init::calculate_gain(torch::kReLU));
+		for (auto w : model.get()->fc)
+		{
+			torch::nn::init::xavier_uniform_(w->weight, torch::nn::init::calculate_gain(torch::kReLU));
+		}
 	}
+#if 1
+	//uniform
+	if (std::string(weight_init_type) == "uniform")
+	{
+		for (auto w : model.get()->fc)
+		{
+			torch::nn::init::uniform_(w->weight);
+		}
+	}
+	//gaussian
+	if (std::string(weight_init_type) == "gaussian")
+	{
+		for (auto w : model.get()->fc)
+		{
+			torch::nn::init::normal_(w->weight);
+		}
+	}
+	if (std::string(weight_init_type) == "constant")
+	{
+		for (auto w : model.get()->fc)
+		{
+			torch::nn::init::constant_(w->weight, 0);
+		}
+	}
+	if (std::string(weight_init_type) == "he")
+	{
+		for (auto w : model.get()->fc)
+		{
+			torch::nn::init::kaiming_normal_(w->weight);
+		}
+	}
+#endif
 	for (auto w : model.get()->lstm)
 	{
 		//auto &x = w->all_weights();
@@ -1669,24 +1710,6 @@ extern "C" _LIBRARY_EXPORTS void torch_train(
 		//	torch::nn::init::xavier_uniform_(xx, torch::nn::init::calculate_gain(torch::kReLU));
 		//}
 	}
-#if 0
-	//uniform
-	for (auto w : model.get()->fc)
-	{
-		torch::nn::init::uniform_(w->weight, torch::nn::init::calculate_gain(torch::kReLU));
-	}
-	for (auto w : model.get()->lstm)
-	{
-	}
-	//gaussian
-	for (auto w : model.get()->fc)
-	{
-		torch::nn::init::normal_(w->weight, torch::nn::init::calculate_gain(torch::kReLU));
-	}
-	for (auto w : model.get()->lstm)
-	{
-	}
-#endif
 
 	nn_ = new cpp_torch::network_torch<cpp_torch::Net>(model, device);
 
@@ -1814,20 +1837,43 @@ extern "C" _LIBRARY_EXPORTS void torch_train_fc(
 
 
 	//xavier
-	for (auto w : model.get()->fc)
+	if (std::string(weight_init_type) == "xavier")
 	{
-		torch::nn::init::xavier_uniform_(w->weight, torch::nn::init::calculate_gain(torch::kReLU));
+		for (auto w : model.get()->fc)
+		{
+			torch::nn::init::xavier_uniform_(w->weight, torch::nn::init::calculate_gain(torch::kReLU));
+		}
 	}
-#if 0
+#if 1
 	//uniform
-	for (auto w : model.get()->fc)
+	if (std::string(weight_init_type) == "uniform")
 	{
-		torch::nn::init::uniform_(w->weight, torch::nn::init::calculate_gain(torch::kReLU));
+		for (auto w : model.get()->fc)
+		{
+			torch::nn::init::uniform_(w->weight);
+		}
 	}
 	//gaussian
-	for (auto w : model.get()->fc)
+	if (std::string(weight_init_type) == "gaussian")
 	{
-		torch::nn::init::normal_(w->weight, torch::nn::init::calculate_gain(torch::kReLU));
+		for (auto w : model.get()->fc)
+		{
+			torch::nn::init::normal_(w->weight);
+		}
+	}
+	if (std::string(weight_init_type) == "constant")
+	{
+		for (auto w : model.get()->fc)
+		{
+			torch::nn::init::constant_(w->weight, 0);
+		}
+	}
+	if (std::string(weight_init_type) == "he")
+	{
+		for (auto w : model.get()->fc)
+		{
+			torch::nn::init::kaiming_normal_(w->weight);
+		}
 	}
 #endif
 
