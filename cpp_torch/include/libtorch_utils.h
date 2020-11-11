@@ -526,6 +526,7 @@ namespace cpp_torch
 						std::cout << "loss value is nan" << std::endl;
 					}
 					AT_ASSERT(!std::isnan(loss.template item<float_t>()));
+
 					loss.backward();
 
 					if ( fabs(clip_grad_value) > 0.0)
@@ -897,19 +898,19 @@ namespace cpp_torch
 				batch_tmp = in.size();
 			}
 
-			printf("lost:%d\n", in.size() % BatchSize);
-			for (int i = batch_tmp; i >= 2; i--)
-			{
-				if (images.size() % i == 0)
-				{
-					batch_tmp = i;
-					break;
-				}
-			}
-			printf("change:BatchSize:%d -> %d\n", BatchSize, batch_tmp);
-			BatchSize = batch_tmp;
+			//printf("lost:%d\n", in.size() % BatchSize);
+			//for (int i = batch_tmp; i >= 2; i--)
+			//{
+			//	if (images.size() % i == 0)
+			//	{
+			//		batch_tmp = i;
+			//		break;
+			//	}
+			//}
+			//printf("change:BatchSize:%d -> %d\n", BatchSize, batch_tmp);
+			//BatchSize = batch_tmp;
 
-			const int batchNum = in.size() / BatchSize;
+			const int batchNum = (const int)((float)in.size() / BatchSize +0.5);
 			if (batchNum == 0)
 			{
 				printf("input size:%d BatchSize:%d\n", in.size(), BatchSize);
