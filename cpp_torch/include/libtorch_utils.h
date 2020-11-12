@@ -622,30 +622,30 @@ namespace cpp_torch
 				return false;
 			}
 
-			torch::NoGradGuard no_grad;
-			model->eval();
+			//torch::NoGradGuard no_grad;
+			//model->eval();
 			model.get()->train(false);
 			float loss_ave = 0.0;
 			int correct = 0;
 
-			int batch_tmp = kTestBatchSize;
-			if (batch_tmp > images.size())
-			{
-				batch_tmp = images.size();
-			}
+			//int batch_tmp = kTestBatchSize;
+			//if (batch_tmp > images.size())
+			//{
+			//	batch_tmp = images.size();
+			//}
 
-			printf("%d -> lost:%d\n", images.size(), images.size() % kTestBatchSize);
-			for (int i = batch_tmp; i >= 2; i--)
-			{
-				if (images.size() % i == 0) 
-				{
-					batch_tmp = i;
-					break;
-				}
-			}
-			printf("Please change:kTestBatchSize:%d -> %d\n", kTestBatchSize, batch_tmp);
+			//printf("%d -> lost:%d\n", images.size(), images.size() % kTestBatchSize);
+			//for (int i = batch_tmp; i >= 2; i--)
+			//{
+			//	if (images.size() % i == 0) 
+			//	{
+			//		batch_tmp = i;
+			//		break;
+			//	}
+			//}
+			//printf("Please change:kTestBatchSize:%d -> %d\n", kTestBatchSize, batch_tmp);
 
-			int testNum = images.size() / kTestBatchSize;
+			int testNum = (int)((float)images.size() / kTestBatchSize + 0.5);
 			if (testNum == 0)
 			{
 				throw error_exception("input size < test batch size");
@@ -787,8 +787,8 @@ namespace cpp_torch
 		 **/
 		inline torch::Tensor predict(torch::Tensor& X)
 		{
-			torch::NoGradGuard no_grad;
-			model->eval();
+			//torch::NoGradGuard no_grad;
+			//model->eval();
 			model.get()->train(false);
 			torch::Tensor y =  model.get()->forward(X.to(device));
 
@@ -799,8 +799,8 @@ namespace cpp_torch
 		 **/
 		inline std::vector<tiny_dnn::tensor_t> predict(torch::Tensor& X, const int batch)
 		{
-			torch::NoGradGuard no_grad;
-			model->eval();
+			//torch::NoGradGuard no_grad;
+			//model->eval();
 			model.get()->train(false);
 			torch::Tensor y = model.get()->forward(X.to(device));
 
@@ -813,8 +813,8 @@ namespace cpp_torch
 		**/
 		inline tiny_dnn::vec_t predict(tiny_dnn::vec_t& X)
 		{
-			torch::NoGradGuard no_grad;
-			model->eval();
+			//torch::NoGradGuard no_grad;
+			//model->eval();
 			model.get()->train(false);
 			torch::Tensor images_torch = toTorchTensors(X).view({ 1, in_channels, in_H, in_W }).to(device);
 
@@ -830,8 +830,8 @@ namespace cpp_torch
 		**/
 		inline tiny_dnn::label_t predict_label(tiny_dnn::vec_t& X)
 		{
-			torch::NoGradGuard no_grad;
-			model->eval();
+			//torch::NoGradGuard no_grad;
+			//model->eval();
 			model.get()->train(false);
 			torch::Tensor images_torch = toTorchTensors(X).view({ 1, in_channels, in_H, in_W }).to(device);
 
@@ -892,11 +892,11 @@ namespace cpp_torch
 			toTorchTensors(in, images);
 			toTorchTensors(t, labels);
 
-			int batch_tmp = BatchSize;
-			if (batch_tmp > in.size())
-			{
-				batch_tmp = in.size();
-			}
+			//int batch_tmp = BatchSize;
+			//if (batch_tmp > in.size())
+			//{
+			//	batch_tmp = in.size();
+			//}
 
 			//printf("lost:%d\n", in.size() % BatchSize);
 			//for (int i = batch_tmp; i >= 2; i--)
@@ -919,6 +919,10 @@ namespace cpp_torch
 
 			std::vector< torch::Tensor> batch_x(batchNum);
 			std::vector< torch::Tensor> batch_y(batchNum);
+
+			//torch::NoGradGuard no_grad;
+			//model->eval();
+			model.get()->train(false);
 
 			std::vector<float_t> loss_list(in.size(), 0.0);
 //#pragma omp parallel for
@@ -965,7 +969,7 @@ namespace cpp_torch
 			for (size_t i = 0; i < batchNum; i++) {
 				sum_loss += loss_list[i];
 			}
-			return sum_loss;
+			return sum_loss/ BatchSize;
 		}
 
 		void set_tolerance(const float max_tol, const float min_tol, int div = 5)
