@@ -542,7 +542,7 @@ namespace cpp_torch
 				}
 
 				if (stop_training_) break;
-				loss_value = loss_ave / batchNum;
+				loss_value = loss_ave / kTrainBatchSize;
 				on_epoch_enumerate();
 				model.get()->train(true);
 			}
@@ -645,7 +645,7 @@ namespace cpp_torch
 			//}
 			//printf("Please change:kTestBatchSize:%d -> %d\n", kTestBatchSize, batch_tmp);
 
-			int testNum = (int)((float)images.size() / kTestBatchSize + 0.5);
+			int testNum = images.size() / kTestBatchSize;
 			if (testNum == 0)
 			{
 				throw error_exception("input size < test batch size");

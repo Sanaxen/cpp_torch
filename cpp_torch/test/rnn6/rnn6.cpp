@@ -60,6 +60,7 @@ namespace rnn_dll_variables
 	char rnn_type[16] = { '\0' };
 
 	char weight_init_type[16] = { '\0' };
+	char activation_fnc[16] = { '\0' };
 	char regression[16] = { '\0' };
 	int input_size = 0;
 	int classification = 0;
@@ -397,6 +398,10 @@ extern "C" _LIBRARY_EXPORTS void torch_read_params(bool train)
 		{
 			sscanf(buf, "weight_init_type:%s", weight_init_type);
 		}
+		if (strstr(buf, "activation_fnc"))
+		{
+			sscanf(buf, "activation_fnc:%s", activation_fnc);
+		}
 		//
 
 		if (train)
@@ -422,15 +427,13 @@ extern "C" _LIBRARY_EXPORTS void torch_read_params(bool train)
 		learning_rate *= 0.0001;
 	}
 
-	if (rnn_layers >= 1)
-	{
-		scale = maxvalue;
-		if (fabs(maxvalue) < fabs(minvalue))
-		{
-			scale = fabs(minvalue);
-		}
-	}
-	printf("scale:%f\n", scale);
+	//scale = maxvalue;
+	//if (fabs(maxvalue) < fabs(minvalue))
+	//{
+	//	scale = minvalue;
+	//}
+
+	//printf("scale:%f\n", scale);
 
 	printf("x_dim:%d\n", x_dim);
 	printf("y_dim:%d\n", y_dim);
@@ -451,6 +454,7 @@ extern "C" _LIBRARY_EXPORTS void torch_read_params(bool train)
 	printf("state_reset_mode:%d\n", state_reset_mode ? 1 : 0);
 	printf("batch_shuffle:%d\n", batch_shuffle ? 1 : 0);
 	printf("weight_init_type:%s\n", weight_init_type);
+	printf("activation_fnc:%s\n", activation_fnc);
 
 	printf("(fc)input_size:%d\n", input_size);
 	printf("(fc)regression:%s\n", regression);
@@ -1589,6 +1593,11 @@ extern "C" _LIBRARY_EXPORTS void Train(
 			on_enumerate_epoch);
 }
 
+void add_activatin(cpp_torch::Net& model)
+{
+	if ( std::string(activation_fnc) == "tanh")model.get()->add_Tanh();
+	if ( std::string(activation_fnc) == "relu")model.get()->add_ReLU();
+}
 
 extern "C" _LIBRARY_EXPORTS void torch_train(
 	std::vector<tiny_dnn::vec_t>& train_images_,
@@ -1621,10 +1630,10 @@ extern "C" _LIBRARY_EXPORTS void torch_train(
 
 	size_t usize = input_size * 1;
 	model.get()->add_fc(usize, false);
-	model.get()->add_Tanh();
+	add_activatin(model);
 
 	model.get()->add_fc(input_size, false);
-	model.get()->add_Tanh();
+	add_activatin(model);
 
 	if (rnn_layers <= 0) rnn_layers = 1;
 #ifdef RNN_LAYERS_OPT
@@ -1632,11 +1641,11 @@ extern "C" _LIBRARY_EXPORTS void torch_train(
 	model.get()->add_Tanh();
 #else
 	model.get()->add_recurrent(std::string("lstm"), sequence_length, hidden_size);
-	model.get()->add_Tanh();
+	add_activatin(model);
 	for (int i = 1; i < rnn_layers; i++)
 	{
 		model.get()->add_recurrent(std::string("lstm"), 1, hidden_size);
-		model.get()->add_Tanh();
+		add_activatin(model);
 	}
 #endif
 
@@ -1654,14 +1663,18 @@ extern "C" _LIBRARY_EXPORTS void torch_train(
 		{
 			model.get()->add_fc(sz);
 		}
-		model.get()->add_Tanh();
+		add_activatin(model);
 	}
-	model.get()->add_fc(train_labels[0].size());
-	model.get()->add_Tanh();
+	model.get()->add_fc(sz);
+	add_activatin(model);
 
 	if (classification >= 2)
 	{
 		model.get()->add_LogSoftmax(1);
+	}
+	else
+	{
+		model.get()->add_fc(train_labels[0].size());
 	}
 
 	//xavier
@@ -1808,19 +1821,19 @@ extern "C" _LIBRARY_EXPORTS void torch_train_fc(
 	else
 	{
 		model.get()->add_fc(input_size);
-		model.get()->add_Tanh();
+		add_activatin(model);
 
 		for (int i = 0; i < n_layers; i++) {
 			if (dropout && i == n_layers - 1) model.get()->add_dropout(dropout);
 			model.get()->add_fc(input_size);
-			model.get()->add_Tanh();
+			add_activatin(model);
 		}
 	}
 	if (classification >= 2)
 	{
 		if (dropout) model.get()->add_dropout(dropout);
 		model.get()->add_fc(std::min((int)input_size, classification * 2));
-		model.get()->add_Tanh();
+		add_activatin(model);
 		model.get()->add_fc(classification);
 	}
 	else
