@@ -60,6 +60,7 @@ namespace cpp_torch
 		int rnn_hidden_size = 0;
 		int rnn_seqence_length = 1;
 		int rnn_sequence_single_size = 1;
+		int rnn_num_layers = 1;
 
 		int dim = 1;	//softmax, logsoftmax
 		float_t dropout_rate = 0.0;
@@ -591,6 +592,7 @@ namespace cpp_torch
 			inout.rnn_hidden_size = hidden_size;
 			inout.rnn_seqence_length = sequence_length;
 			inout.rnn_sequence_single_size = in / sequence_length;
+			inout.rnn_num_layers = num_layers;
 
 			std::cout << layer[i - 1].out_ << std::endl;
 			inout.in_ = { 1,sequence_length, inout.rnn_sequence_single_size };
@@ -656,6 +658,19 @@ namespace cpp_torch
 			inout.id = id;
 			//inout.out_ = { 1,sequence_length, hidden_size };
 			inout.out_ = { 1, num_layers, inout.rnn_hidden_size };
+			
+			if (rnn_type == "lstm" && num_layers > 1)
+			{
+				inout.out_ = { 1, 1, inout.rnn_hidden_size*inout.rnn_seqence_length };
+			}
+			if (rnn_type == "gru")
+			{
+				inout.out_ = { 1, 1, inout.rnn_hidden_size*inout.rnn_seqence_length };
+			}
+			if (rnn_type == "rnn")
+			{
+				inout.out_ = { 1, 1, inout.rnn_hidden_size*inout.rnn_seqence_length };
+			}
 			layer.emplace_back(inout);
 
 			std::cout << rnn_type << "{" << inout.in_ << "}->{" << inout.out_ << "}" << std::endl;
@@ -919,14 +934,27 @@ namespace cpp_torch
 
 					if (layer[i].type == cpp_torch::LayerType::LSTM)
 					{
-						//x = std::get<0>(lstm[layer[i].id]->forward(x));
-						x = std::get<0>(std::get<1>(lstm[layer[i].id]->forward(x)));
-						
+						if (layer[i].rnn_num_layers > 1)
+						{
+							x = std::get<0>(lstm[layer[i].id]->forward(x));
+						}
+						else
+						{
+							x = std::get<0>(std::get<1>(lstm[layer[i].id]->forward(x)));
+						}
+
 						if (pycode_dump)
 						{
 							fprintf(pycode_dump, "        ");
 							fprintf(pycode_dump, "x,(hn,cn) = self.lstm%d(x)\n", layer[i].id);
-							fprintf(pycode_dump, "        x = hn\n");
+							if (layer[i].rnn_num_layers > 1)
+							{
+								//fprintf(pycode_dump, "        x = x\n");
+							}
+							else
+							{
+								fprintf(pycode_dump, "        x = hn\n");
+							}
 						}
 					}else
 					if (layer[i].type == cpp_torch::LayerType::GRU)
@@ -935,8 +963,8 @@ namespace cpp_torch
 						if (pycode_dump)
 						{
 							fprintf(pycode_dump, "        ");
-							fprintf(pycode_dump, "x,(hn,cn) = self.gru%d(x)\n", layer[i].id);
-							fprintf(pycode_dump, "x = hn\n");
+							fprintf(pycode_dump, "x,hn = self.gru%d(x)\n", layer[i].id);
+							//fprintf(pycode_dump, "        x = hn\n");
 						}
 					}else
 					if (layer[i].type == cpp_torch::LayerType::RNN)
@@ -945,8 +973,8 @@ namespace cpp_torch
 						if (pycode_dump)
 						{
 							fprintf(pycode_dump, "        ");
-							fprintf(pycode_dump, "x,(hn,cn) = self.rnn%d(x)\n", layer[i].id);
-							fprintf(pycode_dump, "x = hn\n");
+							fprintf(pycode_dump, "x,hn = self.rnn%d(x)\n", layer[i].id);
+							//fprintf(pycode_dump, "        x = hn\n");
 						}
 					}
 					//x = x.view({ batch,  layer[i].rnn_seqence_length, -1 });
