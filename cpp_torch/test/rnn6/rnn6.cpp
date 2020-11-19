@@ -1637,14 +1637,14 @@ extern "C" _LIBRARY_EXPORTS void torch_train(
 
 	if (rnn_layers <= 0) rnn_layers = 1;
 #ifdef RNN_LAYERS_OPT
-	model.get()->add_recurrent(std::string("lstm"), sequence_length, hidden_size, rnn_layers, dropout);
+	model.get()->add_recurrent(std::string(rnn_type), sequence_length, hidden_size, rnn_layers, dropout);
 	model.get()->add_Tanh();
 #else
-	model.get()->add_recurrent(std::string("lstm"), sequence_length, hidden_size);
+	model.get()->add_recurrent(std::string(rnn_type), sequence_length, hidden_size);
 	add_activatin(model);
 	for (int i = 1; i < rnn_layers; i++)
 	{
-		model.get()->add_recurrent(std::string("lstm"), 1, hidden_size);
+		model.get()->add_recurrent(std::string(rnn_type), 1, hidden_size);
 		add_activatin(model);
 	}
 #endif
