@@ -35,7 +35,8 @@ namespace cpp_torch
 		Tanh = 106,
 		Softmax = 107,
 		LogSoftmax = 108,
-		Squeeze = 109
+		Squeeze = 109,
+		Attention = 200
 	};
 
 	class LayerInOut
@@ -88,6 +89,8 @@ namespace cpp_torch
 		int dropout_count = 0;
 		int pixel_shuffle_count = 0;
 
+		int attention_count = 0;
+
 		int pycode_dump_only = 0;
 		FILE* pycode_dump = NULL;
 		std::vector<torch::nn::Conv2d> conv2d;
@@ -138,6 +141,18 @@ namespace cpp_torch
 			std::cout << "input {" << inout.in_ << "}->{" << inout.out_ << "}" << std::endl;
 		}
 
+
+		void add_attaentin()
+		{
+			cpp_torch::LayerInOut inout;
+			inout.name = "attaentin";
+			inout.type = cpp_torch::LayerType::Attention;
+			inout.id = attention_count++;
+			const int i = layer.size();
+			inout.in_ = layer[i - 1].out_;
+			inout.out_ = inout.in_;
+			layer.push_back(inout);
+		}
 
 		/**
 		* compute fully-connected(matmul) operation
@@ -740,6 +755,31 @@ namespace cpp_torch
 			for (int i = 1; i < layer.size(); i++)
 			{
 				if (debug_dmp)cpp_torch::dump_dim(std::string("IN"), x);
+				if (layer[i].type == cpp_torch::LayerType::Attention)
+				{
+					const int in = layer[i - 1].out_[0] * layer[i - 1].out_[1] * layer[i - 1].out_[2];
+					x = x.view({ batch, -1 });
+					//cpp_torch::dump_dim("in", x);
+
+					auto y = torch::softmax(x, 1);
+					y = y.view({ batch, -1 });
+					//cpp_torch::dump_dim("y", y);
+
+					x = x*y;
+					//cpp_torch::dump_dim("xx", x);
+					if (pycode_dump)
+					{
+						fprintf(pycode_dump, "\n        ");
+						fprintf(pycode_dump, "x = x.view(batch_size, -1)\n");
+						fprintf(pycode_dump, "\n        ");
+						fprintf(pycode_dump, "y = F.softmax(x, 1)\n");
+						fprintf(pycode_dump, "\n        ");
+						fprintf(pycode_dump, "y = y.view(batch_size, -1)\n");
+						fprintf(pycode_dump, "\n        ");
+						fprintf(pycode_dump, "x = x * y\n");
+					}
+					continue;
+				}
 				if (layer[i].type == cpp_torch::LayerType::FC)
 				{
 					const int in = layer[i - 1].out_[0]*layer[i - 1].out_[1]*layer[i - 1].out_[2];

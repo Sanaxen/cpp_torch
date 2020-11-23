@@ -65,6 +65,7 @@ namespace rnn_dll_variables
 	int input_size = 0;
 	int classification = 0;
 	int num_class = 0;
+	int use_attention = 1;
 
 	std::string optimizer_name = "adam";
 	bool batch_shuffle = true;
@@ -375,6 +376,11 @@ extern "C" _LIBRARY_EXPORTS void torch_read_params(bool train)
 			sscanf(buf, "classification:%d", &classification);
 			if (classification >= 2) num_class = classification;
 		}
+		if (strstr(buf, "use_attention"))
+		{
+			sscanf(buf, "use_attention:%d", &use_attention);
+		}
+		//
 		if (strstr(buf, "state_reset_mode"))
 		{
 			int dmy = 0;
@@ -455,6 +461,7 @@ extern "C" _LIBRARY_EXPORTS void torch_read_params(bool train)
 	printf("batch_shuffle:%d\n", batch_shuffle ? 1 : 0);
 	printf("weight_init_type:%s\n", weight_init_type);
 	printf("activation_fnc:%s\n", activation_fnc);
+	printf("use_attention:%d\n", use_attention);
 
 	printf("(fc)input_size:%d\n", input_size);
 	printf("(fc)regression:%s\n", regression);
@@ -1638,7 +1645,12 @@ extern "C" _LIBRARY_EXPORTS void torch_train(
 	if (rnn_layers <= 0) rnn_layers = 1;
 #ifdef RNN_LAYERS_OPT
 	model.get()->add_recurrent(std::string(rnn_type), sequence_length, hidden_size, rnn_layers, dropout);
-	model.get()->add_Tanh();
+	add_activatin(model);
+
+	if (use_attention)
+	{
+		model.get()->add_attaentin();
+	}
 #else
 	model.get()->add_recurrent(std::string(rnn_type), sequence_length, hidden_size);
 	add_activatin(model);
@@ -1646,6 +1658,10 @@ extern "C" _LIBRARY_EXPORTS void torch_train(
 	{
 		model.get()->add_recurrent(std::string(rnn_type), 1, hidden_size);
 		add_activatin(model);
+	}
+	if (attention)
+	{
+		model.get()->add_attaentin();
 	}
 #endif
 
