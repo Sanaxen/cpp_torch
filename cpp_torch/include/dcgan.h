@@ -69,6 +69,7 @@ namespace cpp_torch
 		bool discriminator_noise = false;//(Label Smoothing) Salimans et. al. 2016
 		float noize_range = 0.3;
 		float discriminator_flip = 0.0;
+		bool batch_shuffle = false;
 
 		DCGAN(
 			cpp_torch::network_torch<G_Model> g_nn_, 
@@ -147,6 +148,8 @@ namespace cpp_torch
 			std::uniform_real_distribution<> noisy_fake(0.0, noise);
 			std::uniform_real_distribution<> noisy_real(1.0 - noise, 0.9 + noise);
 
+			std::mt19937 get_rand_mt;
+
 			for (size_t epoch = 0; epoch < kNumberOfEpochs; ++epoch)
 			{
 				if (!d_nn.pre_make_batch)
@@ -162,8 +165,20 @@ namespace cpp_torch
 					batchNum = batch_x.size();
 				}
 
-				for (int batch_idx = 0; batch_idx < batchNum; batch_idx++)
+				std::vector<int> batch_idx_list;
+				for (int i = 0; i < batchNum; i++)
 				{
+					batch_idx_list.push_back(i);
+				}
+
+				if (batch_shuffle)
+				{
+					std::shuffle(batch_idx_list.begin(), batch_idx_list.end(), get_rand_mt);
+				}
+
+				for (int b_idx = 0; b_idx < batchNum; b_idx++)
+				{
+					const int batch_idx = batch_idx_list[b_idx];
 					// ======= Generator training =========
 					//Generate fake image
 
