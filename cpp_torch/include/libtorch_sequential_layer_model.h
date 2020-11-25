@@ -22,6 +22,10 @@ namespace cpp_torch
 		BATCHNORMAL2D = 7,
 		CONV_TRANSPOSE2D = 8,
 		PIXEL_SHUFFLE = 9,
+
+		BATCHNORMAL1D = 10,
+		CONV1D = 11,
+
 		RNN = 90,
 		LSTM = 91,
 		GRU = 92,
@@ -71,14 +75,14 @@ namespace cpp_torch
 
 	struct NetImpl : torch::nn::Module {
 		NetImpl() :
-			fc(1, nullptr), conv2d(1, nullptr),
-			conv_drop(1, nullptr), bn2d(1, nullptr),
+			fc(1, nullptr), conv2d(1, nullptr), conv1d(1, nullptr),
+			conv_drop(1, nullptr), bn2d(1, nullptr), bn1d(1, nullptr),
 			lstm(1, nullptr),gru(1, nullptr), rnn(1, nullptr),
-			conv_transpose2d(1, nullptr),
+			conv_transpose2d(1, nullptr), 
 			device(torch::kCPU)
 		{
-			fc.clear();	conv2d.clear();	
-			conv_drop.clear();	bn2d.clear();
+			fc.clear();	conv2d.clear();	conv1d.clear();
+			conv_drop.clear();	bn2d.clear(); bn1d.clear();
 			lstm.clear();gru.clear();rnn.clear(),
 			conv_transpose2d.clear();
 		}
@@ -94,10 +98,12 @@ namespace cpp_torch
 		int pycode_dump_only = 0;
 		FILE* pycode_dump = NULL;
 		std::vector<torch::nn::Conv2d> conv2d;
+		std::vector<torch::nn::Conv1d> conv1d;
 		std::vector<torch::nn::ConvTranspose2d> conv_transpose2d;
 		std::vector<torch::nn::Linear> fc;
 		std::vector<torch::nn::Dropout2d> conv_drop;
 		std::vector<torch::nn::BatchNorm2d> bn2d;
+		std::vector<torch::nn::BatchNorm1d> bn1d;
 		std::vector<torch::nn::LSTM> lstm;
 		std::vector<torch::nn::GRU> gru;
 		std::vector<torch::nn::RNN> rnn;
@@ -105,6 +111,18 @@ namespace cpp_torch
 
 		torch::Device device;
 		std::vector<cpp_torch::LayerInOut> layer;
+
+		std::vector<int> getOutput()
+		{
+			return layer[layer.size() - 1].out_;
+		}
+		int getOutputSize()
+		{
+			return layer[layer.size() - 1].out_[0] *
+				layer[layer.size() - 1].out_[1] *
+				layer[layer.size() - 1].out_[2];
+		}
+
 		void setInput(int channels, int w, int h)
 		{
 			pycode_dump = fopen("torch_pycode.dmp", "w");
@@ -142,8 +160,12 @@ namespace cpp_torch
 		}
 
 
-		void add_attaentin()
+		void add_attaentin(int out)
 		{
+			std::cout << "--- attaentin --" << std::endl;
+			add_fc(out, false);
+			//add_bn1d();
+
 			cpp_torch::LayerInOut inout;
 			inout.name = "attaentin";
 			inout.type = cpp_torch::LayerType::Attention;
@@ -152,6 +174,9 @@ namespace cpp_torch
 			inout.in_ = layer[i - 1].out_;
 			inout.out_ = inout.in_;
 			layer.push_back(inout);
+
+			add_Tanh();
+			std::cout << "attaentin {" << inout.in_ << "}->{" << inout.out_ << "}" << std::endl;
 		}
 
 		/**
@@ -582,6 +607,104 @@ namespace cpp_torch
 		}
 
 		/**
+		* constructing Batch Normalization layer
+		* @param momentum        [in] momentum in the computation of the exponential
+		* @param eos             [in] The epsilon value added for numerical stability.
+		**/
+		void add_bn1d(float_t momentum = 0.1, float_t eps = 1e-5)
+		{
+			int id = bn1d.size();
+			cpp_torch::LayerInOut inout;
+			inout.name = "batchnorml1d";
+			inout.type = cpp_torch::LayerType::BATCHNORMAL1D;
+			inout.id = id;
+
+			const int i = layer.size();
+			inout.in_ = layer[i - 1].out_;
+			bn1d.emplace_back(register_module("bn1d" + std::to_string(id), torch::nn::BatchNorm1d(torch::nn::BatchNorm1dOptions(inout.in_[0]).eps(eps).momentum(momentum))));
+
+			inout.out_ = inout.in_;
+			//printf("out %d %d %d ->", inout.outC, inout.outH, inout.outW);
+			layer.emplace_back(inout);
+
+
+			if (pycode_dump)
+			{
+				fprintf(pycode_dump, "        ");
+				fprintf(pycode_dump, "self.batchn1d%d = nn.BatchNorm1d(%d,eps=%f,momentum=%f)\n", id, inout.in_[0], eps, momentum);
+			}
+			std::cout << "bn1d {" << inout.in_ << "}->{" << inout.out_ << "}" << std::endl;
+		}
+
+		/**
+		* 1D convolution layer
+		*
+		* take input as two-dimensional *image* and applying filtering operation.
+		**/
+		/**
+		* constructing convolutional layer
+		*
+		* @param input_channels  [in] input image channels (grayscale=1, rgb=3)
+		* @param output_channels [in] output image channels
+		* @param kernel_size  [in] window(kernel) size of convolution
+		* @param stride       [in] stride size
+		* @param padding      [in] padding size
+		* @param dilation     [in] dilation
+		* @param bias         [in] whether to add a bias vector to the filter
+		**/
+		void add_conv1d_(int input_channels, int output_channels, std::vector<int> kernel_size = { 1 }, std::vector<int> stride = { 1 }, std::vector<int> padding = { 0 }, std::vector<int> dilation = { 1 }, bool bias = true)
+		{
+			int id = conv1d.size();
+			cpp_torch::LayerInOut inout;
+			inout.name = "conv1d";
+			inout.type = cpp_torch::LayerType::CONV1D;
+			inout.id = id;
+
+			const int i = layer.size();
+
+			inout.in_ = { input_channels, layer[i - 1].out_[1] * layer[i - 1].out_[2] };
+
+			auto& l = register_module("conv1d" + std::to_string(id), torch::nn::Conv1d(torch::nn::Conv1dOptions(input_channels, output_channels, kernel_size[0]).bias(bias).padding(padding[0]).stride(stride[0]).dilation(dilation[0])));
+			conv1d.emplace_back(l);
+
+			inout.out_ = {
+				output_channels,
+				1,
+				(int)floor((double)(inout.in_[1] + 2 * padding[0] - dilation[0] * (kernel_size[0] - 1) - 1) / (double)stride[0] + 1)
+			};
+
+			inout.bias = bias;
+			inout.dilation = dilation;
+			inout.kernel_size = kernel_size;
+			inout.padding = padding;
+			inout.stride = stride;
+			layer.emplace_back(inout);
+
+			if (pycode_dump)
+			{
+				fprintf(pycode_dump, "        ");
+				fprintf(pycode_dump, "self.conv1d%d = nn.Conv1d(%d,%d,%d,stride=%d,padding=%d,dilation=%d,bias=%s)\n", id, input_channels, output_channels, kernel_size[0], stride[0], padding[0], dilation[0], bias ? "True" : "False");
+			}
+			std::cout << "conv {" << inout.in_ << "}->{" << inout.out_ << "}" << std::endl;
+		}
+
+		/**
+		* constructing convolutional layer
+		*
+		* @param input_channels  [in] input image channels (grayscale=1, rgb=3)
+		* @param output_channels [in] output image channels
+		* @param kernel_size     [in] window(kernel) size of convolution
+		* @param stride       [in] stride size
+		* @param padding         [in] padding size
+		* @param dilation     [in] dilation
+		* @param bias         [in] whether to add a bias vector to the filter
+		**/
+		void add_conv1d(int input_channels, int output_channels, int kernel_size, int stride = 1, int padding = 0, int dilation = 1, bool bias = true)
+		{
+			add_conv1d_(input_channels, output_channels, { kernel_size}, { stride }, { padding }, { dilation }, bias);
+		}
+
+		/**
 		* compute multi-layer long-short-term-memory (RNN)
 		**/
 		/**
@@ -799,12 +922,30 @@ namespace cpp_torch
 					}
 					continue;
 				}
+				if (layer[i].type == cpp_torch::LayerType::CONV1D)
+				{
+					x = x.view({ -1, layer[i - 1].out_[0], layer[i - 1].out_[1]*layer[i - 1].out_[2] });
+					x = conv1d[layer[i].id]->forward(x);
+					if (debug_dmp)cpp_torch::dump_dim(conv1d[layer[i].id]->name(), x);
+					
+					if (pycode_dump)
+					{
+						fprintf(pycode_dump, "\n        ");
+						fprintf(pycode_dump, "x = x.view(-1, %d, %d*%d)\n", layer[i - 1].out_[0], layer[i - 1].out_[1], layer[i - 1].out_[2]);
+					}
+					if (pycode_dump)
+					{
+						fprintf(pycode_dump, "        ");
+						fprintf(pycode_dump, "x = self.conv1d%d(x)\n", layer[i].id);
+					}
+					continue;
+				}
 				if (layer[i].type == cpp_torch::LayerType::CONV2D)
 				{
 					x = x.view({ -1, layer[i - 1].out_[0], layer[i - 1].out_[1], layer[i - 1].out_[2] });
 					x = conv2d[layer[i].id]->forward(x);
 					if (debug_dmp)cpp_torch::dump_dim(conv2d[layer[i].id]->name(), x);
-					
+
 					if (pycode_dump)
 					{
 						fprintf(pycode_dump, "\n        ");
@@ -938,6 +1079,25 @@ namespace cpp_torch
 					}
 					continue;
 				}
+				if (layer[i].type == cpp_torch::LayerType::BATCHNORMAL1D)
+				{
+					x = x.view({ -1, layer[i - 1].out_[0], layer[i - 1].out_[1]*layer[i - 1].out_[2] });
+					x = bn1d[layer[i].id]->forward(x);
+					if (debug_dmp)cpp_torch::dump_dim(bn1d[layer[i].id]->name(), x);
+
+					if (pycode_dump)
+					{
+						fprintf(pycode_dump, "\n        ");
+						fprintf(pycode_dump, "x = x.view(-1, %d,%d*%d)\n", layer[i - 1].out_[0], layer[i - 1].out_[1], layer[i - 1].out_[2]);
+					}
+					if (pycode_dump)
+					{
+						fprintf(pycode_dump, "        ");
+						fprintf(pycode_dump, "x = self.batchn1d%d(x)\n", layer[i].id);
+					}
+					continue;
+				}
+
 				if (layer[i].type == cpp_torch::LayerType::PIXEL_SHUFFLE)
 				{
 					x = x.view({ -1, layer[i - 1].out_[0], layer[i - 1].out_[1], layer[i - 1].out_[2] });
