@@ -478,6 +478,13 @@ namespace cpp_torch
 					batch_y[i] = batch_y[i].to(device);
 				}
 			}
+			
+			std::vector<int> batch_idx_list;
+			for (int i = 0; i < batchNum; i++)
+			{
+				batch_idx_list.push_back(i);
+			}
+			std::mt19937 get_rand_mt;
 
 			optimizer->zero_grad();
 			stop_training_ = false;
@@ -494,11 +501,17 @@ namespace cpp_torch
 						batch_y[i] = batch_y[i].to(device);
 					}
 				}
+				if (this->batch_shuffle)
+				{
+					std::shuffle(batch_idx_list.begin(), batch_idx_list.end(), get_rand_mt);
+				}
 				loss_value = 0.0;
 
 				float loss_ave = 0.0;
-				for (int batch_idx = 0; batch_idx < batchNum && !stop_training_; batch_idx++)
+				for (int b_idx = 0; b_idx < batchNum && !stop_training_; b_idx++)
 				{
+					const int batch_idx = batch_idx_list[b_idx];
+
 					torch::Tensor& data = batch_x[batch_idx];
 					torch::Tensor& targets = batch_y[batch_idx];
 
