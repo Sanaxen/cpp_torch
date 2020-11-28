@@ -1752,6 +1752,9 @@ extern "C" _LIBRARY_EXPORTS void torch_train(
 
 	if (classification >= 2)
 	{
+		model.get()->add_fc(std::min((int)sz, classification * 2));
+		add_activatin(model);
+		model.get()->add_fc(classification);
 		model.get()->add_LogSoftmax(1);
 	}
 	else
@@ -1911,6 +1914,9 @@ extern "C" _LIBRARY_EXPORTS void torch_train_fc(
 			add_activatin(model);
 		}
 	}
+
+	printf("--->classification=%d\n", classification);
+
 	if (classification >= 2)
 	{
 		if (dropout) model.get()->add_dropout(dropout);
