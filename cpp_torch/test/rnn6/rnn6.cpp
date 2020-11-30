@@ -55,6 +55,7 @@ namespace rnn_dll_variables
 	char opt_type[32] = { '\0' };
 	int n_train_epochs = 0;
 	int n_minibatch = 0;
+	int n_eval_minibatch = 0;
 	int prophecy = 10;
 	float tolerance = 1.0e-6;
 	char rnn_type[16] = { '\0' };
@@ -349,6 +350,10 @@ extern "C" _LIBRARY_EXPORTS void torch_read_params(bool train)
 		{
 			sscanf(buf, "n_train_epochs:%d", &n_train_epochs);
 		}
+		if (strstr(buf, "n_eval_minibatch"))
+		{
+			sscanf(buf, "n_eval_minibatch:%d", &n_eval_minibatch);
+		}
 		if (strstr(buf, "n_minibatch"))
 		{
 			sscanf(buf, "n_minibatch:%d", &n_minibatch);
@@ -536,7 +541,7 @@ extern  _LIBRARY_EXPORTS tiny_dnn::result torch_get_accuracy_nn(void* nn, std::v
 		return result;
 	}
 
-	result = toNet(nn)->get_accuracy(train_images_, train_labels_);
+	result = toNet(nn)->get_accuracy(train_images_, train_labels_, batch);
 
 	//ConfusionMatrix
 	std::cout << "ConfusionMatrix:" << std::endl;
@@ -582,6 +587,29 @@ extern  _LIBRARY_EXPORTS tiny_dnn::vec_t torch_predict(tiny_dnn::vec_t x)
 	}
 	return y;
 }
+extern _LIBRARY_EXPORTS std::vector<tiny_dnn::vec_t> torch_model_predict_batch(const void* nn, std::vector<tiny_dnn::vec_t>& x, int bacth = 1)
+{
+	cpp_torch::network_torch<cpp_torch::Net>* nn2
+		= (cpp_torch::network_torch<cpp_torch::Net>*)(nn);
+
+	if (scale != 1.0)
+	{
+		for (auto& xx : x) for (auto& xxx : xx) xxx /= scale;
+	}
+	std::vector <tiny_dnn::vec_t> y = nn2->predict(x, bacth);
+	if (num_class >= 2)
+	{
+	}
+	else
+	{
+		if (scale != 1.0)
+		{
+			for (auto& yy : y)for (auto& yyy : yy) yyy *= scale;
+		}
+	}
+	return y;
+}
+
 extern _LIBRARY_EXPORTS tiny_dnn::vec_t torch_model_predict(const void* nn, tiny_dnn::vec_t x)
 {
 	cpp_torch::network_torch<cpp_torch::Net>* nn2

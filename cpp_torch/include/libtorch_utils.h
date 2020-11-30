@@ -824,6 +824,74 @@ namespace cpp_torch
 		/**
 		* executes forward-propagation and returns output
 		**/
+		inline std::vector<tiny_dnn::vec_t> predict(std::vector<tiny_dnn::vec_t>& X, int batch = 1)
+		{
+			//printf("X.size()=%d\n", X.size()); fflush(stdout);
+			std::vector<tiny_dnn::vec_t> out;
+
+			int batch_n = X.size() / batch;
+
+			if (X.size() < batch || batch == 1)
+			{
+				for (int i = 0; i < X.size(); i++)
+				{
+					out.push_back(predict(X[i]));
+				}
+
+				return out;
+			}
+
+			//torch::NoGradGuard no_grad;
+			//model->eval();
+			model.get()->train(false);
+
+			std::vector<torch::Tensor> n_batch_images;
+			for (int i = 0; i < batch_n; i++)
+			{
+				torch::Tensor images_torch = toTorchTensors(X[i*batch]).view({ 1, in_channels, in_H, in_W }).to(device);
+				auto batch_images = images_torch;
+				for (int j = 1; j < batch; j++)
+				{
+					torch::Tensor images_torch = toTorchTensors(X[i*batch + j]).view({ 1, in_channels, in_H, in_W }).to(device);
+					batch_images = torch::cat({ batch_images, images_torch }, 0);
+				}
+				n_batch_images.emplace_back(batch_images);
+			}
+
+			for (int k = 0; k < batch_n; k++)
+			{
+				//cpp_torch::dump_dim("batch_images", batch_images);
+				torch::Tensor y = model.get()->forward(n_batch_images[k]);
+				y = y.view({ batch, out_channels, out_H, out_W }).to(torch::kCPU);
+
+
+				for (int i = 0; i < batch; i++)
+				{
+					//cpp_torch::dump_dim("torch::Tensor y", y);
+					//std::cout << " " << out_data_size() << std::endl;
+					tiny_dnn::vec_t t = toTensor_t(y[i], out_data_size());
+
+					out.push_back(t);
+				}
+			}
+
+			int n = X.size() % batch;
+			//printf("n=%d\n", n); fflush(stdout);
+
+			if (n > 0 && X.size() > batch)
+			{
+				for (int i = X.size() - n; i < X.size(); i++)
+				{
+					out.push_back(predict(X[i]));
+				}
+			}
+			//printf("out.size()=%d\n", out.size()); fflush(stdout);
+			return out;
+		}
+
+		/**
+		* executes forward-propagation and returns output
+		**/
 		inline tiny_dnn::vec_t predict(tiny_dnn::vec_t& X)
 		{
 			//torch::NoGradGuard no_grad;
@@ -1038,7 +1106,7 @@ namespace cpp_torch
 			return result;
 		}
 
-		tiny_dnn::result  get_accuracy( tiny_dnn::tensor_t& images, tiny_dnn::tensor_t& labels)
+		tiny_dnn::result  get_accuracy( tiny_dnn::tensor_t& images, tiny_dnn::tensor_t& labels, int batch = 1)
 		{
 			tiny_dnn::result result;
 
@@ -1052,10 +1120,13 @@ namespace cpp_torch
 #if 10
 			std::vector< tiny_dnn::label_t> predicted_list(sz, 0);
 			std::vector< tiny_dnn::label_t>actual_list(sz, 0);
+
+			std::vector<tiny_dnn::vec_t>& n_predict_y = predict(images, batch);
 #pragma omp parallel for
 			for (int i = 0; i < sz; i++)
 			{
-				tiny_dnn::vec_t& predict_y = predict(images[i]);
+				//tiny_dnn::vec_t& predict_y = predict(images[i]);
+				tiny_dnn::vec_t& predict_y = n_predict_y[i];
 				predicted_list[i] = vec_max_index(predict_y);
 				actual_list[i] = vec_max_index(labels[i]);
 			}

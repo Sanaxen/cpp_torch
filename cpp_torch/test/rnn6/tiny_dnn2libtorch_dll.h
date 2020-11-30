@@ -134,6 +134,7 @@ extern "C" _LIBRARY_EXPORTS void* torch_load_new(const char* name);
 
 extern  _LIBRARY_EXPORTS tiny_dnn::vec_t torch_model_predict(const void* nn, tiny_dnn::vec_t x);
 extern  _LIBRARY_EXPORTS tiny_dnn::vec_t torch_predict(tiny_dnn::vec_t x);
+extern	_LIBRARY_EXPORTS std::vector<tiny_dnn::vec_t> torch_model_predict_batch(const void* nn, std::vector<tiny_dnn::vec_t>& x, int batch);
 
 extern "C" _LIBRARY_EXPORTS void torch_stop_ongoing_training();
 extern "C" _LIBRARY_EXPORTS void state_reset(std::string& rnn_type, void* nn);
