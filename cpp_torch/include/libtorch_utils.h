@@ -835,7 +835,7 @@ namespace cpp_torch
 			{
 				for (int i = 0; i < X.size(); i++)
 				{
-					out.push_back(predict(X[i]));
+					out.emplace_back(predict(X[i]));
 				}
 
 				return out;
@@ -845,7 +845,8 @@ namespace cpp_torch
 			//model->eval();
 			model.get()->train(false);
 
-			std::vector<torch::Tensor> n_batch_images;
+			std::vector<torch::Tensor> n_batch_images(batch_n);
+#pragma omp parallel for
 			for (int i = 0; i < batch_n; i++)
 			{
 				torch::Tensor images_torch = toTorchTensors(X[i*batch]).view({ 1, in_channels, in_H, in_W }).to(device);
@@ -855,23 +856,22 @@ namespace cpp_torch
 					torch::Tensor images_torch = toTorchTensors(X[i*batch + j]).view({ 1, in_channels, in_H, in_W }).to(device);
 					batch_images = torch::cat({ batch_images, images_torch }, 0);
 				}
-				n_batch_images.emplace_back(batch_images);
+				n_batch_images[i] = batch_images;
 			}
 
 			for (int k = 0; k < batch_n; k++)
 			{
 				//cpp_torch::dump_dim("batch_images", batch_images);
 				torch::Tensor y = model.get()->forward(n_batch_images[k]);
-				y = y.view({ batch, out_channels, out_H, out_W }).to(torch::kCPU);
-
+				y = y.view({ batch, out_channels, out_H, out_W });
 
 				for (int i = 0; i < batch; i++)
 				{
 					//cpp_torch::dump_dim("torch::Tensor y", y);
 					//std::cout << " " << out_data_size() << std::endl;
-					tiny_dnn::vec_t t = toTensor_t(y[i], out_data_size());
+					tiny_dnn::vec_t& t = toTensor_t(y[i], out_data_size());
 
-					out.push_back(t);
+					out.emplace_back(t);
 				}
 			}
 
@@ -882,7 +882,7 @@ namespace cpp_torch
 			{
 				for (int i = X.size() - n; i < X.size(); i++)
 				{
-					out.push_back(predict(X[i]));
+					out.emplace_back(predict(X[i]));
 				}
 			}
 			//printf("out.size()=%d\n", out.size()); fflush(stdout);
