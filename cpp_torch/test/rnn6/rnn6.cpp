@@ -471,6 +471,7 @@ extern "C" _LIBRARY_EXPORTS void torch_read_params(bool train)
 	printf("opt_type:%s\n", opt_type);
 	printf("n_train_epochs:%d\n", n_train_epochs);
 	printf("n_minibatch:%d\n", n_minibatch);
+	printf("n_eval_minibatch:%d\n", n_eval_minibatch);
 	printf("rnn_type:%s\n", rnn_type);
 	printf("state_reset_mode:%d\n", state_reset_mode ? 1 : 0);
 	printf("batch_shuffle:%d\n", batch_shuffle ? 1 : 0);
