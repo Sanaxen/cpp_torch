@@ -908,17 +908,13 @@ namespace cpp_torch
 				{
 					const int in = layer[i - 1].out_[0] * layer[i - 1].out_[1] * layer[i - 1].out_[2];
 					x = x.view({ batch, -1 });
-					//cpp_torch::dump_dim("in", x);
 
 					fc_att_out = fc_att_out.view({ batch, -1 });
-					//cpp_torch::dump_dim("fc_att_out", fc_att_out);
 
 					auto y = torch::softmax(fc_att_out, 1);
 					y = y.view({ batch, -1 });
-					//cpp_torch::dump_dim("y", y);
 
 					x = x*y;
-					//cpp_torch::dump_dim("xx", x);
 					if (pycode_dump)
 					{
 						fprintf(pycode_dump, "\n        ");
@@ -938,22 +934,16 @@ namespace cpp_torch
 				{
 					const int in = layer[i - 1].out_[0]*layer[i - 1].out_[1]*layer[i - 1].out_[2];
 					auto y = x.view({ batch, -1 });
-					//cpp_torch::dump_dim("y", y);
+					
 					x = fc[layer[i].id]->forward(y);
+					
 					if (debug_dmp)cpp_torch::dump_dim(fc[layer[i].id]->name(), x);
-					//cpp_torch::dump_dim("x", x);
 
-					//if (i + 1 < layer.size())
-					//{
-					//	printf("attention_mode:%d\n", layer[i + 1].attention_mode);
-					//	fflush(stdout);
-					//}
 					bool is_attention = false;
 					if (i + 1 < layer.size() && layer[i + 1].attention_mode)
 					{
 						is_attention = true;
 						fc_att_out = fc[layer[i+1].id]->forward(y);
-						//cpp_torch::dump_dim("fc_att_out", fc_att_out);
 					}
 
 					if (pycode_dump)
