@@ -152,7 +152,7 @@ namespace cpp_torch
 			v[j] = xx[0][0][0][j].template item<float_t>();
 		}
 #else
-		const float* p = xx.cpu().data<float>();
+		const float* p = xx.cpu().data<float_t>();
 		v.assign(p, p + size);
 #endif
 		return v;
@@ -897,13 +897,13 @@ namespace cpp_torch
 			//torch::NoGradGuard no_grad;
 			//model->eval();
 			model.get()->train(false);
-			torch::Tensor images_torch = toTorchTensors(X).view({ 1, in_channels, in_H, in_W }).to(device);
+			torch::Tensor& images_torch = toTorchTensors(X).view({ 1, in_channels, in_H, in_W }).to(device);
 
 			torch::Tensor y = model.get()->forward(images_torch);
 
 			//cpp_torch::dump_dim("torch::Tensor y", y);
 			//std::cout << " " << out_data_size() << std::endl;
-			tiny_dnn::vec_t t = toTensor_t(y, out_data_size());
+			tiny_dnn::vec_t& t = toTensor_t(y, out_data_size());
 			return t;
 		}
 		/**

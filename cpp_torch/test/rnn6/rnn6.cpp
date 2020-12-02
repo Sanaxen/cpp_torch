@@ -597,7 +597,7 @@ extern _LIBRARY_EXPORTS std::vector<tiny_dnn::vec_t> torch_model_predict_batch(c
 	{
 		for (auto& xx : x) for (auto& xxx : xx) xxx /= scale;
 	}
-	std::vector <tiny_dnn::vec_t> y = nn2->predict(x, bacth);
+	std::vector <tiny_dnn::vec_t>& y = nn2->predict(x, bacth);
 	if (num_class >= 2)
 	{
 	}
@@ -620,7 +620,7 @@ extern _LIBRARY_EXPORTS tiny_dnn::vec_t torch_model_predict(const void* nn, tiny
 	{
 		for (auto& xx : x) xx /= scale;
 	}
-	tiny_dnn::vec_t y = nn2->predict(x);
+	tiny_dnn::vec_t& y = nn2->predict(x);
 	if (num_class >= 2)
 	{
 	}
@@ -1744,7 +1744,7 @@ extern "C" _LIBRARY_EXPORTS void torch_train(
 
 	if (use_attention)
 	{
-		model.get()->add_attaentin(sequence_length*2);
+		model.get()->add_attaentinon(sequence_length*2);
 	}
 #else
 	model.get()->add_recurrent(std::string(rnn_type), sequence_length, hidden_size);
@@ -1756,7 +1756,7 @@ extern "C" _LIBRARY_EXPORTS void torch_train(
 	}
 	if (attention)
 	{
-		model.get()->add_attaentin(sequence_length * 2);
+		model.get()->add_attaentinon(sequence_length * 2);
 	}
 #endif
 

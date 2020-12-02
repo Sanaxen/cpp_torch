@@ -71,6 +71,8 @@ namespace cpp_torch
 		float_t dropout_rate = 0.0;
 		float_t negative_slope = 0.01;	//LeakyReLU(negative_slope=0.01)
 		int upscale_factor = 1;	//pixel_shuffle
+
+		int attention_mode = 0;
 	};
 
 	struct NetImpl : torch::nn::Module {
@@ -160,9 +162,12 @@ namespace cpp_torch
 		}
 
 
-		void add_attaentin(int out)
+		int add_attention_mode = false;
+		void add_attaentinon(int out)
 		{
 			std::cout << "--- attaentin --" << std::endl;
+
+			add_attention_mode = true;
 			add_fc(out, false);
 			//add_bn1d();
 
@@ -201,15 +206,35 @@ namespace cpp_torch
 			//std::cout << layer[i - 1].out_ << std::endl;
 			inout.in_ = layer[i - 1].out_;
 			fc.emplace_back(register_module("fc" + std::to_string(id), torch::nn::Linear(torch::nn::LinearOptions(in, out).bias(bias))));
+			
+			if (add_attention_mode)
+			{
+				fc.emplace_back(register_module("fc" + std::to_string(id+1), torch::nn::Linear(torch::nn::LinearOptions(in, out).bias(bias))));
+			}
 			inout.out_ = { 1,1, out };
 			layer.emplace_back(inout);
+			if (add_attention_mode)
+			{
+				inout.attention_mode = 1;
+				layer.emplace_back(inout);
+			}
 
 			if (pycode_dump)
 			{
 				fprintf(pycode_dump, "        ");
 				fprintf(pycode_dump, "self.fc%d = nn.Linear(%d, %d, bias = %s)\n", id, in, out, bias ? "True" : "False");
+				if (add_attention_mode)
+				{
+					fprintf(pycode_dump, "        ");
+					fprintf(pycode_dump, "self.fc%d = nn.Linear(%d, %d, bias = %s)\n", id+1, in, out, bias ? "True" : "False");
+				}
 			}
 			std::cout << "fc {" << inout.in_ << "}->{" << inout.out_ << "}" << std::endl;
+			if (add_attention_mode)
+			{
+				std::cout << "fc {" << inout.in_ << "}->{" << inout.out_ << "}" << std::endl;
+			}
+			add_attention_mode = false;
 		}
 
 		/**
@@ -875,6 +900,7 @@ namespace cpp_torch
 
 			const int batch = x.sizes()[0];
 
+			torch::Tensor fc_att_out;
 			for (int i = 1; i < layer.size(); i++)
 			{
 				if (debug_dmp)cpp_torch::dump_dim(std::string("IN"), x);
@@ -884,7 +910,10 @@ namespace cpp_torch
 					x = x.view({ batch, -1 });
 					//cpp_torch::dump_dim("in", x);
 
-					auto y = torch::softmax(x, 1);
+					fc_att_out = fc_att_out.view({ batch, -1 });
+					//cpp_torch::dump_dim("fc_att_out", fc_att_out);
+
+					auto y = torch::softmax(fc_att_out, 1);
 					y = y.view({ batch, -1 });
 					//cpp_torch::dump_dim("y", y);
 
@@ -895,7 +924,9 @@ namespace cpp_torch
 						fprintf(pycode_dump, "\n        ");
 						fprintf(pycode_dump, "x = x.view(batch_size, -1)\n");
 						fprintf(pycode_dump, "\n        ");
-						fprintf(pycode_dump, "y = F.softmax(x, 1)\n");
+						fprintf(pycode_dump, "fc_att_out = fc_att_out.view(batch_size, -1)\n");
+						fprintf(pycode_dump, "\n        ");
+						fprintf(pycode_dump, "y = F.softmax(fc_att_out, 1)\n");
 						fprintf(pycode_dump, "\n        ");
 						fprintf(pycode_dump, "y = y.view(batch_size, -1)\n");
 						fprintf(pycode_dump, "\n        ");
@@ -906,19 +937,44 @@ namespace cpp_torch
 				if (layer[i].type == cpp_torch::LayerType::FC)
 				{
 					const int in = layer[i - 1].out_[0]*layer[i - 1].out_[1]*layer[i - 1].out_[2];
-					x = x.view({ batch, -1 });
-					x = fc[layer[i].id]->forward(x);
+					auto y = x.view({ batch, -1 });
+					//cpp_torch::dump_dim("y", y);
+					x = fc[layer[i].id]->forward(y);
 					if (debug_dmp)cpp_torch::dump_dim(fc[layer[i].id]->name(), x);
-					
+					//cpp_torch::dump_dim("x", x);
+
+					//if (i + 1 < layer.size())
+					//{
+					//	printf("attention_mode:%d\n", layer[i + 1].attention_mode);
+					//	fflush(stdout);
+					//}
+					bool is_attention = false;
+					if (i + 1 < layer.size() && layer[i + 1].attention_mode)
+					{
+						is_attention = true;
+						fc_att_out = fc[layer[i+1].id]->forward(y);
+						//cpp_torch::dump_dim("fc_att_out", fc_att_out);
+					}
+
 					if (pycode_dump)
 					{
 						fprintf(pycode_dump, "\n        ");
-						fprintf(pycode_dump, "x = x.view(batch_size, -1)\n");
+						fprintf(pycode_dump, "y = x.view(batch_size, -1)\n");
 					}
 					if (pycode_dump)
 					{
 						fprintf(pycode_dump, "        ");
-						fprintf(pycode_dump, "x = self.fc%d(x)\n", layer[i].id);
+						fprintf(pycode_dump, "x = self.fc%d(y)\n", layer[i].id);
+					
+						if (is_attention)
+						{
+							fprintf(pycode_dump, "        ");
+							fprintf(pycode_dump, "fc_att_out = self.fc%d(y)\n", layer[i+1].id);
+						}
+					}
+					if (is_attention)
+					{
+						i++;
 					}
 					continue;
 				}
