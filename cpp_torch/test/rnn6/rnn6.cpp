@@ -1744,7 +1744,7 @@ extern "C" _LIBRARY_EXPORTS void torch_train(
 
 	if (use_attention)
 	{
-		model.get()->add_attaentinon(sequence_length*2);
+		model.get()->add_attaentinon(sequence_length*2, 7);
 	}
 #else
 	model.get()->add_recurrent(std::string(rnn_type), sequence_length, hidden_size);
