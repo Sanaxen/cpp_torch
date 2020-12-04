@@ -73,6 +73,8 @@ namespace cpp_torch
 		int upscale_factor = 1;	//pixel_shuffle
 
 		int attention_mode = 0;
+		int attention_d_k = 0;
+		int attention_head = 0;
 	};
 
 	struct NetImpl : torch::nn::Module {
@@ -163,21 +165,26 @@ namespace cpp_torch
 
 
 		int add_attention_mode = false;
-		void add_attaentinon(int out)
+		void add_attaentinon(int out, int head)
 		{
 			std::cout << "--- attaentin --" << std::endl;
 
 			add_attention_mode = true;
-			add_fc(out, false);
+			
+			out = out / head;
+			add_fc(out*head, false);
 			//add_bn1d();
 
 			cpp_torch::LayerInOut inout;
 			inout.name = "attaentin";
 			inout.type = cpp_torch::LayerType::Attention;
 			inout.id = attention_count++;
+			inout.attention_head = head;
+			inout.attention_d_k = out* head / inout.attention_head;//Ø‚èŽÌ‚ÄœŽZ
+
 			const int i = layer.size();
 			inout.in_ = layer[i - 1].out_;
-			inout.out_ = inout.in_;
+			inout.out_ = { 1,1,out*head };
 			layer.push_back(inout);
 
 			add_Tanh();
@@ -209,13 +216,17 @@ namespace cpp_torch
 			
 			if (add_attention_mode)
 			{
-				fc.emplace_back(register_module("fc" + std::to_string(id+1), torch::nn::Linear(torch::nn::LinearOptions(in, out).bias(bias))));
+				fc.emplace_back(register_module("fc_q" + std::to_string(id + 1), torch::nn::Linear(torch::nn::LinearOptions(in, out).bias(bias))));
+				fc.emplace_back(register_module("fc_k" + std::to_string(id + 2), torch::nn::Linear(torch::nn::LinearOptions(in, out).bias(bias))));
+				fc.emplace_back(register_module("fc_v" + std::to_string(id + 3), torch::nn::Linear(torch::nn::LinearOptions(in, out).bias(bias))));
 			}
 			inout.out_ = { 1,1, out };
 			layer.emplace_back(inout);
 			if (add_attention_mode)
 			{
 				inout.attention_mode = 1;
+				layer.emplace_back(inout);
+				layer.emplace_back(inout);
 				layer.emplace_back(inout);
 			}
 
@@ -226,13 +237,19 @@ namespace cpp_torch
 				if (add_attention_mode)
 				{
 					fprintf(pycode_dump, "        ");
-					fprintf(pycode_dump, "self.fc%d = nn.Linear(%d, %d, bias = %s)\n", id+1, in, out, bias ? "True" : "False");
+					fprintf(pycode_dump, "self.fc_q%d = nn.Linear(%d, %d, bias = %s)\n", id + 1, in, out, bias ? "True" : "False");
+					fprintf(pycode_dump, "        ");
+					fprintf(pycode_dump, "self.fc_k%d = nn.Linear(%d, %d, bias = %s)\n", id + 2, in, out, bias ? "True" : "False");
+					fprintf(pycode_dump, "        ");
+					fprintf(pycode_dump, "self.fc_v%d = nn.Linear(%d, %d, bias = %s)\n", id + 3, in, out, bias ? "True" : "False");
 				}
 			}
 			std::cout << "fc {" << inout.in_ << "}->{" << inout.out_ << "}" << std::endl;
 			if (add_attention_mode)
 			{
-				std::cout << "fc {" << inout.in_ << "}->{" << inout.out_ << "}" << std::endl;
+				std::cout << "fc_q {" << inout.in_ << "}->{" << inout.out_ << "}" << std::endl;
+				std::cout << "fc_k {" << inout.in_ << "}->{" << inout.out_ << "}" << std::endl;
+				std::cout << "fc_v {" << inout.in_ << "}->{" << inout.out_ << "}" << std::endl;
 			}
 			add_attention_mode = false;
 		}
@@ -900,7 +917,10 @@ namespace cpp_torch
 
 			const int batch = x.sizes()[0];
 
-			torch::Tensor fc_att_out;
+			//https://towardsdatascience.com/how-to-code-the-transformer-in-pytorch-24db27c8f9ec
+			torch::Tensor fc_q_att_out;
+			torch::Tensor fc_k_att_out;
+			torch::Tensor fc_v_att_out;
 			for (int i = 1; i < layer.size(); i++)
 			{
 				if (debug_dmp)cpp_torch::dump_dim(std::string("IN"), x);
@@ -908,25 +928,66 @@ namespace cpp_torch
 				{
 					const int in = layer[i - 1].out_[0] * layer[i - 1].out_[1] * layer[i - 1].out_[2];
 					x = x.view({ batch, -1 });
+					//cpp_torch::dump_dim(std::string("x"), x);
 
-					fc_att_out = fc_att_out.view({ batch, -1 });
+					//printf("attention_d_k:%d\n", layer[i].attention_head); fflush(stdout);
+					fc_q_att_out = fc_q_att_out.view({ batch, -1, 1});
+					fc_k_att_out = fc_k_att_out.view({ batch, 1, -1});
+					fc_v_att_out = fc_v_att_out.view({ batch, -1});
+					//cpp_torch::dump_dim(std::string("fc_q_att_out"), fc_q_att_out);
+					//cpp_torch::dump_dim(std::string("fc_k_att_out"), fc_k_att_out);
+					//cpp_torch::dump_dim(std::string("fc_v_att_out"), fc_v_att_out);
 
-					auto y = torch::softmax(fc_att_out, 1);
-					y = y.view({ batch, -1 });
+					//auto z = torch::bmm(
+					//	fc_q_att_out.view({ batch, fc_q_att_out.sizes()[1], fc_q_att_out.sizes()[2] }),
+					//	fc_k_att_out.view({ batch, fc_k_att_out.sizes()[2], fc_k_att_out.sizes()[1] }));
+					auto z = torch::bmm(fc_q_att_out, fc_k_att_out)/sqrt((float_t)layer[i].attention_d_k);
 
-					x = x*y;
+					//cpp_torch::dump_dim(std::string("z"), z);
+					auto y = torch::softmax(z, 1);
+					//cpp_torch::dump_dim(std::string("y"), y);
+					//cpp_torch::dump_dim(std::string("x"), x);
+
+					x = x.view({ batch, 1, -1});
+					y = y.view({ batch, x.sizes()[2], -1});
+					//cpp_torch::dump_dim(std::string("y"), y);
+					//cpp_torch::dump_dim(std::string("x"), x);
+
+					auto weighted_sum = torch::bmm(x,y);
+					//cpp_torch::dump_dim(std::string("weighted_sum"), weighted_sum);
+
+					weighted_sum = weighted_sum.view({ batch,-1});
+					//cpp_torch::dump_dim(std::string("weighted_sum"), weighted_sum);
+
+					x = weighted_sum*fc_v_att_out;
+					//cpp_torch::dump_dim(std::string("x"), x);
+					//exit(0);
 					if (pycode_dump)
 					{
 						fprintf(pycode_dump, "\n        ");
+						fprintf(pycode_dump, "head = %d\n", layer[i].attention_head);
+						fprintf(pycode_dump, "\n        ");
 						fprintf(pycode_dump, "x = x.view(batch_size, -1)\n");
 						fprintf(pycode_dump, "\n        ");
-						fprintf(pycode_dump, "fc_att_out = fc_att_out.view(batch_size, -1)\n");
+						fprintf(pycode_dump, "fc_q_att_out = fc_q_att_out.view(batch_size, -1, 1)\n");
 						fprintf(pycode_dump, "\n        ");
-						fprintf(pycode_dump, "y = F.softmax(fc_att_out, 1)\n");
+						fprintf(pycode_dump, "fc_k_att_out = fc_k_att_out.view(batch_size, 1, -1)\n");
 						fprintf(pycode_dump, "\n        ");
-						fprintf(pycode_dump, "y = y.view(batch_size, -1)\n");
+						fprintf(pycode_dump, "fc_v_att_out = fc_v_att_out.view(batch_size, -1)\n");
 						fprintf(pycode_dump, "\n        ");
-						fprintf(pycode_dump, "x = x * y\n");
+						fprintf(pycode_dump, "z = torch.bmm(fc_q_att_out, fc_k_att_out)/ sqrt(%d)\n", layer[i].attention_d_k);
+						fprintf(pycode_dump, "\n        ");
+						fprintf(pycode_dump, "y = F.softmax(z, 1)\n");
+						fprintf(pycode_dump, "\n        ");
+						fprintf(pycode_dump, "x = x.view(batch, -1)\n");
+						fprintf(pycode_dump, "\n        ");
+						fprintf(pycode_dump, "y = y.view(batch, x.size()[2], -1)\n");
+						fprintf(pycode_dump, "\n        ");
+						fprintf(pycode_dump, "weighted_sum = torch.bmm(x,y)\n");
+						fprintf(pycode_dump, "\n        ");
+						fprintf(pycode_dump, "weighted_sum = weighted_sum.view(batch, -1)\n");
+						fprintf(pycode_dump, "\n        ");
+						fprintf(pycode_dump, "x = weighted_sum*fc_v_att_out\n");
 					}
 					continue;
 				}
@@ -943,7 +1004,9 @@ namespace cpp_torch
 					if (i + 1 < layer.size() && layer[i + 1].attention_mode)
 					{
 						is_attention = true;
-						fc_att_out = fc[layer[i+1].id]->forward(y);
+						fc_q_att_out = fc[layer[i + 1].id]->forward(y);
+						fc_k_att_out = fc[layer[i + 2].id]->forward(y);
+						fc_v_att_out = fc[layer[i + 3].id]->forward(y);
 					}
 
 					if (pycode_dump)
@@ -959,12 +1022,14 @@ namespace cpp_torch
 						if (is_attention)
 						{
 							fprintf(pycode_dump, "        ");
-							fprintf(pycode_dump, "fc_att_out = self.fc%d(y)\n", layer[i+1].id);
+							fprintf(pycode_dump, "fc_q_att_out = self.fc_q%d(y)\n", layer[i + 1].id);
+							fprintf(pycode_dump, "fc_k_att_out = self.fc_k%d(y)\n", layer[i + 2].id);
+							fprintf(pycode_dump, "fc_v_att_out = self.fc_v%d(y)\n", layer[i + 3].id);
 						}
 					}
 					if (is_attention)
 					{
-						i++;
+						i += 3;
 					}
 					continue;
 				}
