@@ -163,6 +163,7 @@ namespace cpp_torch
 		int batchNum = images.size() / batchSize;
 		if (batchNum == 0)
 		{
+			printf("input size < batch size.\n"); fflush(stdout);
 			throw error_exception("input size < batch size");
 		}
 
@@ -207,6 +208,7 @@ namespace cpp_torch
 		int batchNum = images.size() / batchSize;
 		if (batchNum == 0)
 		{
+			printf("input size < batch size.\n"); fflush(stdout);
 			throw error_exception("input size < batch size");
 		}
 
@@ -341,6 +343,7 @@ namespace cpp_torch
 						<< " < " << kTrainBatchSize << "*" << in_channels << "*"
 						<< in_H << "* " << in_W << "="
 						<< kTrainBatchSize*in_channels*in_H*in_W << std::endl;
+					printf("tensor size error.\n"); fflush(stdout);
 					throw error_exception("tensor size error.");
 				}
 				batch_x[batch_idx] = batch_x[batch_idx].view({ kTrainBatchSize, in_channels, in_H, in_W });
@@ -417,6 +420,7 @@ namespace cpp_torch
 						<< " < " << kTrainBatchSize << "*" << in_channels << "*" 
 						<< in_H << "* " << in_W << "=" 
 						<<kTrainBatchSize*in_channels*in_H*in_W << std::endl;
+					printf("tensor size error.\n"); fflush(stdout);
 					throw error_exception("tensor size error.");
 				}
 				if (tensor_flatten_size(batch_y[batch_idx]) < kTrainBatchSize*out_channels*out_H*out_W)
@@ -426,6 +430,7 @@ namespace cpp_torch
 						<< " < " << kTrainBatchSize << "*" << out_channels << "*"
 						<< out_H << "* " << out_W << "="
 						<< kTrainBatchSize*out_channels*out_H*out_W << std::endl;
+					printf("tensor size error.\n"); fflush(stdout);
 					throw error_exception("tensor size error.");
 				}
 				batch_x[batch_idx] = batch_x[batch_idx].view({ kTrainBatchSize, in_channels, in_H, in_W });
@@ -661,6 +666,7 @@ namespace cpp_torch
 			int testNum = images.size() / kTestBatchSize;
 			if (testNum == 0)
 			{
+				printf("input size < test batch size.\n"); fflush(stdout);
 				throw error_exception("input size < test batch size");
 			}
 			for (size_t test = 0; test < testNum; ++test)
