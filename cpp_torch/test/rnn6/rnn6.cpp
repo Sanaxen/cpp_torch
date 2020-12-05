@@ -610,6 +610,10 @@ extern _LIBRARY_EXPORTS std::vector<tiny_dnn::vec_t> torch_model_predict_batch(c
 	}
 	return y;
 }
+extern _LIBRARY_EXPORTS std::vector<tiny_dnn::vec_t> torch_predict_batch(std::vector<tiny_dnn::vec_t>& x, int bacth = 1)
+{
+	return  torch_model_predict_batch((void*)nn_, x, bacth);
+}
 
 extern _LIBRARY_EXPORTS tiny_dnn::vec_t torch_model_predict(const void* nn, tiny_dnn::vec_t x)
 {
@@ -1721,7 +1725,7 @@ extern "C" _LIBRARY_EXPORTS void torch_train(
 			model.get()->add_conv1d(in_ch, ot_ch, kernel, stride, padding);
 			if (model.get()->getOutputSize() <= 0)
 			{
-				printf("number of cnn ERROR.\n");
+				printf("number of cnn ERROR.\n"); fflush(stdout);
 				throw cpp_torch::error_exception("number of cnn ERROR.");
 			}
 			add_activatin(model);
