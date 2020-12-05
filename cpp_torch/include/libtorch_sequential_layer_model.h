@@ -833,6 +833,7 @@ namespace cpp_torch
 			}
 			if (id == -1)
 			{
+				printf("recurrent type error.\n"); fflush(stdout);
 				throw error_exception("recurrent type error");
 			}
 			inout.id = id;
