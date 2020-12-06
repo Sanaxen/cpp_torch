@@ -40,6 +40,7 @@ namespace cpp_torch
 		Softmax = 107,
 		LogSoftmax = 108,
 		Squeeze = 109,
+		Drop_F = 120,
 		Attention = 200
 	};
 
@@ -896,6 +897,19 @@ namespace cpp_torch
 		layer.push_back(inout);							\
 		}
 
+		void add_drop_f(float rate)
+		{		
+			cpp_torch::LayerInOut inout;
+			inout.name = "drop_f";
+			inout.type = cpp_torch::LayerType::Drop_F;
+			inout.id = activation_count++;
+			const int i = layer.size();
+			inout.in_ = layer[i - 1].out_;
+			inout.out_ = inout.in_;
+			inout.dropout_rate = rate;
+			layer.push_back(inout);
+		}
+
 		ACTIVATION_LAYER(ReLU)
 		ACTIVATION_LAYER(ReLU_)
 		ACTIVATION_LAYER2(LeakyReLU)
@@ -1389,6 +1403,20 @@ namespace cpp_torch
 							fprintf(pycode_dump, "x = F.log_softmax(x, dim=%d)\n", layer[i].dim);
 						}
 						x = torch::log_softmax(x, layer[i].dim); break;
+					case cpp_torch::LayerType::Drop_F:
+						if (this->is_training())
+						{
+							/* empty */
+						}
+						else
+						{
+							if (pycode_dump)
+							{
+								fprintf(pycode_dump, "        ");
+								fprintf(pycode_dump, "x = F.dropout(x, p=%.3f, training=True)\n", layer[i].dropout_rate);
+							}
+							x = torch::dropout(x, layer[i].dropout_rate, true); break;
+						}
 					default:
 						break;
 						/* empty */
