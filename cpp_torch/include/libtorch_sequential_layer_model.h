@@ -41,6 +41,7 @@ namespace cpp_torch
 		LogSoftmax = 108,
 		Squeeze = 109,
 		Drop_F = 120,
+		Sampling = 130,
 		Attention = 200
 	};
 
@@ -909,6 +910,18 @@ namespace cpp_torch
 			inout.dropout_rate = rate;
 			layer.push_back(inout);
 		}
+		void add_sampling()
+		{
+			cpp_torch::LayerInOut inout;
+			inout.name = "sampling";
+			inout.type = cpp_torch::LayerType::Sampling;
+			inout.id = activation_count++;
+			const int i = layer.size();
+			inout.in_ = layer[i - 1].out_;
+			inout.out_ = inout.in_;
+			inout.dropout_rate = 0;
+			layer.push_back(inout);
+		}
 
 		ACTIVATION_LAYER(ReLU)
 		ACTIVATION_LAYER(ReLU_)
@@ -922,6 +935,31 @@ namespace cpp_torch
 		ACTIVATION_LAYER(Squeeze)
 
 		int debug_dmp = 0;
+
+
+		void set_sampling_rate(float rate)
+		{
+			for (int i = 0; i < layer.size(); i++)
+			{
+				if (layer[i].type != cpp_torch::LayerType::Sampling)
+				{
+					continue;
+				}
+				layer[i].dropout_rate = rate;
+			}
+		}
+		void reset_sampling_rate()
+		{
+			for (int i = 0; i < layer.size(); i++)
+			{
+				if (layer[i].type != cpp_torch::LayerType::Sampling)
+				{
+					continue;
+				}
+				layer[i].dropout_rate = 0;
+			}
+		}
+
 		torch::Tensor forward(torch::Tensor x)
 		{
 			if (pycode_dump)
@@ -1416,6 +1454,24 @@ namespace cpp_torch
 								fprintf(pycode_dump, "x = F.dropout(x, p=%.3f, training=True)\n", layer[i].dropout_rate);
 							}
 							x = torch::dropout(x, layer[i].dropout_rate, true); break;
+						}
+					case cpp_torch::LayerType::Sampling:
+						if (this->is_training())
+						{
+							/* empty */
+						}
+						else
+						{
+							//if (pycode_dump)
+							//{
+							//	fprintf(pycode_dump, "        ");
+							//	fprintf(pycode_dump, "x = F.dropout(x, p=%.3f, training=True)\n", layer[i].dropout_rate);
+							//}
+							if (layer[i].dropout_rate > 0)
+							{
+								x = torch::dropout(x, layer[i].dropout_rate, true);
+							}
+							break;
 						}
 					default:
 						break;

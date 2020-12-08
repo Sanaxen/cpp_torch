@@ -117,6 +117,18 @@ extern "C" _LIBRARY_EXPORTS int cuda_is_available()
 	}
 	return -1;
 }
+extern "C" _LIBRARY_EXPORTS void  set_sampling(float rate)
+{
+	cpp_torch::Net& model = toNet(nn_)->model;
+
+	model.get()->set_sampling_rate(rate);
+}
+extern "C" _LIBRARY_EXPORTS void  reset_sampling()
+{
+	cpp_torch::Net& model = toNet(nn_)->model;
+
+	model.get()->reset_sampling_rate();
+}
 
 extern "C" _LIBRARY_EXPORTS void state_reset(std::string& rnn_type , void* nn)
 {
@@ -1792,6 +1804,7 @@ extern "C" _LIBRARY_EXPORTS void torch_train(
 	}
 	else
 	{
+		model.get()->add_sampling();
 		model.get()->add_fc(train_labels[0].size());
 	}
 
@@ -1959,6 +1972,7 @@ extern "C" _LIBRARY_EXPORTS void torch_train_fc(
 	}
 	else
 	{
+		model.get()->add_sampling();
 		model.get()->add_fc(train_labels[0].size());
 	}
 

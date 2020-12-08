@@ -42,6 +42,8 @@ etc ..
 #endif
 
 extern "C" _LIBRARY_EXPORTS int cuda_is_available();
+extern "C" _LIBRARY_EXPORTS void  set_sampling(float rate);
+extern "C" _LIBRARY_EXPORTS void  reset_sampling();
 
 extern "C" _LIBRARY_EXPORTS void read_mnist_dataset(const std::string &data_dir_path);
 
