@@ -25,6 +25,7 @@ namespace cpp_torch
 
 		BATCHNORMAL1D = 10,
 		CONV1D = 11,
+		MAXPOOL1D = 12,
 
 		RNN = 90,
 		LSTM = 91,
@@ -96,6 +97,7 @@ namespace cpp_torch
 		int activation_count = 0;
 		int maxpool2d_count = 0;
 		int avgpool2d_count = 0;
+		int maxpool1d_count = 0;
 		int dropout_count = 0;
 		int pixel_shuffle_count = 0;
 
@@ -391,6 +393,72 @@ namespace cpp_torch
 			add_conv_transpose2d_(input_channels, output_channels, { kernel_size, kernel_size }, { stride, stride }, { padding, padding }, { out_padding, out_padding }, { dilation, dilation }, bias);
 		}
 
+		/**
+		* applies max-pooling operaton to the spatial data
+		**/
+		/**
+		* constructing max pooling 1D layer
+		*
+		* @param input_channels  [in] input image channels (grayscale=1, rgb=3)
+		* @param output_channels [in] output image channels
+		* @param kernel_size  [in] window(kernel) size of convolution
+		* @param stride       [in] stride size
+		* @param padding      [in] padding size
+		* @param dilation     [in] dilation
+		**/
+		void add_maxpool1d_(int input_channels, int output_channels, std::vector<int> kernel_size = { 1 }, std::vector<int> stride = { 1 }, std::vector<int> padding = { 0 }, std::vector<int> dilation = { 1 })
+		{
+			int id = maxpool1d_count++;
+			cpp_torch::LayerInOut inout;
+			inout.name = "maxpool1d";
+			inout.type = cpp_torch::LayerType::MAXPOOL1D;
+			inout.id = id;
+
+			const int i = layer.size();
+			inout.in_ = { input_channels, layer[i - 1].out_[1]*layer[i - 1].out_[2] };
+
+			inout.out_ = {
+				output_channels,
+				1,
+				(int)floor((double)(inout.in_[1] + 2 * padding[0] - dilation[0] * (kernel_size[0] - 1) - 1) / (double)stride[0] + 1)
+			};
+
+			inout.dilation = dilation;
+			inout.kernel_size = kernel_size;
+			inout.padding = padding;
+			inout.stride = stride;
+
+			layer.emplace_back(inout);
+
+			std::cout << "maxpool {" << inout.in_ << "}->{" << inout.out_ << "}" << std::endl;
+		}
+		/**
+		* constructing max pooling 1D layer
+		*
+		* @param kernel_size     [in] window(kernel) size of convolution
+		* @param stride       [in] specify the horizontal interval at which to apply the filters to the input
+		* @param padding         [in] padding size
+		* @param dilation     [in] specify the horizontal interval to control the spacing between the kernel points
+		**/
+		void add_maxpool1d(int kernel_size, int stride, int padding = 0, int dilation = 1)
+		{
+			const int i = layer.size();
+			add_maxpool1d_(layer[i - 1].out_[0], layer[i - 1].out_[0], { kernel_size, kernel_size }, { stride, stride }, { padding,padding }, { dilation, dilation });
+		}
+		/**
+		* constructing max pooling 2D layer
+		*
+		* @param kernel_size     [in] window(kernel) size of convolution
+		**/
+		void add_maxpool1d(int kernel_size)
+		{
+			const int i = layer.size();
+			add_maxpool1d_(layer[i - 1].out_[0], layer[i - 1].out_[0], { kernel_size, kernel_size }, { kernel_size, kernel_size }, { 0, 0 }, { 1, 1 });
+		}
+
+
+
+////////////////
 		/**
 		* applies max-pooling operaton to the spatial data
 		**/
@@ -1137,6 +1205,30 @@ namespace cpp_torch
 					{
 						fprintf(pycode_dump, "        ");
 						fprintf(pycode_dump, "x = self.conv_transpose2d%d(x)\n", layer[i].id);
+					}
+					continue;
+				}
+				if (layer[i].type == cpp_torch::LayerType::MAXPOOL1D)
+				{
+					x = x.view({ -1, layer[i - 1].out_[0], layer[i - 1].out_[1]*layer[i - 1].out_[2] });
+					x = torch::max_pool1d(x,
+						{ layer[i].kernel_size[0] },
+						{ layer[i].stride[0] },
+						{ layer[i].padding[0] },
+						{ layer[i].dilation[0] }
+					);
+
+					if (debug_dmp)cpp_torch::dump_dim(layer[i].name, x);
+
+					if (pycode_dump)
+					{
+						fprintf(pycode_dump, "\n        ");
+						fprintf(pycode_dump, "x = x.view(-1, %d, %d, %d)\n", layer[i - 1].out_[0], layer[i - 1].out_[1], layer[i - 1].out_[2]);
+					}
+					if (pycode_dump)
+					{
+						fprintf(pycode_dump, "        ");
+						fprintf(pycode_dump, "x = F.max_pool1d(x, %d, %d, padding=%d, dilation=%d)\n", layer[i].kernel_size[0], layer[i].stride[0], layer[i].padding[0], layer[i].dilation[0]);
 					}
 					continue;
 				}

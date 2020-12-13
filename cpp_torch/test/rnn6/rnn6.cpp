@@ -1713,11 +1713,11 @@ extern "C" _LIBRARY_EXPORTS void torch_train(
 		int size = (int)floor((double)(input_size2 + 2 * padding - dilation * (kernel - 1) - 1) / (double)stride + 1);
 		if (size <= 0)
 		{
-			input_size2 *= 2;
 			do {
 				
 				size = (int)floor((double)(input_size2 + 2 * padding - dilation * (kernel - 1) - 1) / (double)stride + 1);
 
+				input_size2 *= 2;
 			} while (size <= 0);
 			model.get()->add_fc(input_size2, false);
 		}
@@ -1961,7 +1961,52 @@ extern "C" _LIBRARY_EXPORTS void torch_train_fc(
 		}
 	}
 
-	printf("--->classification=%d\n", classification);
+	//printf("--->classification=%d\n", classification);
+	if (use_cnn > 0)
+	{
+		int i_ch = 1;
+		int o_ch = 8;
+		int kernel = 3;
+		int stride = 2;
+		int padding = 1;
+		int dilation = 1;
+
+		int input_size2 = input_size;
+		int size = (int)floor((double)(input_size2 + 2 * padding - dilation * (kernel - 1) - 1) / (double)stride + 1);
+		if (size <= 0)
+		{
+			do {
+
+				size = (int)floor((double)(input_size2 + 2 * padding - dilation * (kernel - 1) - 1) / (double)stride + 1);
+
+				input_size2 *= 2;
+			} while (size <= 0);
+			model.get()->add_fc(input_size2, false);
+		}
+
+		for (int k = 0; k < use_cnn; k++)
+		{
+			int in = model.get()->getOutputSize();
+			padding = (int)floor((double)(in*(stride - 1) - stride + 1 + dilation * (kernel - 1)) / 2.0);
+			padding = 0;
+
+			if (model.get()->getOutputSize() <= 0)
+			{
+				printf("number of cnn ERROR.\n"); fflush(stdout);
+				throw cpp_torch::error_exception("number of cnn ERROR.");
+			}
+			model.get()->add_conv1d(i_ch, o_ch, kernel, stride, padding, dilation);
+			
+			if (use_cnn_add_bn)
+			{
+				model.get()->add_bn1d();
+			}
+			add_activatin(model);
+			model.get()->add_maxpool1d(kernel, stride);
+			i_ch = o_ch;
+			o_ch *= 2;
+		}
+	}
 
 	if (classification >= 2)
 	{
