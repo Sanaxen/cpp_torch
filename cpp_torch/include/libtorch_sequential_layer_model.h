@@ -229,8 +229,11 @@ namespace cpp_torch
 			if (add_attention_mode)
 			{
 				inout.attention_mode = 1;
+				inout.id = id + 1;
 				layer.emplace_back(inout);
+				inout.id = id + 2;
 				layer.emplace_back(inout);
+				inout.id = id + 3;
 				layer.emplace_back(inout);
 			}
 
@@ -1096,17 +1099,17 @@ namespace cpp_torch
 						fprintf(pycode_dump, "\n        ");
 						fprintf(pycode_dump, "fc_v_att_out = fc_v_att_out.view(batch_size, -1)\n");
 						fprintf(pycode_dump, "\n        ");
-						fprintf(pycode_dump, "z = torch.bmm(fc_q_att_out, fc_k_att_out)/ sqrt(%d)\n", layer[i].attention_d_k);
+						fprintf(pycode_dump, "z = torch.bmm(fc_q_att_out, fc_k_att_out)/ np.sqrt(%d)\n", layer[i].attention_d_k);
 						fprintf(pycode_dump, "\n        ");
 						fprintf(pycode_dump, "y = F.softmax(z, 1)\n");
 						fprintf(pycode_dump, "\n        ");
-						fprintf(pycode_dump, "x = x.view(batch, -1)\n");
+						fprintf(pycode_dump, "x = x.view(batch_size, 1, -1)\n");
 						fprintf(pycode_dump, "\n        ");
-						fprintf(pycode_dump, "y = y.view(batch, x.size()[2], -1)\n");
+						fprintf(pycode_dump, "y = y.view(batch_size, x.size()[2], -1)\n");
 						fprintf(pycode_dump, "\n        ");
 						fprintf(pycode_dump, "weighted_sum = torch.bmm(x,y)\n");
 						fprintf(pycode_dump, "\n        ");
-						fprintf(pycode_dump, "weighted_sum = weighted_sum.view(batch, -1)\n");
+						fprintf(pycode_dump, "weighted_sum = weighted_sum.view(batch_size, -1)\n");
 						fprintf(pycode_dump, "\n        ");
 						fprintf(pycode_dump, "x = weighted_sum*fc_v_att_out\n");
 					}
@@ -1144,7 +1147,9 @@ namespace cpp_torch
 						{
 							fprintf(pycode_dump, "        ");
 							fprintf(pycode_dump, "fc_q_att_out = self.fc_q%d(y)\n", layer[i + 1].id);
+							fprintf(pycode_dump, "        ");
 							fprintf(pycode_dump, "fc_k_att_out = self.fc_k%d(y)\n", layer[i + 2].id);
+							fprintf(pycode_dump, "        ");
 							fprintf(pycode_dump, "fc_v_att_out = self.fc_v%d(y)\n", layer[i + 3].id);
 						}
 					}
