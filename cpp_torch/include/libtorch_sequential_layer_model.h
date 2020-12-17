@@ -31,19 +31,22 @@ namespace cpp_torch
 		LSTM = 91,
 		GRU = 92,
 
-		ReLU = 100,				// ReLU(x)
-		ReLU_ = 101,			// ReLU(x,inplace=True) 
-		LeakyReLU = 102,
-		LeakyReLU_ = 103,		// LeakyReLU(x,inplace=True) 
-		SELU = 104,
-		Sigmoid = 105,
-		Tanh = 106,
-		Softmax = 107,
-		LogSoftmax = 108,
-		Squeeze = 109,
-		Drop_F = 120,
-		Sampling = 130,
-		Attention = 200
+		Attention = 200,
+		Residual_begin = 210,
+		Residual_end = 211,
+		Sampling = 300,
+
+		ReLU = 1000,				// ReLU(x)
+		ReLU_ = 1001,			// ReLU(x,inplace=True) 
+		LeakyReLU = 1002,
+		LeakyReLU_ = 1003,		// LeakyReLU(x,inplace=True) 
+		SELU = 1004,
+		Sigmoid = 1005,
+		Tanh = 1006,
+		Softmax = 1007,
+		LogSoftmax = 1008,
+		Squeeze = 1009,
+		Drop_F = 1020
 	};
 
 	class LayerInOut
@@ -78,6 +81,9 @@ namespace cpp_torch
 		int attention_mode = 0;
 		int attention_d_k = 0;
 		int attention_head = 0;
+		
+		bool branch_risedual = false;
+		bool connect_risedual = false;
 	};
 
 	struct NetImpl : torch::nn::Module {
@@ -167,6 +173,16 @@ namespace cpp_torch
 			std::cout << "input {" << inout.in_ << "}->{" << inout.out_ << "}" << std::endl;
 		}
 
+		void add_residual_begin()
+		{
+			const int i = layer.size();
+			layer[i - 1].branch_risedual = true;
+		}
+		void add_residual_end()
+		{
+			const int i = layer.size();
+			layer[i - 1].connect_risedual = true;
+		}
 
 		int add_attention_mode = false;
 		void add_attaentinon(int out, int head)
@@ -940,6 +956,7 @@ namespace cpp_torch
 		inout.in_ = layer[i - 1].out_;					\
 		inout.out_ = inout.in_;							\
 		layer.push_back(inout);							\
+		std::cout << "  " <<  inout.name << "{" << inout.in_ << "}->{" << inout.out_ << "}" << std::endl;\
 		}
 		
 
@@ -954,6 +971,7 @@ namespace cpp_torch
 		inout.out_ = inout.in_;							\
 		inout.dim = d;									\
 		layer.push_back(inout);							\
+		std::cout << "  " <<  inout.name << "{" << inout.in_ << "}->{" << inout.out_ << "}" << std::endl;\
 		}
 
 #define ACTIVATION_LAYER2( id_name ) void add_##id_name(float_t negative_slope)	\
@@ -967,6 +985,7 @@ namespace cpp_torch
 		inout.out_ = inout.in_;							\
 		inout.negative_slope = negative_slope;			\
 		layer.push_back(inout);							\
+		std::cout << "  " <<  inout.name << "{" << inout.in_ << "}->{" << inout.out_ << "}" << std::endl;\
 		}
 
 		void add_drop_f(float rate)
@@ -980,6 +999,7 @@ namespace cpp_torch
 			inout.out_ = inout.in_;
 			inout.dropout_rate = rate;
 			layer.push_back(inout);
+			std::cout << "  " << inout.name << "{" << inout.in_ << "}->{" << inout.out_ << "}" << std::endl; \
 		}
 		void add_sampling()
 		{
@@ -992,6 +1012,7 @@ namespace cpp_torch
 			inout.out_ = inout.in_;
 			inout.dropout_rate = 0;
 			layer.push_back(inout);
+			std::cout << "  " << inout.name << "{" << inout.in_ << "}->{" << inout.out_ << "}" << std::endl; \
 		}
 
 		ACTIVATION_LAYER(ReLU)
@@ -1045,9 +1066,15 @@ namespace cpp_torch
 			torch::Tensor fc_q_att_out;
 			torch::Tensor fc_k_att_out;
 			torch::Tensor fc_v_att_out;
+
+			torch::Tensor residual;
+
 			for (int i = 1; i < layer.size(); i++)
 			{
 				if (debug_dmp)cpp_torch::dump_dim(std::string("IN"), x);
+				//cpp_torch::dump_dim(std::string("\tx"), x.view({ batch,1, -1 }));
+
+
 				if (layer[i].type == cpp_torch::LayerType::Attention)
 				{
 					const int in = layer[i - 1].out_[0] * layer[i - 1].out_[1] * layer[i - 1].out_[2];
@@ -1573,6 +1600,29 @@ namespace cpp_torch
 					default:
 						break;
 						/* empty */
+					}
+				}
+
+				if (layer[i].connect_risedual)
+				{
+					//printf("residual end\n"); fflush(stdout);
+					x = x + residual;
+					//cpp_torch::dump_dim(std::string("x+residual"), x);
+					if (pycode_dump)
+					{
+						fprintf(pycode_dump, "\n        ");
+						fprintf(pycode_dump, "x += residual\n");
+					}
+				}
+
+				if (layer[i].branch_risedual)
+				{
+					//printf("residual begin\n"); fflush(stdout);
+					residual = x;
+					if (pycode_dump)
+					{
+						fprintf(pycode_dump, "\n        ");
+						fprintf(pycode_dump, "residual = x\n");
 					}
 				}
 			}
