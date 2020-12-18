@@ -32,7 +32,7 @@ at::Tensor DeformConv2d_forward(
         groups,
         offset_groups);
 #else
-    TORCH_CHECK(false, "Not compiled with GPU support");
+    AT_ERROR("Not compiled with GPU support");
 #endif
   }
   return DeformConv2d_forward_cpu(
@@ -72,7 +72,7 @@ std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor> DeformConv2d_backward
         groups,
         offset_groups);
 #else
-    TORCH_CHECK(false, "Not compiled with GPU support");
+    AT_ERROR("Not compiled with GPU support");
 #endif
   }
   return DeformConv2d_backward_cpu(

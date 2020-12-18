@@ -53,6 +53,10 @@ endif()
 # Create imported target TorchVision::TorchVision
 add_library(TorchVision::TorchVision SHARED IMPORTED)
 
+set_target_properties(TorchVision::TorchVision PROPERTIES
+  INTERFACE_INCLUDE_DIRECTORIES "D:/tmp/vision-0.7.0/;${_IMPORT_PREFIX}/include"
+)
+
 # Load information for each installed configuration.
 get_filename_component(_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
 file(GLOB CONFIG_FILES "${_DIR}/TorchVisionTargets-*.cmake")

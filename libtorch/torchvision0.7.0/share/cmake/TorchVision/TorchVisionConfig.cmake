@@ -55,9 +55,7 @@ endif()
 if(NOT TARGET Python3::Python)
 find_package(Python3 COMPONENTS Development)
 endif()
-
-set_target_properties(TorchVision::TorchVision PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${PACKAGE_PREFIX_DIR}/include" INTERFACE_LINK_LIBRARIES "torch;Python3::Python" )
-
+target_link_libraries(TorchVision::TorchVision INTERFACE ${TORCH_LIBRARIES} Python3::Python)
 
 if(OFF)
   target_compile_definitions(TorchVision::TorchVision INTERFACE WITH_CUDA)

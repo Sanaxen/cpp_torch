@@ -1,24 +1,14 @@
 #pragma once
 #include <torch/extension.h>
 
-#ifdef _WIN32
-#if defined(torchvision_EXPORTS)
-#define VISION_API __declspec(dllexport)
-#else
-#define VISION_API __declspec(dllimport)
-#endif
-#else
-#define VISION_API
-#endif
-
-VISION_API std::tuple<at::Tensor, at::Tensor> ROIPool_forward_cpu(
+std::tuple<at::Tensor, at::Tensor> ROIPool_forward_cpu(
     const at::Tensor& input,
     const at::Tensor& rois,
     const float spatial_scale,
     const int pooled_height,
     const int pooled_width);
 
-VISION_API at::Tensor ROIPool_backward_cpu(
+at::Tensor ROIPool_backward_cpu(
     const at::Tensor& grad,
     const at::Tensor& rois,
     const at::Tensor& argmax,
@@ -30,7 +20,7 @@ VISION_API at::Tensor ROIPool_backward_cpu(
     const int height,
     const int width);
 
-VISION_API at::Tensor ROIAlign_forward_cpu(
+at::Tensor ROIAlign_forward_cpu(
     const at::Tensor& input,
     const at::Tensor& rois,
     const double spatial_scale,
@@ -39,7 +29,7 @@ VISION_API at::Tensor ROIAlign_forward_cpu(
     const int64_t sampling_ratio,
     const bool aligned);
 
-VISION_API at::Tensor ROIAlign_backward_cpu(
+at::Tensor ROIAlign_backward_cpu(
     const at::Tensor& grad,
     const at::Tensor& rois,
     const double spatial_scale,
@@ -52,14 +42,14 @@ VISION_API at::Tensor ROIAlign_backward_cpu(
     const int64_t sampling_ratio,
     const bool aligned);
 
-VISION_API std::tuple<at::Tensor, at::Tensor> PSROIPool_forward_cpu(
+std::tuple<at::Tensor, at::Tensor> PSROIPool_forward_cpu(
     const at::Tensor& input,
     const at::Tensor& rois,
     const float spatial_scale,
     const int pooled_height,
     const int pooled_width);
 
-VISION_API at::Tensor PSROIPool_backward_cpu(
+at::Tensor PSROIPool_backward_cpu(
     const at::Tensor& grad,
     const at::Tensor& rois,
     const at::Tensor& mapping_channel,
@@ -71,7 +61,7 @@ VISION_API at::Tensor PSROIPool_backward_cpu(
     const int height,
     const int width);
 
-VISION_API std::tuple<at::Tensor, at::Tensor> PSROIAlign_forward_cpu(
+std::tuple<at::Tensor, at::Tensor> PSROIAlign_forward_cpu(
     const at::Tensor& input,
     const at::Tensor& rois,
     const float spatial_scale,
@@ -79,7 +69,7 @@ VISION_API std::tuple<at::Tensor, at::Tensor> PSROIAlign_forward_cpu(
     const int pooled_width,
     const int sampling_ratio);
 
-VISION_API at::Tensor PSROIAlign_backward_cpu(
+at::Tensor PSROIAlign_backward_cpu(
     const at::Tensor& grad,
     const at::Tensor& rois,
     const at::Tensor& mapping_channel,
@@ -92,12 +82,12 @@ VISION_API at::Tensor PSROIAlign_backward_cpu(
     const int height,
     const int width);
 
-VISION_API at::Tensor nms_cpu(
+at::Tensor nms_cpu(
     const at::Tensor& dets,
     const at::Tensor& scores,
     const double iou_threshold);
 
-VISION_API at::Tensor DeformConv2d_forward_cpu(
+at::Tensor DeformConv2d_forward_cpu(
     const at::Tensor& input,
     const at::Tensor& weight,
     const at::Tensor& offset,
@@ -108,7 +98,7 @@ VISION_API at::Tensor DeformConv2d_forward_cpu(
     int groups,
     int deformable_groups);
 
-VISION_API std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor>
+std::tuple<at::Tensor, at::Tensor, at::Tensor, at::Tensor>
 DeformConv2d_backward_cpu(
     const at::Tensor& grad_out,
     const at::Tensor& input,
