@@ -115,7 +115,20 @@ namespace cpp_torch
 			}
 			else
 			{
-				std::memcpy((void*)resultImg.data, out_tensor.data_ptr(), sizeof(torch::kU8)*out_tensor.numel());
+				// this > libtorch-1.60 
+#pragma omp parallel for
+				for (int y = 0; y < sizes[2]; ++y)
+				{
+					for (int x = 0; x < sizes[1]; ++x)
+					{
+						for (int c = 0; c < sizes[0]; ++c)
+						{
+							resultImg.at< cv::Vec3b>(y, x)[c] = out_tensor[y][x][c].template item<float_t>();
+						}
+					}
+				}
+				// this <= libtorch-1.60 
+				//std::memcpy((void*)resultImg.data, out_tensor.data_ptr(), sizeof(torch::kU8)*out_tensor.numel());
 			}
 			cv::cvtColor(resultImg, resultImg, cv::COLOR_BGR2RGB);
 

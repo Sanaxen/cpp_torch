@@ -248,6 +248,7 @@ void learning_and_test_dcgan_dataset(torch::Device device)
 	dcgan.discriminator_flip = discriminator_flip;
 	dcgan.discriminator_noise = discriminator_noise;
 	dcgan.noize_range = discriminator_range;
+	dcgan.batch_shuffle = true;
 
 	float loss_min = 99999.0;
 	int none_update_count = 0;
@@ -296,9 +297,9 @@ void learning_and_test_dcgan_dataset(torch::Device device)
 		//}
 			
 #if 10
-		if (epoch % kLogInterval == 0)
+		if (1/*epoch % kLogInterval == 0*/)
 		{
-			if (epoch == kNumberOfEpochs)
+			if (1/*epoch == kNumberOfEpochs*/)
 			{
 #ifdef USE_OPENCV_UTIL
 #pragma omp parallel for

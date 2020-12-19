@@ -12,6 +12,15 @@
 
 #define USE_CUDA
 
+/* 2020/12/19 libtorch1.7.1
+loss= 0.0378258
+1277/1278
+accuracy:99.9218% (1277/1278)
+	*     0     1     2
+	0   385     1     0
+	1     0   155     0
+	2     0     0   737
+*/
 // Where to find the dataset.
 const char* kDataRoot = "./data";
 
@@ -160,6 +169,7 @@ auto main() -> int {
 	
 	cpp_torch::network_torch<vision::models::ResNet18> nn(model, device);
 
+	//nn.classification = true;
 	nn.input_dim(3, 224, 224);
 	nn.output_dim(1, 1, num_class);
 
