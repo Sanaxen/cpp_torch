@@ -52,6 +52,7 @@ namespace rnn_dll_variables
 	float dropout = 0;
 	float learning_rate = 0;
 	float clip_gradients = 0;
+	int early_stopping = 0;
 	char opt_type[32] = { '\0' };
 	int n_train_epochs = 0;
 	int n_minibatch = 0;
@@ -348,6 +349,10 @@ extern "C" _LIBRARY_EXPORTS void torch_read_params(bool train)
 		{
 			sscanf(buf, "fc_hidden_size:%d", &fc_hidden_size);
 		}
+		if (strstr(buf, "early_stopping"))
+		{
+			sscanf(buf, "early_stopping:%d", &early_stopping);
+		}
 		if (strstr(buf, "dropout"))
 		{
 			sscanf(buf, "dropout:%f", &dropout);
@@ -490,6 +495,7 @@ extern "C" _LIBRARY_EXPORTS void torch_read_params(bool train)
 	printf("fc_hidden_size:%d\n", fc_hidden_size);
 	printf("dropout:%f\n", dropout);
 	printf("learning_rate:%f\n", learning_rate);
+	printf("early_stopping:%d\n", early_stopping);
 	printf("opt_type:%s\n", opt_type);
 	printf("n_train_epochs:%d\n", n_train_epochs);
 	printf("n_minibatch:%d\n", n_minibatch);
@@ -692,7 +698,7 @@ extern "C" _LIBRARY_EXPORTS void torch_setDeviceIndex(const int id)
 {
 	device.set_index(id);
 }
-extern "C" _LIBRARY_EXPORTS void* torch_setDevice(const char* device_name)
+extern "C" _LIBRARY_EXPORTS void torch_setDevice(const char* device_name)
 {
 	printf("device_name:%s\n", device_name);
 	torch::DeviceType device_type;
@@ -1647,6 +1653,7 @@ extern "C" _LIBRARY_EXPORTS int torch_train_custom(
 			on_enumerate_epoch);
 		std::cout << "end training." << std::endl;
 	}
+	return 0;
 }
 
 
@@ -1910,6 +1917,7 @@ extern "C" _LIBRARY_EXPORTS void torch_train(
 	nn_->classification = (classification >= 2);
 	nn_->batch_shuffle = batch_shuffle;
 	nn_->set_clip_grad_norm(clip_gradients);
+	nn_->set_early_stopping(early_stopping);
 
 	torch::optim::Optimizer* optimizer = nullptr;
 
@@ -1944,8 +1952,10 @@ extern "C" _LIBRARY_EXPORTS void torch_train(
 	{
 		optimizer = &optimizerRMSprop;
 	}
+	nn_->optimizer_name = opt_type;
 	if (optimizer == nullptr)
 	{
+		nn_->optimizer_name = "adam";
 		optimizer = &optimizerAdam;
 	}
 
@@ -2165,6 +2175,7 @@ extern "C" _LIBRARY_EXPORTS void torch_train_fc(
 	nn_->output_dim(1, 1, train_labels[0].size());
 	nn_->classification = (classification >= 2);
 	nn_->batch_shuffle = batch_shuffle;
+	nn_->set_early_stopping(early_stopping);
 
 
 	torch::optim::Optimizer* optimizer = nullptr;
@@ -2200,8 +2211,11 @@ extern "C" _LIBRARY_EXPORTS void torch_train_fc(
 	{
 		optimizer = &optimizerRMSprop;
 	}
+
+	nn_->optimizer_name = opt_type;
 	if (optimizer == nullptr)
 	{
+		nn_->optimizer_name = "adam";
 		optimizer = &optimizerAdam;
 	}
 

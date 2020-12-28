@@ -222,6 +222,37 @@ namespace cpp_torch
 		return batchNum;
 	}
 
+	inline void optimizer_lr_chg(std::string& optimizer_name, torch::optim::Optimizer* optimizer, float alp)
+	{
+		if (optimizer_name == "adam")
+		{
+			auto& opt = static_cast<torch::optim::AdamOptions&>(optimizer->param_groups()[0].options());
+			if (opt.lr() < 1.0e-5) return;
+
+			printf("\nlr:%.10f ->", opt.lr());
+			opt.lr(opt.lr()*alp);
+			printf(" %.10f\n", opt.lr());
+		}
+		if (optimizer_name == "sgd")
+		{
+			auto& opt = static_cast<torch::optim::SGDOptions&>(optimizer->param_groups()[0].options());
+			if (opt.lr() < 1.0e-5) return;
+			opt.lr(opt.lr()*alp);
+		}
+		if (optimizer_name == "rmsprop")
+		{
+			auto& opt = static_cast<torch::optim::RMSpropOptions&>(optimizer->param_groups()[0].options());
+			if (opt.lr() < 1.0e-5) return;
+			opt.lr(opt.lr()*alp);
+		}
+		if (optimizer_name == "adagrad")
+		{
+			auto& opt = static_cast<torch::optim::AdagradOptions&>(optimizer->param_groups()[0].options());
+			if (opt.lr() < 1.0e-5) return;
+			opt.lr(opt.lr()*alp);
+		}
+	}
+
 	template <
 		typename Model>
 		class network_torch
@@ -229,6 +260,10 @@ namespace cpp_torch
 		std::vector<float_t> Tolerance_Set;
 		float loss_value = 0.0;
 		float clip_grad_value = 0.0;
+
+
+		bool early_stopping = false;
+		int patience = 100;
 	public:
 		int in_channels = 1;
 		int in_H = 1;
@@ -240,6 +275,8 @@ namespace cpp_torch
 
 		torch::Device device;
 		Model model;
+
+		std::string optimizer_name;
 
 		/**
 		 * @param model_             model of neural networks
@@ -261,6 +298,15 @@ namespace cpp_torch
 			}
 		}
 
+		inline void set_early_stopping(bool flag, int patience_=100)
+		{
+			early_stopping = flag;
+			patience = patience_;
+		}
+		inline bool get_early_stopping()
+		{
+			return early_stopping;
+		}
 		inline void set_clip_grad_norm(float v)
 		{
 			clip_grad_value = v;
@@ -492,8 +538,14 @@ namespace cpp_torch
 			std::mt19937 get_rand_mt;
 
 			optimizer->zero_grad();
+			
 			stop_training_ = false;
+			
 			model.get()->train(true);
+
+			int early_stopping_count = 0;
+			std::vector<float> loss_values;
+
 			for (size_t epoch = 0; epoch < kNumberOfEpochs && !stop_training_; ++epoch)
 			{
 				if (!pre_make_batch)
@@ -561,6 +613,67 @@ namespace cpp_torch
 
 				if (stop_training_) break;
 				loss_value = loss_ave / kTrainBatchSize;
+#if 10
+				if (patience < epoch )
+				{
+					//std::cout << "patience " << patience << std::endl;
+					//std::cout << "epoch " << epoch << std::endl;
+					//std::cout << "early_stopping_count " << early_stopping_count << std::endl;
+					
+					if (loss_values.size() > 20)
+					{
+						const int n = loss_values.size() - loss_values.size() / 3;
+						float loss_mean = loss_values[0];
+						for (int i = 1; i < n; i++)
+						{
+							loss_mean += loss_values[i];
+						}
+						loss_mean /= n;
+
+						float sigma2 = 0;
+						for (int i = 0; i < n; i++)
+						{
+							sigma2 += (loss_values[i] - loss_mean)*(loss_values[i] - loss_mean);
+						}
+						sigma2 /= n;
+
+						loss_values.clear();
+
+													//2.0 => 97.7%  1.96 => 95%
+						const float u = loss_mean + 2.0*sigma2 / sqrt(n);
+						const float d = loss_mean - 2.0*sigma2 / sqrt(n);
+						
+						std::cout << "u " << u << std::endl;
+						std::cout << "d " << d << std::endl;
+						std::cout << "sigma2 " << sigma2 << std::endl;
+						std::cout << "loss_mean " << loss_mean << std::endl;
+						std::cout << "loss_value " << loss_value << std::endl;
+
+						if (loss_value > u)
+						{
+							std::cout << "early_stopping_count " << early_stopping_count << std::endl;
+							early_stopping_count++;
+							if (get_early_stopping() && early_stopping_count > 3)
+							{
+								std::cout << "early_stopping" << std::endl;
+								break;
+							}
+							optimizer_lr_chg(optimizer_name, optimizer, 0.5);
+							//early_stopping_count = 0;
+
+							//getchar();
+							//auto &options = static_cast<torch::optim::OptimizerOptions &>(optimizer->param_groups()[0].options());
+							//options.lr(options.lr() * 0.1);
+						}
+						else
+						{
+							early_stopping_count = 0;
+						}
+					}
+					loss_values.push_back(loss_value);
+				}
+#endif
+
 				on_epoch_enumerate();
 				model.get()->train(true);
 			}

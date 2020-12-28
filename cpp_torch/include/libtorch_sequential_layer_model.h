@@ -1115,8 +1115,8 @@ namespace cpp_torch
 					//exit(0);
 					if (pycode_dump)
 					{
-						fprintf(pycode_dump, "\n        ");
-						fprintf(pycode_dump, "head = %d\n", layer[i].attention_head);
+						//fprintf(pycode_dump, "\n        ");
+						//fprintf(pycode_dump, "head = %d\n", layer[i].attention_head);
 						fprintf(pycode_dump, "\n        ");
 						fprintf(pycode_dump, "x = x.view(batch_size, -1)\n");
 						fprintf(pycode_dump, "\n        ");
@@ -1145,8 +1145,13 @@ namespace cpp_torch
 				if (layer[i].type == cpp_torch::LayerType::FC)
 				{
 					const int in = layer[i - 1].out_[0]*layer[i - 1].out_[1]*layer[i - 1].out_[2];
+					//dump_dim("x", x);
+
+					//view size is not compatible with input tensor's size and stride (at least one dimension spans across two contiguous subspaces). Use .reshape(...) instead.
 					auto y = x.view({ batch, -1 });
-					
+					//auto y = x.contiguous().view({ batch, -1 });
+					//dump_dim("y", y);
+
 					x = fc[layer[i].id]->forward(y);
 					
 					if (debug_dmp)cpp_torch::dump_dim(fc[layer[i].id]->name(), x);
@@ -1430,6 +1435,7 @@ namespace cpp_torch
 						{
 							x = std::get<0>(std::get<1>(lstm[layer[i].id]->forward(x)));
 						}
+						//dump_dim("outX", x);
 
 						if (pycode_dump)
 						{
@@ -1465,9 +1471,16 @@ namespace cpp_torch
 							//fprintf(pycode_dump, "        x = hn\n");
 						}
 					}
-					//x = x.view({ batch,  layer[i].rnn_seqence_length, -1 });
-					//x = x.view({ batch,  -1, layer[i].rnn_hidden_size });
-					//dump_dim("X", x);
+
+					// next layer fc(x) -> x=view({ batch, -1 }) error
+					//view size is not compatible with input tensor's size and stride (at least one dimension spans across two contiguous subspaces). Use .reshape(...) instead.
+					x= x.contiguous().view({ batch, -1 });
+					if (pycode_dump)
+					{
+						fprintf(pycode_dump, "        ");
+						fprintf(pycode_dump, "x= x.contiguous().view(batch_size, -1)\n", layer[i].id);
+						//fprintf(pycode_dump, "        x = hn\n");
+					}
 
 					if (layer[i].type == cpp_torch::LayerType::LSTM)
 					{

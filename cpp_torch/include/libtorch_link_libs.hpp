@@ -14,6 +14,7 @@
 #ifdef USE_LIBTORCH_171
 #pragma comment(lib, "asmjit.lib")
 #pragma comment(lib, "c10.lib")
+#pragma comment(lib, "c10d.lib")
 #pragma comment(lib, "c10_cuda.lib")
 #pragma comment(lib, "caffe2_detectron_ops_gpu.lib")
 #pragma comment(lib, "caffe2_module_test_dynamic.lib")
