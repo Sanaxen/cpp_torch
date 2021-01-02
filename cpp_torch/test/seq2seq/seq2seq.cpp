@@ -26,8 +26,8 @@ const int64_t kNumberOfEpochs = 10;
 // After how many batches to log a new update with the loss value.
 const int64_t kLogInterval = 10;
 
-//const int sequence_length = 32;
-//const int out_sequence_length = 32;
+const int sequence_length = 32;
+const int out_sequence_length = 32;
 const int hidden_size = 400;
 //const int h_size = 400;
 const int vocab_size = 10000;
@@ -88,9 +88,9 @@ struct EncoderRNNImpl : torch::nn::Module {
 		x = embed_ja->forward(x);
 		x = torch::tanh(x);
 		auto y = lstm_ja->forward(x, {});
-		x = y.output;
-		auto z = lstm_en->forward(x, y.state);
-		x = embed_en->forward(z.output);
+		x = std::get<0>(y);
+		auto z = lstm_en->forward(x, std::get<1>(y));
+		x = embed_en->forward(std::get<0>(z));
 		return x;
 	}
 
@@ -107,14 +107,13 @@ std::vector<tiny_dnn::vec_t> train_labels, test_labels;
 std::vector<tiny_dnn::vec_t> train_images, test_images;
 
 
-int vocab_size = 10000;
 void read_seq2seq_dataset(const std::string &data_dir_path)
 {
 	WordEmbed* wd_ja = load_data(data_dir_path + "/tanaka_corpus_j_10000", vocab_size, false, true);
 	WordEmbed* wd_en = load_data(data_dir_path + "/tanaka_corpus_e_10000", vocab_size, false, true);
 	
-	wd_ja->paddingAll(sequence_length);
-	wd_en->paddingAll(out_sequence_length);
+	wd_ja->paddingAll(vocab_size);
+	wd_en->paddingAll(vocab_size);
 	std::vector<std::vector<int>> seqs_ids_ja = wd_ja->getSequencesIds();
 	std::vector<std::vector<int>> seqs_ids_en = wd_en->getSequencesIds();
 
