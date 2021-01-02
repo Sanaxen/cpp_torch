@@ -27,6 +27,9 @@ namespace cpp_torch
 		CONV1D = 11,
 		MAXPOOL1D = 12,
 
+		nnReLU = 20,
+		nnLeakyReLU = 21,
+
 		RNN = 90,
 		LSTM = 91,
 		GRU = 92,
@@ -77,6 +80,7 @@ namespace cpp_torch
 		float_t dropout_rate = 0.0;
 		float_t negative_slope = 0.01;	//LeakyReLU(negative_slope=0.01)
 		int upscale_factor = 1;	//pixel_shuffle
+		bool inplace = false;
 
 		int attention_mode = 0;
 		int attention_d_k = 0;
@@ -92,12 +96,16 @@ namespace cpp_torch
 			conv_drop(1, nullptr), bn2d(1, nullptr), bn1d(1, nullptr),
 			lstm(1, nullptr),gru(1, nullptr), rnn(1, nullptr),
 			conv_transpose2d(1, nullptr), 
+			relu(1, nullptr), leakyrelu(1, nullptr),
+
 			device(torch::kCPU)
 		{
 			fc.clear();	conv2d.clear();	conv1d.clear();
 			conv_drop.clear();	bn2d.clear(); bn1d.clear();
 			lstm.clear();gru.clear();rnn.clear(),
 			conv_transpose2d.clear();
+			relu.clear();
+			leakyrelu.clear();
 		}
 
 		int activation_count = 0;
@@ -106,7 +114,8 @@ namespace cpp_torch
 		int maxpool1d_count = 0;
 		int dropout_count = 0;
 		int pixel_shuffle_count = 0;
-
+		int relu_count = 0;
+		int leakyrelu_count = 0;
 		int attention_count = 0;
 
 		int pycode_dump_only = 0;
@@ -122,6 +131,8 @@ namespace cpp_torch
 		std::vector<torch::nn::GRU> gru;
 		std::vector<torch::nn::RNN> rnn;
 
+		std::vector<torch::nn::ReLU> relu;
+		std::vector<torch::nn::LeakyReLU> leakyrelu;
 
 		torch::Device device;
 		std::vector<cpp_torch::LayerInOut> layer;
@@ -673,6 +684,53 @@ namespace cpp_torch
 			std::cout << "drop {" << inout.in_ << "}->{" << inout.out_ << "}" << std::endl;
 		}
 
+		void add_relu(bool inplace_ = false)
+		{
+			cpp_torch::LayerInOut inout;
+			inout.name = "relu";
+			inout.type = cpp_torch::LayerType::nnReLU;
+			inout.id = relu_count++;
+			inout.inplace = inplace_;
+
+			const int i = layer.size();
+			inout.in_ = layer[i - 1].out_;
+			inout.out_ = inout.in_;
+
+			relu.emplace_back(register_module("relu" + std::to_string(inout.id), torch::nn::ReLU(torch::nn::ReLUOptions().inplace(inplace_))));
+			layer.emplace_back(inout);
+
+			if (pycode_dump)
+			{
+				fprintf(pycode_dump, "        ");
+				fprintf(pycode_dump, "self.relu%d = nn.ReLU(inplace=%s)\n", inout.id, inplace_?"True":"False");
+			}
+			std::cout << "relu {" << inout.in_ << "}->{" << inout.out_ << "}" << std::endl;
+		}
+
+		void add_leakyrelu(float negative_slope, bool inplace_ = false)
+		{
+			cpp_torch::LayerInOut inout;
+			inout.name = "leakyrelu";
+			inout.type = cpp_torch::LayerType::nnLeakyReLU;
+			inout.id = leakyrelu_count++;
+			inout.inplace = inplace_;
+			inout.negative_slope = negative_slope;
+
+			const int i = layer.size();
+			inout.in_ = layer[i - 1].out_;
+			inout.out_ = inout.in_;
+
+			leakyrelu.emplace_back(register_module("leakyrelu" + std::to_string(inout.id), torch::nn::LeakyReLU(torch::nn::LeakyReLUOptions().inplace(inplace_).negative_slope(negative_slope))));
+			layer.emplace_back(inout);
+
+			if (pycode_dump)
+			{
+				fprintf(pycode_dump, "        ");
+				fprintf(pycode_dump, "self.leakyrelu%d = nn.LeakyReLU(%f,inplace=%s)\n", inout.id, negative_slope, inplace_ ? "True" : "False");
+			}
+			std::cout << "leakyrelu {" << inout.in_ << "}->{" << inout.out_ << "}" << std::endl;
+		}
+
 		//PIXEL_SHUFFLE
 		/*
 		 * This is useful for implementing efficient sub-pixel convolution with a stride of 1/r .
@@ -1074,6 +1132,34 @@ namespace cpp_torch
 				if (debug_dmp)cpp_torch::dump_dim(std::string("IN"), x);
 				//cpp_torch::dump_dim(std::string("\tx"), x.view({ batch,1, -1 }));
 
+				if (layer[i].type == cpp_torch::LayerType::nnReLU)
+				{
+					const int in = layer[i - 1].out_[0] * layer[i - 1].out_[1] * layer[i - 1].out_[2];
+					x = x.view({ batch, -1 });
+
+					x = relu[layer[i].id]->forward(x);
+
+					if (pycode_dump)
+					{
+						fprintf(pycode_dump, "\n        ");
+						fprintf(pycode_dump, "x = relu%d(x)\n",layer[i].id);
+					}
+					continue;
+				}
+				if (layer[i].type == cpp_torch::LayerType::nnLeakyReLU)
+				{
+					const int in = layer[i - 1].out_[0] * layer[i - 1].out_[1] * layer[i - 1].out_[2];
+					x = x.view({ batch, -1 });
+
+					x = leakyrelu[layer[i].id]->forward(x);
+
+					if (pycode_dump)
+					{
+						fprintf(pycode_dump, "\n        ");
+						fprintf(pycode_dump, "x = leakyrelu%d(x)\n", layer[i].id);
+					}
+					continue;
+				}
 
 				if (layer[i].type == cpp_torch::LayerType::Attention)
 				{
@@ -1415,6 +1501,9 @@ namespace cpp_torch
 					layer[i].type == cpp_torch::LayerType::RNN
 					)
 				{
+					torch::Tensor output;
+					std::tuple<torch::Tensor, torch::Tensor> state;
+
 					const int in = layer[i - 1].out_[0] * layer[i - 1].out_[1] * layer[i - 1].out_[2];
 					x = x.view({ -1, layer[i].rnn_seqence_length, layer[i].rnn_sequence_single_size });
 					//dump_dim("X", x);
@@ -1427,13 +1516,24 @@ namespace cpp_torch
 
 					if (layer[i].type == cpp_torch::LayerType::LSTM)
 					{
+						std::tie(output, state) = lstm[layer[i].id]->forward(x);
 						if (layer[i].rnn_num_layers > 1)
 						{
-							x = std::get<0>(lstm[layer[i].id]->forward(x));
+							//x = std::get<0>(lstm[layer[i].id]->forward(x));
+							x = output;
+
+							//勾配は必要ないため計算グラフから状態を切り離す
+							//Separate the state from the computational graph as the gradient is not needed.
+							std::get<0>(state).detach();
+							std::get<1>(state).detach();
 						}
 						else
 						{
-							x = std::get<0>(std::get<1>(lstm[layer[i].id]->forward(x)));
+							//x = std::get<0>(std::get<1>(lstm[layer[i].id]->forward(x)));
+							x = std::get<0>(state);
+
+							//Separate the state from the computational graph as the gradient is not needed.
+							std::get<1>(state).detach();
 						}
 						//dump_dim("outX", x);
 
@@ -1453,7 +1553,13 @@ namespace cpp_torch
 					}else
 					if (layer[i].type == cpp_torch::LayerType::GRU)
 					{
-						x = std::get<0>(gru[layer[i].id]->forward(x));
+						//x = std::get<0>(gru[layer[i].id]->forward(x));
+						state = gru[layer[i].id]->forward(x);
+						x = std::get<0>(state);
+
+						//Separate the state from the computational graph as the gradient is not needed.
+						std::get<1>(state).detach();
+
 						if (pycode_dump)
 						{
 							fprintf(pycode_dump, "        ");
@@ -1463,7 +1569,12 @@ namespace cpp_torch
 					}else
 					if (layer[i].type == cpp_torch::LayerType::RNN)
 					{
-						x = std::get<0>(rnn[layer[i].id]->forward(x));
+						//x = std::get<0>(rnn[layer[i].id]->forward(x));
+						state = rnn[layer[i].id]->forward(x);
+						x = std::get<0>(state);
+
+						//Separate the state from the computational graph as the gradient is not needed.
+						std::get<1>(state).detach();
 						if (pycode_dump)
 						{
 							fprintf(pycode_dump, "        ");
