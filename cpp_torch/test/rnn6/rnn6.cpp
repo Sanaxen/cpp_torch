@@ -70,6 +70,7 @@ namespace rnn_dll_variables
 	int use_attention = 1;
 	int use_cnn = 0;
 	int use_cnn_add_bn = 0;
+	int use_add_bn = 0;
 	int padding_prm = 0;
 	int residual = 0;
 
@@ -421,6 +422,10 @@ extern "C" _LIBRARY_EXPORTS void torch_read_params(bool train)
 		if (strstr(buf, "use_cnn_add_bn"))
 		{
 			sscanf(buf, "use_cnn_add_bn:%d", &use_cnn_add_bn);
+		}
+		if (strstr(buf, "use_add_bn"))
+		{
+			sscanf(buf, "use_add_bn:%d", &use_add_bn);
 		}
 		//
 		if (strstr(buf, "state_reset_mode"))
@@ -1679,6 +1684,7 @@ void add_activatin(cpp_torch::Net& model)
 {
 	if ( std::string(activation_fnc) == "tanh")model.get()->add_Tanh();
 	if ( std::string(activation_fnc) == "relu")model.get()->add_ReLU();
+	if ( std::string(activation_fnc) == "leakyrelu")model.get()->add_LeakyReLU(0.2);
 }
 
 extern "C" _LIBRARY_EXPORTS void torch_train(
@@ -1839,6 +1845,10 @@ extern "C" _LIBRARY_EXPORTS void torch_train(
 		else
 		{
 			model.get()->add_fc(sz);
+		}
+		if (use_add_bn)
+		{
+			model.get()->add_bn1d();
 		}
 		add_activatin(model);
 	}
@@ -2013,6 +2023,10 @@ extern "C" _LIBRARY_EXPORTS void torch_train_fc(
 			if (dropout && i == n_layers - 1) model.get()->add_dropout(dropout);
 			model.get()->add_fc(input_size);
 			add_activatin(model);
+			if (use_add_bn)
+			{
+				model.get()->add_bn1d();
+			}
 		}
 	}
 
