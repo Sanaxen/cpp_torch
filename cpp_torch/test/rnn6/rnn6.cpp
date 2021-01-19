@@ -73,6 +73,7 @@ namespace rnn_dll_variables
 	int use_add_bn = 0;
 	int padding_prm = 0;
 	int residual = 0;
+	float use_observed_value = 1.0;
 
 	std::string optimizer_name = "adam";
 	bool batch_shuffle = true;
@@ -426,6 +427,10 @@ extern "C" _LIBRARY_EXPORTS void torch_read_params(bool train)
 		if (strstr(buf, "use_add_bn"))
 		{
 			sscanf(buf, "use_add_bn:%d", &use_add_bn);
+		}
+		if (strstr(buf, "use_observed_value"))
+		{
+			sscanf(buf, "use_observed_value:%f", &use_observed_value);
 		}
 		//
 		if (strstr(buf, "state_reset_mode"))
