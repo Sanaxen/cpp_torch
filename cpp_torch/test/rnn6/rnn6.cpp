@@ -306,7 +306,7 @@ extern "C" _LIBRARY_EXPORTS void torch_read_params(bool train)
 
 	while (fgets(buf, 100000, fp) != NULL)
 	{
-
+		if (buf[0] == '#')continue;
 		if (strstr(buf, "test_mode"))
 		{
 			sscanf(buf, "test_mode:%d", &test_mode);

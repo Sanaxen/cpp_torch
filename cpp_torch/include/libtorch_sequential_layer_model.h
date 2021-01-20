@@ -1735,7 +1735,10 @@ namespace cpp_torch
 					if (pycode_dump)
 					{
 						fprintf(pycode_dump, "\n        ");
-						fprintf(pycode_dump, "x += residual\n");
+						
+						//RuntimeError: a leaf Variable that requires grad has been used in an in-place operation.
+						//fprintf(pycode_dump, "x += residual\n");
+						fprintf(pycode_dump, "x = x + residual\n");
 					}
 				}
 
