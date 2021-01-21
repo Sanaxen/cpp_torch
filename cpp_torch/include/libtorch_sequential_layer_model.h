@@ -202,6 +202,13 @@ namespace cpp_torch
 
 			add_attention_mode = true;
 			
+			if (out / head < 1)
+			{
+				std::cout << "out:" << out << " head:" << head << " -> " << out/head << std::endl;
+				std::cout << "-> head=1" << std::endl;
+
+				head = 1;
+			}
 			out = out / head;
 			add_fc(out*head, false);
 			//add_bn1d();
