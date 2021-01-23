@@ -1840,7 +1840,10 @@ extern "C" _LIBRARY_EXPORTS void torch_train(
 	int n_layers_tmp = n_layers;
 	size_t sz = hidden_size / 2;
 
-	sz = train_labels[0].size() * 10;
+	//sz = train_labels[0].size() * 10;
+	int coef = int(0.9 / log(train_labels[0].size() / 4.0 + 1.0)) + 1;
+	sz = train_labels[0].size() * coef;
+
 	for (int i = 0; i < n_layers_tmp; i++) {
 		if (dropout && i == n_layers_tmp - 1) model.get()->add_dropout(dropout);
 		if (fc_hidden_size > 0)
