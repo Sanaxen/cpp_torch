@@ -74,6 +74,7 @@ namespace rnn_dll_variables
 	int padding_prm = 0;
 	int residual = 0;
 	float use_observed_value = 1.0;
+	int use_self_sequence = 0;
 
 	std::string optimizer_name = "adam";
 	bool batch_shuffle = true;
@@ -460,6 +461,10 @@ extern "C" _LIBRARY_EXPORTS void torch_read_params(bool train)
 		{
 			sscanf(buf, "activation_fnc:%s", activation_fnc);
 		}
+		if (strstr(buf, "use_self_sequence"))
+		{
+			sscanf(buf, "use_self_sequence:%d", &use_self_sequence);
+		}
 		//
 
 		if (train)
@@ -519,6 +524,7 @@ extern "C" _LIBRARY_EXPORTS void torch_read_params(bool train)
 	printf("use_cnn:%d\n", use_cnn);
 	printf("padding_prm:%d\n", padding_prm);
 	printf("residual:%d\n", residual);
+	printf("use_self_sequence:%d\n", use_self_sequence);
 
 	printf("(fc)input_size:%d\n", input_size);
 	printf("(fc)regression:%s\n", regression);
