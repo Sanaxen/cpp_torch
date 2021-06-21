@@ -18,7 +18,9 @@ in the LICENSE file.
 //#define USE_LIBTORCH_140
 //#define USE_LIBTORCH_150
 //#define USE_LIBTORCH_160
-#define USE_LIBTORCH_171
+//#define USE_LIBTORCH_171
+//#define USE_LIBTORCH_181
+#define USE_LIBTORCH_190
 
 #define USE_TORCHVISION_060
 
