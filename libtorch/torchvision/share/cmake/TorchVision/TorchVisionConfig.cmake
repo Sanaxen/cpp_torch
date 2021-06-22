@@ -56,7 +56,7 @@ if(NOT TARGET Python3::Python)
 find_package(Python3 COMPONENTS Development)
 endif()
 
-set_target_properties(TorchVision::TorchVision PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${PACKAGE_PREFIX_DIR}/include" INTERFACE_LINK_LIBRARIES "torch;Python3::Python" )
+set_target_properties(TorchVision::TorchVision PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${${PN}_INCLUDE_DIR}" INTERFACE_LINK_LIBRARIES "torch;Python3::Python" )
 
 
 if(OFF)
