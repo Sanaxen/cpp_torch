@@ -37,9 +37,10 @@ in the LICENSE file.
 #include "util/opencv_link_libs.h"
 #endif
 
-#ifdef USE_TORCHVISION_060
+#ifdef USE_TORCHVISION_0100
 #define USE_TORCHVISION
 #ifdef USE_TORCHVISION
+#include "../../libtorch/torchvision/include/torchvision/vision.h"
 #include "../../libtorch/torchvision/include/torchvision/models/resnet.h"
 #endif
 #endif
