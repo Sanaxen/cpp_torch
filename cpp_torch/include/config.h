@@ -10,7 +10,8 @@ in the LICENSE file.
 #define _CONFIG_H
 
 //#define USE_VS2015	//--> error => USE_LIBTORCH_140
-#define USE_VS2017
+//#define USE_VS2017		//--> error => USE_LIBTORCH_190
+#define USE_VS2019
 
 //#define USE_LIBTORCH_110
 //#define USE_LIBTORCH_120
@@ -22,7 +23,7 @@ in the LICENSE file.
 //#define USE_LIBTORCH_181
 #define USE_LIBTORCH_190
 
-#define USE_TORCHVISION_060
+#define USE_TORCHVISION_0100
 
 #define USE_COLOR_CONSOLE
 #define USE_WINDOWS
