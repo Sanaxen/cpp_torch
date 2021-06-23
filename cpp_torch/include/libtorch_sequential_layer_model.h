@@ -1122,7 +1122,7 @@ namespace cpp_torch
 			if (pycode_dump)
 			{
 				fprintf(pycode_dump, "\n\n");
-				fprintf(pycode_dump, "    def forward(self, x, batch_size):\n");
+				fprintf(pycode_dump, "    def forward(self, x, batch_size=1):\n");
 			}
 
 			const int batch = x.sizes()[0];
