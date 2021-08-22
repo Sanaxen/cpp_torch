@@ -1849,9 +1849,13 @@ extern "C" _LIBRARY_EXPORTS void torch_train(
 	//sz = train_labels[0].size() * 10;
 	int coef = int(0.9 / log(train_labels[0].size() / 4.0 + 1.0)) + 1;
 	sz = train_labels[0].size() * coef;
+	
+	int sz2 = sz;
+	if (fc_hidden_size > 0) sz2 = fc_hidden_size;
 
 	for (int i = 0; i < n_layers_tmp; i++) {
 		if (dropout && i == n_layers_tmp - 1) model.get()->add_dropout(dropout);
+#if 0
 		if (fc_hidden_size > 0)
 		{
 			model.get()->add_fc(fc_hidden_size);
@@ -1860,11 +1864,24 @@ extern "C" _LIBRARY_EXPORTS void torch_train(
 		{
 			model.get()->add_fc(sz);
 		}
+#else
+		model.get()->add_fc(sz2);
+#endif
 		if (use_add_bn)
 		{
 			model.get()->add_bn1d();
 		}
 		add_activatin(model);
+
+		sz2 /= 4;
+		if (classification >= 2)
+		{
+			if (sz2 < classification * 4) break;
+		}
+		else
+		{
+			if (sz2 < train_labels[0].size()*4) break;
+		}
 	}
 	model.get()->add_fc(sz);
 	add_activatin(model);
@@ -2033,13 +2050,23 @@ extern "C" _LIBRARY_EXPORTS void torch_train_fc(
 		model.get()->add_fc(input_size);
 		add_activatin(model);
 
+		int sz2 = input_size;
 		for (int i = 0; i < n_layers; i++) {
 			if (dropout && i == n_layers - 1) model.get()->add_dropout(dropout);
-			model.get()->add_fc(input_size);
+			model.get()->add_fc(sz2);
 			add_activatin(model);
 			if (use_add_bn)
 			{
 				model.get()->add_bn1d();
+			}
+			sz2 /= 4;
+			if (classification >= 2)
+			{
+				if (sz2 < classification * 4) break;
+			}
+			else
+			{
+				if (sz2 < train_labels[0].size() * 4) break;
 			}
 		}
 	}
