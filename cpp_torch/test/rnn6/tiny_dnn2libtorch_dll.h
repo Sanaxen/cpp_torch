@@ -71,6 +71,33 @@ extern "C" _LIBRARY_EXPORTS void send_test_labels(std::vector<tiny_dnn::vec_t>& 
 extern "C" _LIBRARY_EXPORTS void get_test_images(std::vector<tiny_dnn::vec_t>& data);
 extern "C" _LIBRARY_EXPORTS void get_test_labels(std::vector<tiny_dnn::vec_t>& data);
 
+extern "C" _LIBRARY_EXPORTS void torch_params(
+	int n_train_epochs_,
+	int n_minibatch_,
+	int input_size_,
+
+	int n_layers_,
+	int dropout_,
+	int n_hidden_size_,
+	int fc_hidden_size_,
+	float learning_rate_,
+
+	float clip_gradients_,
+	int use_cnn_,
+	int use_add_bn_,
+	int use_cnn_add_bn_,
+	int residual_,
+	int padding_prm_,
+
+	int classification_,
+	char* weight_init_type_,
+	char* activation_fnc_,
+	int early_stopping_,
+	char* opt_type_,
+	bool batch_shuffle_,
+	int test_mode_
+);
+
 extern "C" _LIBRARY_EXPORTS void torch_read_params(bool train);
 extern "C" _LIBRARY_EXPORTS void torch_read_train_params();
 extern "C" _LIBRARY_EXPORTS void torch_read_test_params();

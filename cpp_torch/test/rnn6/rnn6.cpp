@@ -90,6 +90,59 @@ namespace rnn_dll_variables
 };
 using namespace rnn_dll_variables;
 
+extern "C" _LIBRARY_EXPORTS void torch_params(
+	int n_train_epochs_ = 100,
+	int n_minibatch_ = 32,
+	int input_size_ = 64,
+
+	int n_layers_ = 5,
+	int dropout_ = 0.1,
+	int n_hidden_size_ = 64,
+	int fc_hidden_size_ = 64,
+	float learning_rate_ = 0.001,
+
+	float clip_gradients_ = 0,
+	int use_cnn_ = 0,
+	int use_add_bn_ = 0,
+	int use_cnn_add_bn_ = 0,
+	int residual_ = 0,
+	int padding_prm_ = 0,
+
+	int classification_ = 0,
+	char* weight_init_type_ = "xavier",
+	char* activation_fnc_ = "tanh",
+	int early_stopping_ = 100,
+	char* opt_type_ = "adam",
+	bool batch_shuffle_ = true,
+	int test_mode_ = 0
+){
+	 n_train_epochs = n_train_epochs_;
+	 n_minibatch = n_minibatch_;
+	 input_size = input_size_;
+	 
+	 n_layers = n_layers_;
+	 dropout = dropout_;
+	 n_hidden_size = n_hidden_size_;
+	 fc_hidden_size = fc_hidden_size_;
+	 learning_rate = learning_rate_;
+	 
+	 clip_gradients = clip_gradients_;
+	 use_cnn = use_cnn_;
+	 use_add_bn = use_add_bn_;
+	 use_cnn_add_bn = use_cnn_add_bn_;
+	 residual = residual_;
+	 padding_prm = padding_prm_;
+	 
+	 classification = classification_;
+	 strcpy(weight_init_type, weight_init_type_);
+	 strcpy(activation_fnc, activation_fnc_);
+	 
+	 early_stopping = early_stopping_;
+	 strcpy( opt_type, opt_type_);
+	 test_mode = test_mode_;
+	 batch_shuffle = batch_shuffle_;
+}
+
 extern "C" _LIBRARY_EXPORTS void read_mnist_dataset(const std::string &data_dir_path)
 {
 	std::vector<tiny_dnn::label_t> tr_labels;
@@ -1849,13 +1902,9 @@ extern "C" _LIBRARY_EXPORTS void torch_train(
 	//sz = train_labels[0].size() * 10;
 	int coef = int(0.9 / log(train_labels[0].size() / 4.0 + 1.0)) + 1;
 	sz = train_labels[0].size() * coef;
-	
-	int sz2 = sz;
-	if (fc_hidden_size > 0) sz2 = fc_hidden_size;
 
 	for (int i = 0; i < n_layers_tmp; i++) {
 		if (dropout && i == n_layers_tmp - 1) model.get()->add_dropout(dropout);
-#if 0
 		if (fc_hidden_size > 0)
 		{
 			model.get()->add_fc(fc_hidden_size);
@@ -1864,24 +1913,11 @@ extern "C" _LIBRARY_EXPORTS void torch_train(
 		{
 			model.get()->add_fc(sz);
 		}
-#else
-		model.get()->add_fc(sz2);
-#endif
 		if (use_add_bn)
 		{
 			model.get()->add_bn1d();
 		}
 		add_activatin(model);
-
-		sz2 /= 4;
-		if (classification >= 2)
-		{
-			if (sz2 < classification * 4) break;
-		}
-		else
-		{
-			if (sz2 < train_labels[0].size()*4) break;
-		}
 	}
 	model.get()->add_fc(sz);
 	add_activatin(model);
@@ -2050,23 +2086,13 @@ extern "C" _LIBRARY_EXPORTS void torch_train_fc(
 		model.get()->add_fc(input_size);
 		add_activatin(model);
 
-		int sz2 = input_size;
 		for (int i = 0; i < n_layers; i++) {
 			if (dropout && i == n_layers - 1) model.get()->add_dropout(dropout);
-			model.get()->add_fc(sz2);
+			model.get()->add_fc(input_size);
 			add_activatin(model);
 			if (use_add_bn)
 			{
 				model.get()->add_bn1d();
-			}
-			sz2 /= 4;
-			if (classification >= 2)
-			{
-				if (sz2 < classification * 4) break;
-			}
-			else
-			{
-				if (sz2 < train_labels[0].size() * 4) break;
 			}
 		}
 	}
@@ -2242,6 +2268,9 @@ extern "C" _LIBRARY_EXPORTS void torch_train_fc(
 		torch::optim::Adam(model.get()->parameters(),
 			torch::optim::AdamOptions(learning_rate));
 
+	auto optimizerAdam_ = torch::optim::Adam(
+		model.get()->parameters(), torch::optim::AdamOptions(2e-4).betas(std::make_tuple(0.5, 0.5)));
+
 	auto optimizerRMSprop =
 		torch::optim::RMSprop(model.get()->parameters(),
 			torch::optim::RMSpropOptions(learning_rate));
@@ -2257,6 +2286,10 @@ extern "C" _LIBRARY_EXPORTS void torch_train_fc(
 	if (std::string(opt_type) == "adam")
 	{
 		optimizer = &optimizerAdam;
+	}
+	if (std::string(opt_type) == "adam_")
+	{
+		optimizer = &optimizerAdam_;
 	}
 	if (std::string(opt_type) == "adagrad")
 	{

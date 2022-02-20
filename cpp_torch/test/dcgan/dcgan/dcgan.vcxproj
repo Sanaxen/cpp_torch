@@ -139,6 +139,8 @@
       <AdditionalIncludeDirectories>../../../../libtorch/include;../../../../libtorch/include/torch\csrc\api\include;../../../../cpp_torch;../../../../cpp_torch/include;C:\dev\opencv-3.4.0\build\include</AdditionalIncludeDirectories>
       <OpenMPSupport>true</OpenMPSupport>
       <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalOptions>/D _HAS_STD_BYTE=0 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
