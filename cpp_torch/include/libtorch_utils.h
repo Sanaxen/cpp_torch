@@ -224,7 +224,7 @@ namespace cpp_torch
 
 	inline void optimizer_lr_chg(std::string& optimizer_name, torch::optim::Optimizer* optimizer, float alp)
 	{
-		if (optimizer_name == "adam")
+		if (optimizer_name == "adam" || optimizer_name == "adam_")
 		{
 			auto& opt = static_cast<torch::optim::AdamOptions&>(optimizer->param_groups()[0].options());
 			if (opt.lr() < 1.0e-5) return;
@@ -611,10 +611,11 @@ namespace cpp_torch
 					model.get()->train(true);
 				}
 
+
 				if (stop_training_) break;
 				loss_value = loss_ave / kTrainBatchSize;
 #if 10
-				if (patience < epoch )
+				if (get_early_stopping() && patience < epoch )
 				{
 					//std::cout << "patience " << patience << std::endl;
 					//std::cout << "epoch " << epoch << std::endl;
