@@ -56,6 +56,7 @@ extern "C" _LIBRARY_EXPORTS float getScale();
 extern "C" _LIBRARY_EXPORTS float getTolerance();
 
 extern "C" _LIBRARY_EXPORTS int torch_train_init(void);
+extern "C" _LIBRARY_EXPORTS int torch_train_init_seed(int seed);
 extern "C" _LIBRARY_EXPORTS void* torch_getDevice();
 extern "C" _LIBRARY_EXPORTS void torch_setDevice(const char* device_name);
 extern "C" _LIBRARY_EXPORTS void torch_setDeviceIndex(const int id);
@@ -95,6 +96,7 @@ extern "C" _LIBRARY_EXPORTS void torch_params(
 	int early_stopping_,
 	char* opt_type_,
 	bool batch_shuffle_,
+	int shuffle_seed_,
 	int test_mode_
 );
 

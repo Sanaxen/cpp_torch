@@ -330,6 +330,7 @@ namespace cpp_torch
 
 		bool classification = false;
 		bool batch_shuffle = true;
+		int shuffle_seed = 1;
 		bool pre_make_batch = true;
 
 		bool stop_training_ = false;
@@ -359,7 +360,9 @@ namespace cpp_torch
 			batch_x = std::vector< torch::Tensor>(batchNum);
 
 			std::random_device rnd;
-			std::mt19937 mt(rnd());
+			//std::mt19937 mt(rnd());
+			std::mt19937 mt(this->suffle_seed);
+			//
 			std::uniform_int_distribution<> rand_index(0, (int)images.size() - 1);
 
 #pragma omp parallel for
@@ -436,7 +439,8 @@ namespace cpp_torch
 			batch_y = std::vector< torch::Tensor>(batchNum);
 
 			std::random_device rnd;
-			std::mt19937 mt(rnd());
+			//std::mt19937 mt(rnd());
+			std::mt19937 mt(this->shuffle_seed);
 			std::uniform_int_distribution<> rand_index(0, (int)images.size() - 1);
 
 #pragma omp parallel for
@@ -535,7 +539,7 @@ namespace cpp_torch
 			{
 				batch_idx_list.push_back(i);
 			}
-			std::mt19937 get_rand_mt;
+			std::mt19937 get_rand_mt(this->shuffle_seed);
 
 			optimizer->zero_grad();
 			

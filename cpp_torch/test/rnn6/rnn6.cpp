@@ -78,6 +78,7 @@ namespace rnn_dll_variables
 
 	std::string optimizer_name = "adam";
 	bool batch_shuffle = true;
+	int shuffle_seed = 1;
 
 	float moment = 0.01;
 	float scale = 1.0;
@@ -114,6 +115,7 @@ extern "C" _LIBRARY_EXPORTS void torch_params(
 	int early_stopping_ = 100,
 	char* opt_type_ = "adam",
 	bool batch_shuffle_ = true,
+	int shuffle_seed_ = 1,
 	int test_mode_ = 0
 ){
 	 n_train_epochs = n_train_epochs_;
@@ -141,6 +143,7 @@ extern "C" _LIBRARY_EXPORTS void torch_params(
 	 strcpy( opt_type, opt_type_);
 	 test_mode = test_mode_;
 	 batch_shuffle = batch_shuffle_;
+	 shuffle_seed = shuffle_seed_;
 }
 
 extern "C" _LIBRARY_EXPORTS void read_mnist_dataset(const std::string &data_dir_path)
@@ -2256,6 +2259,7 @@ extern "C" _LIBRARY_EXPORTS void torch_train_fc(
 	nn_->output_dim(1, 1, train_labels[0].size());
 	nn_->classification = (classification >= 2);
 	nn_->batch_shuffle = batch_shuffle;
+	nn_->shuffle_seed = shuffle_seed;
 	nn_->set_early_stopping(early_stopping);
 
 
@@ -2321,6 +2325,12 @@ extern "C" _LIBRARY_EXPORTS void torch_train_fc(
 _LIBRARY_EXPORTS int torch_train_init()
 {
 	torch::manual_seed(1);
+	return 0;
+}
+
+_LIBRARY_EXPORTS int torch_train_init_seed(int seed)
+{
+	torch::manual_seed(seed);
 	return 0;
 }
 
