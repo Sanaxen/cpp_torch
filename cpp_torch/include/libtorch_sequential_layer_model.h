@@ -688,7 +688,7 @@ namespace cpp_torch
 				fprintf(pycode_dump, "        ");
 				fprintf(pycode_dump, "self.drop%d = nn.Dropout(%f)\n", inout.id, rate);
 			}
-			std::cout << "drop {" << inout.in_ << "}->{" << inout.out_ << "}" << std::endl;
+			std::cout << "drop "<< rate << "{" << inout.in_ << "}->{" << inout.out_ << "}" << std::endl;
 		}
 
 		void add_relu(bool inplace_ = false)

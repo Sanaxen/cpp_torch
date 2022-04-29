@@ -78,7 +78,7 @@ extern "C" _LIBRARY_EXPORTS void torch_params(
 	int input_size_,
 
 	int n_layers_,
-	int dropout_,
+	float dropout_,
 	int n_hidden_size_,
 	int fc_hidden_size_,
 	float learning_rate_,
