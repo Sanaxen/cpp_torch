@@ -97,7 +97,7 @@ extern "C" _LIBRARY_EXPORTS void torch_params(
 	int input_size_ = 64,
 
 	int n_layers_ = 5,
-	int dropout_ = 0.1,
+	float dropout_ = 0.1,
 	int n_hidden_size_ = 64,
 	int fc_hidden_size_ = 64,
 	float learning_rate_ = 0.001,
@@ -144,6 +144,8 @@ extern "C" _LIBRARY_EXPORTS void torch_params(
 	 test_mode = test_mode_;
 	 batch_shuffle = batch_shuffle_;
 	 shuffle_seed = shuffle_seed_;
+
+	 //printf("dropout:%f\n", dropout);
 }
 
 extern "C" _LIBRARY_EXPORTS void read_mnist_dataset(const std::string &data_dir_path)
@@ -1784,6 +1786,7 @@ extern "C" _LIBRARY_EXPORTS void torch_train(
 	model.get()->setInput(1, 1, input_size);
 
 	size_t usize = input_size * 1;
+	if (dropout > 0) model.get()->add_dropout(dropout*0.2);
 	model.get()->add_fc(usize, false);
 	add_activatin(model);
 
@@ -1871,7 +1874,7 @@ extern "C" _LIBRARY_EXPORTS void torch_train(
 				model.get()->add_residual_end();
 			}
 		}
-		if (dropout) model.get()->add_dropout(dropout);
+		if (dropout > 0) model.get()->add_dropout(dropout);
 		model.get()->add_fc(input_size, false);
 		add_activatin(model);
 	}
@@ -1907,7 +1910,7 @@ extern "C" _LIBRARY_EXPORTS void torch_train(
 	sz = train_labels[0].size() * coef;
 
 	for (int i = 0; i < n_layers_tmp; i++) {
-		if (dropout && i == n_layers_tmp - 1) model.get()->add_dropout(dropout);
+		if (dropout > 0 && i == n_layers_tmp - 1) model.get()->add_dropout(dropout);
 		if (fc_hidden_size > 0)
 		{
 			model.get()->add_fc(fc_hidden_size);
@@ -1927,7 +1930,7 @@ extern "C" _LIBRARY_EXPORTS void torch_train(
 
 	if (classification >= 2)
 	{
-		if (dropout) model.get()->add_dropout(dropout);
+		//if (dropout) model.get()->add_dropout(dropout);
 		model.get()->add_fc(std::min((int)sz, classification * 2));
 		add_activatin(model);
 		model.get()->add_fc(classification);
@@ -1936,7 +1939,7 @@ extern "C" _LIBRARY_EXPORTS void torch_train(
 	else
 	{
 		model.get()->add_sampling();
-		if (dropout) model.get()->add_dropout(dropout);
+		//if (dropout) model.get()->add_dropout(dropout);
 		model.get()->add_fc(train_labels[0].size());
 	}
 
@@ -2089,8 +2092,11 @@ extern "C" _LIBRARY_EXPORTS void torch_train_fc(
 		model.get()->add_fc(input_size);
 		add_activatin(model);
 
+		//printf("@dropout:%f\n", dropout);
+
 		for (int i = 0; i < n_layers; i++) {
-			if (dropout && i == n_layers - 1) model.get()->add_dropout(dropout);
+			if (dropout > 0 && i == 0) model.get()->add_dropout(dropout*0.2);
+			if (dropout > 0 && i == n_layers-2) model.get()->add_dropout(dropout);
 			model.get()->add_fc(input_size);
 			add_activatin(model);
 			if (use_add_bn)
@@ -2190,14 +2196,14 @@ extern "C" _LIBRARY_EXPORTS void torch_train_fc(
 
 	if (classification >= 2)
 	{
-		if (dropout) model.get()->add_dropout(dropout);
+		//if (dropout) model.get()->add_dropout(dropout);
 		model.get()->add_fc(std::min((int)input_size, classification * 2));
 		add_activatin(model);
 		model.get()->add_fc(classification);
 	}
 	else
 	{
-		if (dropout) model.get()->add_dropout(dropout);
+		//if (dropout) model.get()->add_dropout(dropout);
 		model.get()->add_sampling();
 		model.get()->add_fc(train_labels[0].size());
 	}
