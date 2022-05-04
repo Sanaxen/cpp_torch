@@ -86,6 +86,8 @@ namespace rnn_dll_variables
 	bool state_reset_mode = false;
 	int pycode_dump_only = 0;
 
+	bool L1_loss = false;
+
 	std::vector<tiny_dnn::vec_t> train_labels, test_labels;
 	std::vector<tiny_dnn::vec_t> train_images, test_images;
 };
@@ -116,6 +118,7 @@ extern "C" _LIBRARY_EXPORTS void torch_params(
 	char* opt_type_ = "adam",
 	bool batch_shuffle_ = true,
 	int shuffle_seed_ = 1,
+	bool L1_loss_ = false,
 	int test_mode_ = 0
 ){
 	 n_train_epochs = n_train_epochs_;
@@ -144,6 +147,7 @@ extern "C" _LIBRARY_EXPORTS void torch_params(
 	 test_mode = test_mode_;
 	 batch_shuffle = batch_shuffle_;
 	 shuffle_seed = shuffle_seed_;
+	 L1_loss = L1_loss_;
 
 	 //printf("dropout:%f\n", dropout);
 }
@@ -506,6 +510,14 @@ extern "C" _LIBRARY_EXPORTS void torch_read_params(bool train)
 			if (dmy) batch_shuffle = true;
 			else batch_shuffle = false;
 		}
+		if (strstr(buf, "L1_loss"))
+		{
+			int dmy = 0;
+			sscanf(buf, "L1_loss:%d", &dmy);
+			if (dmy) L1_loss = true;
+			else L1_loss = false;
+		}
+
 		//
 		if (strstr(buf, "pycode_dump_only"))
 		{
@@ -2267,6 +2279,7 @@ extern "C" _LIBRARY_EXPORTS void torch_train_fc(
 	nn_->batch_shuffle = batch_shuffle;
 	nn_->shuffle_seed = shuffle_seed;
 	nn_->set_early_stopping(early_stopping);
+	nn_->set_L1_loss(L1_loss);
 
 
 	torch::optim::Optimizer* optimizer = nullptr;

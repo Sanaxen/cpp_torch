@@ -264,6 +264,8 @@ namespace cpp_torch
 
 		bool early_stopping = false;
 		int patience = 100;
+		//torch.nn.MSELoss よりも外れ値の影響を受けにくく、場合によっては勾配の爆発を防ぎます
+		bool L1_loss = false;
 	public:
 		int in_channels = 1;
 		int in_H = 1;
@@ -298,6 +300,10 @@ namespace cpp_torch
 			}
 		}
 
+		inline void set_L1_loss(bool f)
+		{
+			L1_loss = f;
+		}
 		inline void set_early_stopping(bool flag, int patience_=100)
 		{
 			early_stopping = flag;
@@ -593,7 +599,14 @@ namespace cpp_torch
 					}
 					else
 					{
-						loss = torch::mse_loss(output, targets);
+						if (L1_loss)
+						{
+							loss = torch::smooth_l1_loss(output, targets);
+						}
+						else
+						{
+							loss = torch::mse_loss(output, targets);
+						}
 					}
 					if (std::isnan(loss.template item<float_t>()))
 					{

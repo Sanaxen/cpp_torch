@@ -97,6 +97,7 @@ extern "C" _LIBRARY_EXPORTS void torch_params(
 	char* opt_type_,
 	bool batch_shuffle_,
 	int shuffle_seed_,
+	bool L1_loss_,
 	int test_mode_
 );
 
