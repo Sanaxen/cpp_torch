@@ -105,6 +105,16 @@ extern "C" _LIBRARY_EXPORTS void torch_read_params(bool train);
 extern "C" _LIBRARY_EXPORTS void torch_read_train_params();
 extern "C" _LIBRARY_EXPORTS void torch_read_test_params();
 
+extern "C" _LIBRARY_EXPORTS void torch_train_post_fc(
+	std::vector<tiny_dnn::vec_t>&train_images_,
+	std::vector<tiny_dnn::vec_t>&train_labels_,
+	int n_minibatch,
+	int n_train_epochs,
+	char* regression,
+	std::function <void(void)> on_enumerate_minibatch,
+	std::function <void(void)> on_enumerate_epoch
+);
+
 extern "C" _LIBRARY_EXPORTS void torch_train_fc(
 	std::vector<tiny_dnn::vec_t>& train_images_,
 	std::vector<tiny_dnn::vec_t>& train_labels_,
@@ -147,6 +157,7 @@ extern "C" _LIBRARY_EXPORTS void torch_delete_load_model(void* n);
 extern "C" _LIBRARY_EXPORTS float torch_get_loss(std::vector<tiny_dnn::vec_t>& train_images, std::vector<tiny_dnn::vec_t>& train_labels, int batch);
 extern "C" _LIBRARY_EXPORTS float torch_get_Loss(int batch);
 extern "C" _LIBRARY_EXPORTS float torch_get_loss_nn(void* nn, std::vector<tiny_dnn::vec_t>& train_images_, std::vector<tiny_dnn::vec_t>& train_labels_, int batch);
+extern "C" _LIBRARY_EXPORTS float torch_get_train_loss();
 
 extern  _LIBRARY_EXPORTS tiny_dnn::result torch_get_accuracy_nn(void* nn, std::vector<tiny_dnn::vec_t>& train_images_, std::vector<tiny_dnn::vec_t>& train_labels_, int batch);
 
@@ -168,6 +179,9 @@ extern  _LIBRARY_EXPORTS tiny_dnn::vec_t torch_model_predict(const void* nn, tin
 extern  _LIBRARY_EXPORTS tiny_dnn::vec_t torch_predict(tiny_dnn::vec_t x);
 extern	_LIBRARY_EXPORTS std::vector<tiny_dnn::vec_t> torch_model_predict_batch(const void* nn, std::vector<tiny_dnn::vec_t>& x, int batch);
 extern  _LIBRARY_EXPORTS std::vector<tiny_dnn::vec_t> torch_predict_batch(std::vector<tiny_dnn::vec_t>& x, int bacth);
+
+extern  _LIBRARY_EXPORTS tiny_dnn::vec_t torch_post_predict(tiny_dnn::vec_t x);
+extern  _LIBRARY_EXPORTS tiny_dnn::vec_t torch_invpost_predict(tiny_dnn::vec_t x);
 
 extern "C" _LIBRARY_EXPORTS void torch_stop_ongoing_training();
 extern "C" _LIBRARY_EXPORTS void state_reset(std::string& rnn_type, void* nn);

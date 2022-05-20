@@ -727,6 +727,311 @@ namespace cpp_torch
 			return fit(optimizer, images_torch, labels_torch, kTrainBatchSize, kNumberOfEpochs, on_batch_enumerate, on_epoch_enumerate);
 		}
 
+
+
+		/**
+		 * g(y) = f(x)
+		 * @param model2             g    neural network
+		 * @param model3             g^-1 neural network
+		 * @param optimizer          f(x) optimizing algorithm for training
+		 * @param optimizer2         g(y) optimizing algorithm for training
+		 * @param optimizer3         g^-1 optimizing algorithm for training
+		 * @param images             array of input data
+		 * @param labels             array of labels output
+		 * @param kTrainBatchSize    number of mini-batch
+		 * @param kNumberOfEpochs    number of training epochs
+		 * @param on_batch_enumerate callback for each mini-batch enumerate
+		 * @param on_epoch_enumerate callback for each epoch
+		 * assume
+		 */
+		bool post_fit(
+			Model& model2,
+			Model& model3,
+			torch::optim::Optimizer* optimizer,
+			torch::optim::Optimizer* optimizer2,
+			torch::optim::Optimizer* optimizer3,
+			std::vector<torch::Tensor>& images,
+			std::vector<torch::Tensor>& labels,
+			int kTrainBatchSize,
+			int kNumberOfEpochs,
+			std::function <void(void)> on_batch_enumerate = {},
+			std::function <void(void)> on_epoch_enumerate = {}
+		)
+		{
+			if (images.size() != labels.size()) {
+				return false;
+			}
+			if (images.size() < kTrainBatchSize || labels.size() < kTrainBatchSize) {
+				return false;
+			}
+
+			time_measurement.start();
+
+			int batchNum;
+
+			std::vector< torch::Tensor> batch_x;
+			std::vector< torch::Tensor> batch_y;
+
+			if (pre_make_batch)
+			{
+				generate_BATCH(images, labels, batch_x, batch_y);
+				batchNum = batch_x.size();
+
+				for (int i = 0; i < batchNum; i++)
+				{
+					batch_x[i] = batch_x[i].to(device);
+					batch_y[i] = batch_y[i].to(device);
+				}
+			}
+
+			std::vector<int> batch_idx_list;
+			for (int i = 0; i < batchNum; i++)
+			{
+				batch_idx_list.push_back(i);
+			}
+			std::mt19937 get_rand_mt(this->shuffle_seed);
+
+			optimizer->zero_grad();
+			optimizer2->zero_grad();
+
+			stop_training_ = false;
+
+			model.get()->train(true);
+			model2.get()->train(true);
+
+			int early_stopping_count = 0;
+			std::vector<float> loss_values;
+
+			for (size_t epoch = 0; epoch < kNumberOfEpochs && !stop_training_; ++epoch)
+			{
+				if (!pre_make_batch)
+				{
+					generate_BATCH(images, labels, batch_x, batch_y);
+					batchNum = batch_x.size();
+					for (int i = 0; i < batchNum; i++)
+					{
+						batch_x[i] = batch_x[i].to(device);
+						batch_y[i] = batch_y[i].to(device);
+					}
+				}
+				if (this->batch_shuffle)
+				{
+					std::shuffle(batch_idx_list.begin(), batch_idx_list.end(), get_rand_mt);
+				}
+				loss_value = 0.0;
+
+				torch::Tensor zeros = torch::zeros(kTrainBatchSize).to(device);
+
+				float loss_ave = 0.0;
+				for (int b_idx = 0; b_idx < batchNum && !stop_training_; b_idx++)
+				{
+					const int batch_idx = batch_idx_list[b_idx];
+
+					torch::Tensor& data = batch_x[batch_idx];
+					torch::Tensor& targets = batch_y[batch_idx];
+
+					//data = data.to(device);
+					//targets = targets.to(device);
+
+					optimizer->zero_grad();
+					optimizer2->zero_grad();
+					optimizer3->zero_grad();
+					auto output = model.get()->forward(data);			// f(x)+e
+					auto output2 = model2.get()->forward(targets);		// g(y)
+					auto output3 = model3.get()->forward(output);		// g^-1(f(x)+e)
+					
+					output2 = output2.reshape_as(output);
+					targets = targets.reshape_as(output3);
+
+					//dump_dim("output", output);
+					//dump_dim("output2", output2);
+
+					// g(y) - f(x) = e
+					torch::Tensor loss;
+					if (classification)
+					{
+						loss = torch::nll_loss(output.to(device), output2.argmax(1));
+					}
+					else
+					{
+						if (L1_loss)
+						{
+							loss = torch::smooth_l1_loss(output.to(device), output2.to(device));
+						}
+						else
+						{
+							loss = torch::mse_loss(output.to(device), output2.to(device));
+						}
+					}
+					if (std::isnan(loss.template item<float_t>()))
+					{
+						std::cout << "loss value is nan" << std::endl;
+					}
+					AT_ASSERT(!std::isnan(loss.template item<float_t>()));
+
+					loss.backward({}, true);
+
+					torch::Tensor loss2;
+					if (classification)
+					{
+						loss2 = torch::nll_loss(output3, targets.argmax(1));
+					}
+					else
+					{
+						if (L1_loss)
+						{
+							loss2 = torch::smooth_l1_loss(output3.to(device), targets.to(device));
+						}
+						else
+						{
+							loss2 = torch::mse_loss(output3.to(device), targets.to(device));
+						}
+					}
+					if (std::isnan(loss2.template item<float_t>()))
+					{
+						std::cout << "loss value is nan" << std::endl;
+					}
+					AT_ASSERT(!std::isnan(loss2.template item<float_t>()));
+
+					optimizer->zero_grad();
+					optimizer2->zero_grad();
+					optimizer3->zero_grad();
+					loss2.backward();
+
+					//auto loss_ = loss + loss2;
+					//loss_.backward();
+
+					if (fabs(clip_grad_value) > 0.0)
+					{
+						torch::nn::utils::clip_grad_norm_(model->parameters(), clip_grad_value);
+					}
+					optimizer->step();
+					optimizer2->step();
+					optimizer3->step();
+
+					loss_value = loss.template item<float_t>();
+					loss_value += loss2.template item<float_t>();
+					loss_ave += loss_value;
+					on_batch_enumerate();
+
+					model.get()->train(true);
+					model2.get()->train(true);
+					model3.get()->train(true);
+				}
+
+
+				if (stop_training_) break;
+				loss_value = loss_ave / kTrainBatchSize;
+#if 10
+				if (get_early_stopping() && patience < epoch)
+				{
+					//std::cout << "patience " << patience << std::endl;
+					//std::cout << "epoch " << epoch << std::endl;
+					//std::cout << "early_stopping_count " << early_stopping_count << std::endl;
+
+					if (loss_values.size() > 20)
+					{
+						const int n = loss_values.size() - loss_values.size() / 3;
+						float loss_mean = loss_values[0];
+						for (int i = 1; i < n; i++)
+						{
+							loss_mean += loss_values[i];
+						}
+						loss_mean /= n;
+
+						float sigma2 = 0;
+						for (int i = 0; i < n; i++)
+						{
+							sigma2 += (loss_values[i] - loss_mean) * (loss_values[i] - loss_mean);
+						}
+						sigma2 /= n;
+
+						loss_values.clear();
+
+						//2.0 => 97.7%  1.96 => 95%
+						const float u = loss_mean + 2.0 * sigma2 / sqrt(n);
+						const float d = loss_mean - 2.0 * sigma2 / sqrt(n);
+
+						std::cout << "u " << u << std::endl;
+						std::cout << "d " << d << std::endl;
+						std::cout << "sigma2 " << sigma2 << std::endl;
+						std::cout << "loss_mean " << loss_mean << std::endl;
+						std::cout << "loss_value " << loss_value << std::endl;
+
+						if (loss_value > u)
+						{
+							std::cout << "early_stopping_count " << early_stopping_count << std::endl;
+							early_stopping_count++;
+							if (get_early_stopping() && early_stopping_count > 3)
+							{
+								std::cout << "early_stopping" << std::endl;
+								break;
+							}
+							optimizer_lr_chg(optimizer_name, optimizer, 0.5);
+							//early_stopping_count = 0;
+
+							//getchar();
+							//auto &options = static_cast<torch::optim::OptimizerOptions &>(optimizer->param_groups()[0].options());
+							//options.lr(options.lr() * 0.1);
+						}
+						else
+						{
+							early_stopping_count = 0;
+						}
+					}
+					loss_values.push_back(loss_value);
+				}
+#endif
+
+				on_epoch_enumerate();
+				model.get()->train(true);
+				model2.get()->train(true);
+				model3.get()->train(true);
+			}
+			printf("loss_value:%f\n", loss_value);
+			time_measurement.stop();
+			return true;
+		}
+
+		/**
+		 * g(y) = f(x)
+		 * @param model2             g    neural network
+		 * @param model3             g^-1 neural network
+		 * @param optimizer          f(x) optimizing algorithm for training
+		 * @param optimizer2         g(y) optimizing algorithm for training
+		 * @param optimizer3         g^-1 optimizing algorithm for training
+		 * @param images             array of input data
+		 * @param labels             array of labels output
+		 * @param kTrainBatchSize    number of mini-batch
+		 * @param kNumberOfEpochs    number of training epochs
+		 * @param on_batch_enumerate callback for each mini-batch enumerate
+		 * @param on_epoch_enumerate callback for each epoch
+		 * assume
+		 */
+		bool post_fit(
+			Model& model2,
+			Model& model3,
+			torch::optim::Optimizer* optimizer,
+			torch::optim::Optimizer* optimizer2,
+			torch::optim::Optimizer* optimizer3,
+			tiny_dnn::tensor_t& images,
+			tiny_dnn::tensor_t& labels,
+			int kTrainBatchSize,
+			int kNumberOfEpochs,
+			std::function <void(void)> on_batch_enumerate = {},
+			std::function <void(void)> on_epoch_enumerate = {}
+		)
+		{
+			std::vector<torch::Tensor> images_torch;
+			std::vector<torch::Tensor> labels_torch;
+			toTorchTensors(images, images_torch);
+			toTorchTensors(labels, labels_torch);
+
+			return post_fit(model2, model3, optimizer, optimizer2, optimizer3, images_torch, labels_torch, kTrainBatchSize, kNumberOfEpochs, on_batch_enumerate, on_epoch_enumerate);
+		}
+
+
+
 		/**
 		 * @param optimizer          optimizing algorithm for training
 		 * @param images             array of input data
@@ -1100,6 +1405,10 @@ namespace cpp_torch
 			return get_loss(in, vec, batchSize);
 		}
 
+		inline float_t get_train_loss()
+		{
+			return this->loss_value;
+		}
 		float_t get_loss( std::vector<tiny_dnn::vec_t> &in, std::vector<tiny_dnn::vec_t> &t, int BatchSize) {
 			float_t sum_loss = float_t(0);
 

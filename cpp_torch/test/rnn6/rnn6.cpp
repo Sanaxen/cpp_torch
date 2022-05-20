@@ -35,6 +35,8 @@ namespace rnn_dll_variables
 
 
 	cpp_torch::network_torch<cpp_torch::Net>* nn_ = nullptr;
+	cpp_torch::network_torch<cpp_torch::Net>* nn2_ = nullptr;
+	cpp_torch::network_torch<cpp_torch::Net>* nn3_ = nullptr;
 	torch::Device device(torch::kCPU);
 	int test_mode = 0;
 	float maxvalue = 0.0;
@@ -633,6 +635,12 @@ extern "C" _LIBRARY_EXPORTS float getTolerance()
 	return tolerance;
 }
 
+extern "C" _LIBRARY_EXPORTS float torch_get_train_loss()
+{
+	float loss = nn_->get_train_loss();
+	return loss;
+}
+
 extern "C" _LIBRARY_EXPORTS float torch_get_loss(std::vector<tiny_dnn::vec_t>& train_images_,  std::vector<tiny_dnn::vec_t>& train_labels_, int batch)
 {
 	float loss = nn_->get_loss(train_images_, train_labels_, batch);
@@ -685,6 +693,44 @@ extern "C" _LIBRARY_EXPORTS void* torch_model(std::string& ptfile)
 	return (void*)nn2;
 }
 
+extern  _LIBRARY_EXPORTS tiny_dnn::vec_t torch_invpost_predict(tiny_dnn::vec_t x)
+{
+	if (scale != 1.0)
+	{
+		for (auto& xx : x) xx /= scale;
+	}
+	tiny_dnn::vec_t y = nn3_->predict(x);
+	if (num_class >= 2)
+	{
+	}
+	else
+	{
+		if (scale != 1.0)
+		{
+			for (auto& yy : y) yy *= scale;
+		}
+	}
+	return y;
+}
+extern  _LIBRARY_EXPORTS tiny_dnn::vec_t torch_post_predict(tiny_dnn::vec_t x)
+{
+	if (scale != 1.0)
+	{
+		for (auto& xx : x) xx /= scale;
+	}
+	tiny_dnn::vec_t y = nn2_->predict(x);
+	if (num_class >= 2)
+	{
+	}
+	else
+	{
+		if (scale != 1.0)
+		{
+			for (auto& yy : y) yy *= scale;
+		}
+	}
+	return y;
+}
 
 extern  _LIBRARY_EXPORTS tiny_dnn::vec_t torch_predict(tiny_dnn::vec_t x)
 {
@@ -761,6 +807,16 @@ extern "C" _LIBRARY_EXPORTS void torch_delete_model()
 	delete nn_;
 
 	nn_ = nullptr;
+
+	if (nn2_ == nullptr) return;
+	delete nn2_;
+
+	nn2_ = nullptr;
+
+	if (nn3_ == nullptr) return;
+	delete nn3_;
+
+	nn3_ = nullptr;
 }
 extern "C" _LIBRARY_EXPORTS void torch_delete_load_model(void* n)
 {
@@ -1766,6 +1822,7 @@ void add_activatin(cpp_torch::Net& model)
 	if ( std::string(activation_fnc) == "tanh")model.get()->add_Tanh();
 	if ( std::string(activation_fnc) == "relu")model.get()->add_ReLU();
 	if ( std::string(activation_fnc) == "leakyrelu")model.get()->add_LeakyReLU(0.2);
+	if (std::string(activation_fnc) == "selu")model.get()->add_SELU();
 }
 
 extern "C" _LIBRARY_EXPORTS void torch_train(
@@ -2335,6 +2392,439 @@ extern "C" _LIBRARY_EXPORTS void torch_train_fc(
 		// train
 		std::cout << "start training" << std::endl;
 		nn_->fit(optimizer, train_images, train_labels, n_minibatch,
+			n_train_epochs, on_enumerate_minibatch,
+			on_enumerate_epoch);
+		std::cout << "end training." << std::endl;
+	}
+}
+
+void create_fc_model(
+	cpp_torch::Net& model,
+	std::vector<tiny_dnn::vec_t>& train_images_,
+	std::vector<tiny_dnn::vec_t>& train_labels_,
+	int n_minibatch,
+	int n_train_epochs,
+	char* regression
+	)
+{
+
+	int hidden_size = train_images_[0].size() * 50;
+
+
+	model.get()->device = device;
+	model.get()->pycode_dump_only = pycode_dump_only;
+
+	model.get()->setInput(1, 1, train_images_[0].size());
+
+
+	if (regression == "linear" || regression == "logistic")
+	{
+		/**/
+	}
+	else
+	{
+		model.get()->add_fc(input_size);
+		add_activatin(model);
+
+		//printf("@dropout:%f\n", dropout);
+
+		for (int i = 0; i < n_layers; i++) {
+			if (dropout > 0 && i == 0) model.get()->add_dropout(dropout * 0.2);
+			if (dropout > 0 && i == n_layers - 2) model.get()->add_dropout(dropout);
+			model.get()->add_fc(input_size);
+			add_activatin(model);
+			if (use_add_bn)
+			{
+				model.get()->add_bn1d();
+			}
+		}
+	}
+
+	bool use_residual = false;
+	if (residual == 0)
+	{
+		use_residual = false;
+		residual = 1;
+	}
+	else
+	{
+		use_residual = true;
+	}
+	//printf("--->classification=%d\n", classification);
+	if (use_cnn > 0 && regression != "linear" && regression != "logistic")
+	{
+		int residual_in = model.get()->getOutputSize();
+		for (int r = 0; r < residual; r++)
+		{
+			if (use_residual)
+			{
+				model.get()->add_residual_begin();
+			}
+
+			//int i_ch = 1;
+			//int o_ch = 8;
+			//int kernel = 3;
+			//int stride = 2;
+			//int padding = 1;
+			//int dilation = 1;
+			int kernel = 3;
+			int stride = 2;
+			int padding = 1;
+			int dilation = 1;
+			int i_ch = 1;
+			int o_ch = 3;
+
+			int input_size2 = input_size;
+			int size = (int)ceil((double)(input_size2 + 2 * padding - dilation * (kernel - 1) - 1) / (double)stride + 1);
+			if (size <= 0)
+			{
+				while (size <= 0)
+				{
+					input_size2 *= 2;
+					input_size2 += 1;
+					size = (int)ceil((double)(input_size2 + 2 * padding - dilation * (kernel - 1) - 1) / (double)stride + 1);
+
+				}
+				model.get()->add_fc(input_size2, false);
+			}
+
+			int in = model.get()->getOutputSize();
+			if (padding_prm)
+			{
+				padding = ((in - 1) * stride + 1 + dilation * (kernel - 1) - in) / 2.0;
+				kernel = padding * 2;
+			}
+			else
+			{
+				padding = 0;
+			}
+			for (int k = 0; k < use_cnn; k++)
+			{
+
+				if (model.get()->getOutputSize() <= 0)
+				{
+					printf("number of cnn ERROR.\n"); fflush(stdout);
+					throw cpp_torch::error_exception("number of cnn ERROR.");
+				}
+				model.get()->add_conv1d(i_ch, o_ch, kernel, stride, padding, dilation);
+
+				if (use_cnn_add_bn)
+				{
+					model.get()->add_bn1d();
+				}
+				add_activatin(model);
+				model.get()->add_maxpool1d(kernel, stride, padding);
+				i_ch = o_ch;
+				o_ch *= 2;
+			}
+
+			if (use_residual)
+			{
+				model.get()->add_fc(residual_in);
+				add_activatin(model);
+
+				model.get()->add_residual_end();
+			}
+		}
+	}
+
+	if (classification >= 2)
+	{
+		//if (dropout) model.get()->add_dropout(dropout);
+		model.get()->add_fc(std::min((int)input_size, classification * 2));
+		add_activatin(model);
+		model.get()->add_fc(classification);
+	}
+	else
+	{
+		//if (dropout) model.get()->add_dropout(dropout);
+		model.get()->add_sampling();
+		model.get()->add_fc(train_labels_[0].size());
+	}
+
+	if (regression == "logistic")
+	{
+		model.get()->add_Sigmoid();
+	}
+	if (classification >= 2)
+	{
+		model.get()->add_LogSoftmax(1);
+	}
+
+
+	//xavier
+	if (std::string(weight_init_type) == "xavier")
+	{
+		for (auto w : model.get()->fc)
+		{
+			torch::nn::init::xavier_uniform_(w->weight, torch::nn::init::calculate_gain(torch::kReLU));
+		}
+	}
+#if 1
+	//uniform
+	if (std::string(weight_init_type) == "uniform")
+	{
+		for (auto w : model.get()->fc)
+		{
+			torch::nn::init::uniform_(w->weight);
+		}
+	}
+	//gaussian
+	if (std::string(weight_init_type) == "gaussian")
+	{
+		for (auto w : model.get()->fc)
+		{
+			torch::nn::init::normal_(w->weight);
+		}
+	}
+	if (std::string(weight_init_type) == "constant")
+	{
+		for (auto w : model.get()->fc)
+		{
+			torch::nn::init::constant_(w->weight, 0);
+		}
+	}
+	if (std::string(weight_init_type) == "he")
+	{
+		for (auto w : model.get()->fc)
+		{
+			torch::nn::init::kaiming_normal_(w->weight);
+		}
+	}
+#endif
+}
+extern "C" _LIBRARY_EXPORTS void torch_train_post_fc(
+	std::vector<tiny_dnn::vec_t>&train_images_,
+	std::vector<tiny_dnn::vec_t>&train_labels_,
+	int n_minibatch,
+	int n_train_epochs,
+	char* regression,
+	std::function <void(void)> on_enumerate_minibatch,
+	std::function <void(void)> on_enumerate_epoch
+)
+{
+	if (train_images_.size() > 0 && train_labels_.size() > 0)
+	{
+		send_train_images(train_images_);
+		send_train_labels(train_labels_);
+	}
+
+	kNumberOfEpochs = n_train_epochs;
+	kTrainBatchSize = n_minibatch;
+
+	int hidden_size = train_images[0].size() * 50;
+
+	cpp_torch::Net model;
+	cpp_torch::Net model2;
+	cpp_torch::Net model3;
+
+	create_fc_model(
+		model,
+		train_images_,
+		train_labels_,
+		n_minibatch,
+		n_train_epochs,
+		regression
+	);
+
+	nn_ = new cpp_torch::network_torch<cpp_torch::Net>(model, device);
+
+	nn_->input_dim(1, 1, train_images[0].size());
+	nn_->output_dim(1, 1, train_labels[0].size());
+	nn_->classification = (classification >= 2);
+	nn_->batch_shuffle = batch_shuffle;
+	nn_->shuffle_seed = shuffle_seed;
+	nn_->set_early_stopping(early_stopping);
+	nn_->set_L1_loss(L1_loss);
+
+
+	torch::optim::Optimizer* optimizer = nullptr;
+
+	auto optimizerSGD = torch::optim::SGD(
+		model.get()->parameters(), torch::optim::SGDOptions(learning_rate).momentum(moment));
+
+	auto optimizerAdam =
+		torch::optim::Adam(model.get()->parameters(),
+			torch::optim::AdamOptions(learning_rate));
+
+	auto optimizerAdam_ = torch::optim::Adam(
+		model.get()->parameters(), torch::optim::AdamOptions(2e-4).betas(std::make_tuple(0.5, 0.5)));
+
+	auto optimizerRMSprop =
+		torch::optim::RMSprop(model.get()->parameters(),
+			torch::optim::RMSpropOptions(learning_rate));
+
+	auto optimizerAdagrad =
+		torch::optim::Adagrad(model.get()->parameters(),
+			torch::optim::AdagradOptions(learning_rate));
+
+	if (std::string(opt_type) == "sgd")
+	{
+		optimizer = &optimizerSGD;
+	}
+	if (std::string(opt_type) == "adam")
+	{
+		optimizer = &optimizerAdam;
+	}
+	if (std::string(opt_type) == "adam_")
+	{
+		optimizer = &optimizerAdam_;
+	}
+	if (std::string(opt_type) == "adagrad")
+	{
+		optimizer = &optimizerAdagrad;
+	}
+	if (std::string(opt_type) == "rmsprop")
+	{
+		optimizer = &optimizerRMSprop;
+	}
+
+	nn_->optimizer_name = opt_type;
+	if (optimizer == nullptr)
+	{
+		nn_->optimizer_name = "adam";
+		optimizer = &optimizerAdam;
+	}
+
+	create_fc_model(
+		model2,
+		train_labels_,
+		train_labels_,
+		n_minibatch,
+		n_train_epochs,
+		regression
+	);
+
+	nn2_ = new cpp_torch::network_torch<cpp_torch::Net>(model2, device);
+
+	nn2_->input_dim(1, 1, train_labels_[0].size());
+	nn2_->output_dim(1, 1, train_labels[0].size());
+	nn2_->classification = (classification >= 2);
+	nn2_->batch_shuffle = batch_shuffle;
+	nn2_->shuffle_seed = shuffle_seed;
+	nn2_->set_early_stopping(early_stopping);
+	nn2_->set_L1_loss(L1_loss);	
+
+	torch::optim::Optimizer* optimizer2 = nullptr;
+
+	auto optimizerSGD2 = torch::optim::SGD(
+		model2.get()->parameters(), torch::optim::SGDOptions(learning_rate).momentum(moment));
+
+	auto optimizerAdam2 =
+		torch::optim::Adam(model2.get()->parameters(),
+			torch::optim::AdamOptions(learning_rate));
+
+	auto optimizerAdam2_ = torch::optim::Adam(
+		model2.get()->parameters(), torch::optim::AdamOptions(2e-4).betas(std::make_tuple(0.5, 0.5)));
+
+	auto optimizerRMSprop2 =
+		torch::optim::RMSprop(model2.get()->parameters(),
+			torch::optim::RMSpropOptions(learning_rate));
+
+	auto optimizerAdagrad2 =
+		torch::optim::Adagrad(model2.get()->parameters(),
+			torch::optim::AdagradOptions(learning_rate));
+
+	if (std::string(opt_type) == "sgd")
+	{
+		optimizer2 = &optimizerSGD2;
+	}
+	if (std::string(opt_type) == "adam")
+	{
+		optimizer2 = &optimizerAdam2;
+	}
+	if (std::string(opt_type) == "adam_")
+	{
+		optimizer2 = &optimizerAdam2_;
+	}
+	if (std::string(opt_type) == "adagrad")
+	{
+		optimizer2 = &optimizerAdagrad2;
+	}
+	if (std::string(opt_type) == "rmsprop")
+	{
+		optimizer2 = &optimizerRMSprop2;
+	}
+
+	nn2_->optimizer_name = opt_type;
+	if (optimizer2 == nullptr)
+	{
+		nn2_->optimizer_name = "adam";
+		optimizer2 = &optimizerAdam2;
+	}
+
+	create_fc_model(
+		model3,
+		train_labels_,
+		train_labels_,
+		n_minibatch,
+		n_train_epochs,
+		regression
+	);
+
+	nn3_ = new cpp_torch::network_torch<cpp_torch::Net>(model3, device);
+
+	nn3_->input_dim(1, 1, train_labels_[0].size());
+	nn3_->output_dim(1, 1, train_labels[0].size());
+	nn3_->classification = (classification >= 2);
+	nn3_->batch_shuffle = batch_shuffle;
+	nn3_->shuffle_seed = shuffle_seed;
+	nn3_->set_early_stopping(early_stopping);
+	nn3_->set_L1_loss(L1_loss);
+
+	torch::optim::Optimizer* optimizer3 = nullptr;
+
+	auto optimizerSGD3 = torch::optim::SGD(
+		model3.get()->parameters(), torch::optim::SGDOptions(learning_rate).momentum(moment));
+
+	auto optimizerAdam3 =
+		torch::optim::Adam(model3.get()->parameters(),
+			torch::optim::AdamOptions(learning_rate));
+
+	auto optimizerAdam3_ = torch::optim::Adam(
+		model3.get()->parameters(), torch::optim::AdamOptions(2e-4).betas(std::make_tuple(0.5, 0.5)));
+
+	auto optimizerRMSprop3 =
+		torch::optim::RMSprop(model3.get()->parameters(),
+			torch::optim::RMSpropOptions(learning_rate));
+
+	auto optimizerAdagrad3 =
+		torch::optim::Adagrad(model3.get()->parameters(),
+			torch::optim::AdagradOptions(learning_rate));
+
+	if (std::string(opt_type) == "sgd")
+	{
+		optimizer3 = &optimizerSGD3;
+	}
+	if (std::string(opt_type) == "adam")
+	{
+		optimizer3 = &optimizerAdam3;
+	}
+	if (std::string(opt_type) == "adam_")
+	{
+		optimizer3 = &optimizerAdam3_;
+	}
+	if (std::string(opt_type) == "adagrad")
+	{
+		optimizer3 = &optimizerAdagrad3;
+	}
+	if (std::string(opt_type) == "rmsprop")
+	{
+		optimizer3 = &optimizerRMSprop3;
+	}
+
+	nn3_->optimizer_name = opt_type;
+	if (optimizer3 == nullptr)
+	{
+		nn3_->optimizer_name = "adam";
+		optimizer3 = &optimizerAdam3;
+	}
+
+	if (!test_mode)
+	{
+		// train
+		std::cout << "start training" << std::endl;
+		nn_->post_fit(model2, model3, optimizer, optimizer2, optimizer3, train_images, train_labels, n_minibatch,
 			n_train_epochs, on_enumerate_minibatch,
 			on_enumerate_epoch);
 		std::cout << "end training." << std::endl;
