@@ -49,6 +49,7 @@ namespace cpp_torch
 		Softmax = 1007,
 		LogSoftmax = 1008,
 		Squeeze = 1009,
+		Mish = 1010,
 		Drop_F = 1020
 	};
 
@@ -1090,6 +1091,7 @@ namespace cpp_torch
 		ACTIVATION_LAYER1(Softmax)
 		ACTIVATION_LAYER1(LogSoftmax)
 		ACTIVATION_LAYER(Squeeze)
+	    ACTIVATION_LAYER(Mish)
 
 		int debug_dmp = 0;
 
@@ -1682,6 +1684,13 @@ namespace cpp_torch
 							fprintf(pycode_dump, "x = F.tanh(x)\n");
 						}
 						x = torch::tanh(x); break;
+					case cpp_torch::LayerType::Mish:
+						if (pycode_dump)
+						{
+							fprintf(pycode_dump, "        ");
+							fprintf(pycode_dump, "x = F.mish(x)\n");
+						}
+						x = torch::mish(x); break;
 					case cpp_torch::LayerType::Softmax:
 						if (pycode_dump)
 						{

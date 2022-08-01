@@ -1823,6 +1823,7 @@ void add_activatin(cpp_torch::Net& model)
 	if ( std::string(activation_fnc) == "relu")model.get()->add_ReLU();
 	if ( std::string(activation_fnc) == "leakyrelu")model.get()->add_LeakyReLU(0.2);
 	if (std::string(activation_fnc) == "selu")model.get()->add_SELU();
+	if (std::string(activation_fnc) == "mish")model.get()->add_Mish();
 }
 
 extern "C" _LIBRARY_EXPORTS void torch_train(
