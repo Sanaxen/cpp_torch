@@ -1286,6 +1286,7 @@ namespace cpp_torch
 			//torch::NoGradGuard no_grad;
 			//model->eval();
 			model.get()->train(false);
+			model->eval();
 
 			std::vector<torch::Tensor> n_batch_images(batch_n);
 #pragma omp parallel for
@@ -1339,6 +1340,7 @@ namespace cpp_torch
 			//torch::NoGradGuard no_grad;
 			//model->eval();
 			model.get()->train(false);
+			model->eval();
 			torch::Tensor& images_torch = toTorchTensors(X).view({ 1, in_channels, in_H, in_W }).to(device);
 
 			torch::Tensor y = model.get()->forward(images_torch);
@@ -1356,6 +1358,7 @@ namespace cpp_torch
 			//torch::NoGradGuard no_grad;
 			//model->eval();
 			model.get()->train(false);
+			model->eval();
 			torch::Tensor images_torch = toTorchTensors(X).view({ 1, in_channels, in_H, in_W }).to(device);
 
 			torch::Tensor y = model.get()->forward(images_torch);

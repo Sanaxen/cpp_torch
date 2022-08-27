@@ -2835,12 +2835,16 @@ extern "C" _LIBRARY_EXPORTS void torch_train_post_fc(
 _LIBRARY_EXPORTS int torch_train_init()
 {
 	torch::manual_seed(1);
+	torch::cuda::manual_seed(1);
+	torch::cuda::manual_seed_all(1);
 	return 0;
 }
 
 _LIBRARY_EXPORTS int torch_train_init_seed(int seed)
 {
 	torch::manual_seed(seed);
+	torch::cuda::manual_seed(seed);
+	torch::cuda::manual_seed_all(seed);
 	return 0;
 }
 
