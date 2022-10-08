@@ -5,6 +5,7 @@
 	Use of this source code is governed by a MIT license that can be found
 	in the LICENSE file.
 */
+#define USE_TORCHVISION_0100
 #define USE_OPENCV_UTIL
 #define USE_TORCHVISION
 #include "cpp_torch.h"

@@ -360,6 +360,7 @@ namespace cpp_torch
 			std::vector< torch::Tensor>& batch_x
 		)
 		{
+			const int suffle_seed = 1;
 			bool shuffle = batch_shuffle;
 			const int batchNum = (int64_t)((float)images.size() / (float)kTrainBatchSize + 0.5);
 
@@ -367,7 +368,7 @@ namespace cpp_torch
 
 			std::random_device rnd;
 			//std::mt19937 mt(rnd());
-			std::mt19937 mt(this->suffle_seed);
+			std::mt19937 mt(suffle_seed);
 			//
 			std::uniform_int_distribution<> rand_index(0, (int)images.size() - 1);
 

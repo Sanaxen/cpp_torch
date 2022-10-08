@@ -17,7 +17,7 @@
 #include <vector>
 #endif
 
-#define USE_LIBTORCH_190
+#define USE_LIBTORCH_1201
 #include "libtorch_link_libs.hpp"
 
 #include <torch/script.h> // One-stop header.

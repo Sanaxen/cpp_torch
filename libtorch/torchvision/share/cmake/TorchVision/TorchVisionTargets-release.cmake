@@ -9,6 +9,7 @@ set(CMAKE_IMPORT_FILE_VERSION 1)
 set_property(TARGET TorchVision::TorchVision APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)
 set_target_properties(TorchVision::TorchVision PROPERTIES
   IMPORTED_IMPLIB_RELEASE "${_IMPORT_PREFIX}/lib/torchvision.lib"
+  IMPORTED_LINK_DEPENDENT_LIBRARIES_RELEASE "torch"
   IMPORTED_LOCATION_RELEASE "${_IMPORT_PREFIX}/bin/torchvision.dll"
   )
 
