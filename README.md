@@ -6,6 +6,13 @@
 #### CUDA 11.3 is required for calculation using GPU.  
 
 #### also needs [cuDNN](https://developer.nvidia.com/cudnn)
+
+**LinkOption(libtorch1.9.0):**  
+-INCLUDE:?warp_size@cuda@at@@YAHXZ  
+
+**LinkOption(libtorch1.12.1):**  
+-INCLUDE:?warp_size@cuda@at@@YAHXZ -INCLUDE:?_torch_cuda_cu_linker_symbol_op_cuda@native@at@@YA?AVTensor@2@AEBV32@@Z  
+
 ---
  [Enabled to build with **libtorch1.5** ](./README_libtorch1.5.md)
 
