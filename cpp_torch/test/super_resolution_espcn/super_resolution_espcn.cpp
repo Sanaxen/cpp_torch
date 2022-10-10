@@ -32,19 +32,19 @@ const int kDataAugment_crop_num_factor = 10;
 const int upscale_factor = 3;
 struct NetImpl : torch::nn::Module {
 	NetImpl() :
-		conv1(torch::nn::Conv2dOptions(1, 64, 5).with_bias(false).stride(1).padding(2)),
-		conv2(torch::nn::Conv2dOptions(64, 64, 3).with_bias(false).stride(1).padding(1)),
-		conv3(torch::nn::Conv2dOptions(64, 32, 3).with_bias(false).stride(1).padding(1)),
-		conv4(torch::nn::Conv2dOptions(32, pow(upscale_factor, 2), 3).with_bias(false).stride(1).padding(1))
+		conv1(torch::nn::Conv2dOptions(1, 64, 5).bias(false).stride(1).padding(2)),
+		conv2(torch::nn::Conv2dOptions(64, 64, 3).bias(false).stride(1).padding(1)),
+		conv3(torch::nn::Conv2dOptions(64, 32, 3).bias(false).stride(1).padding(1)),
+		conv4(torch::nn::Conv2dOptions(32, pow(upscale_factor, 2), 3).bias(false).stride(1).padding(1))
 	{
 		register_module("conv1", conv1);
 		register_module("conv2", conv2);
 		register_module("conv3", conv3);
 		register_module("conv4", conv4);
 
-		torch::nn::init::orthogonal_(conv1->weight, torch::nn::init::calculate_gain(torch::nn::init::Nonlinearity::ReLU));
-		torch::nn::init::orthogonal_(conv2->weight, torch::nn::init::calculate_gain(torch::nn::init::Nonlinearity::ReLU));
-		torch::nn::init::orthogonal_(conv3->weight, torch::nn::init::calculate_gain(torch::nn::init::Nonlinearity::ReLU));
+		torch::nn::init::orthogonal_(conv1->weight, torch::nn::init::calculate_gain(torch::nn::init::NonlinearityType::kReLU));
+		torch::nn::init::orthogonal_(conv2->weight, torch::nn::init::calculate_gain(torch::nn::init::NonlinearityType::kReLU));
+		torch::nn::init::orthogonal_(conv3->weight, torch::nn::init::calculate_gain(torch::nn::init::NonlinearityType::kReLU));
 		torch::nn::init::orthogonal_(conv4->weight);
 	}
 
