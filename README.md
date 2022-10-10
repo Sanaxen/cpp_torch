@@ -2,10 +2,17 @@
 
 **header only, deep learning framework with no dependencies other than libtorch**  
 
-### Enabled to build with **libtorch1.6 -> libtorch1.7.1**  -> libtorch1.9.0**  
-#### [CUDA 10.2](https://developer.nvidia.com/cuda-10.2-download-archive) is required for calculation using GPU.  
+#### Enabled to build with libtorch1.6 -> libtorch1.7.1  -> libtorch1.9.0　**-> libtorch1.12.1**  
+#### CUDA 11.3 is required for calculation using GPU.  
 
-#### also needs [cuDNN v8.0.2 (July 24th, 2020), for CUDA 10.2](https://developer.nvidia.com/cudnn)
+#### also needs [cuDNN](https://developer.nvidia.com/cudnn)
+
+**LinkOption(libtorch1.9.0):**  
+-INCLUDE:?warp_size@cuda@at@@YAHXZ  
+
+**LinkOption(libtorch1.12.1):**  
+-INCLUDE:?warp_size@cuda@at@@YAHXZ -INCLUDE:?_torch_cuda_cu_linker_symbol_op_cuda@native@at@@YA?AVTensor@2@AEBV32@@Z  
+
 ---
  [Enabled to build with **libtorch1.5** ](./README_libtorch1.5.md)
 
