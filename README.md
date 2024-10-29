@@ -7,14 +7,13 @@
 
 #### also needs [cuDNN](https://developer.nvidia.com/cudnn)
 
-I am currently trying to upgrade libtorch to version 2.x.  
-The current version of libtorch is 1.12.1, and I was dreading working with it, thinking that there would be major changes when I upgraded to 2.0.
+I am currently trying to upgrade libtorch to version 2.x.
+The current libtorch version of cpp_torch is 1.12.1, but I was hesitant to work on it because I thought upgrading to 2.0 would be a major change.
 
 Notes.  
-It turns out that most of the cpp_torch code is no longer needed, but some features are no longer available.
-MNIST datasets can no longer be downloaded, so the example of downloading and running a dataset will not work.
-Some functions of torch_jit and torchvision have also been moved to python, so you can no longer do everything in C++ as in the examples provided.
-
+Most of the code in cpp_torch did not require modification, but some functions are no longer available.   
+mnist datasets can no longer be downloaded, so examples of downloading and running datasets are not available.   
+torch_jit and some functions in torchvision are also Some functions of torch_jit and torchvision have also been moved to python, so it is no longer possible to do everything in C++ as in the examples provided.  
 The OpenCV version has also been changed.
 
 The following are no longer required in libtorch-2.5.  
