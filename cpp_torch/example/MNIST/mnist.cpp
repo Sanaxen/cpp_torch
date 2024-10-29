@@ -228,17 +228,22 @@ void learning_and_test_mnist_dataset(torch::Device device)
 
 auto main() -> int {
 
+#if 0
+#if 0
+	//HTTP Error 403
 	cpp_torch::url_download("http://yann.lecun.com/exdb/mnist/train-images-idx3-ubyte.gz", "./data/train-images-idx3-ubyte.gz");
 	cpp_torch::url_download("http://yann.lecun.com/exdb/mnist/train-labels-idx1-ubyte.gz", "./data/train-labels-idx1-ubyte.gz");
 	cpp_torch::url_download("http://yann.lecun.com/exdb/mnist/t10k-images-idx3-ubyte.gz", "./data/t10k-images-idx3-ubyte.gz");
 	cpp_torch::url_download("http://yann.lecun.com/exdb/mnist/t10k-labels-idx1-ubyte.gz", "./data/t10k-labels-idx1-ubyte.gz");
-	
+	std::string url = "http://yann.lecun.com/exdb/mnist/";
+#endif
+
 	cpp_torch::file_uncompress("./data/train-images-idx3-ubyte.gz", true);
 	cpp_torch::file_uncompress("./data/train-labels-idx1-ubyte.gz", true);
 	cpp_torch::file_uncompress("./data/t10k-images-idx3-ubyte.gz", true);
 	cpp_torch::file_uncompress("./data/t10k-labels-idx1-ubyte.gz", true);
 
-	std::string url = "http://yann.lecun.com/exdb/mnist/";
+	
 	std::vector<std::string> files = {
 			"train-images-idx3-ubyte.gz",
 			"train-labels-idx1-ubyte.gz",
@@ -248,6 +253,14 @@ auto main() -> int {
 	std::string dir = std::string(kDataRoot) + std::string("/");
 
 	cpp_torch::url_download_dataSet(url, files, dir );
+
+#else
+	cpp_torch::file_uncompress("./data/train-images-idx3-ubyte.gz", true);
+	cpp_torch::file_uncompress("./data/train-labels-idx1-ubyte.gz", true);
+	cpp_torch::file_uncompress("./data/t10k-images-idx3-ubyte.gz", true);
+	cpp_torch::file_uncompress("./data/t10k-labels-idx1-ubyte.gz", true);
+
+#endif
 
 	torch::manual_seed(1);
 
@@ -267,5 +280,6 @@ auto main() -> int {
 
 	read_mnist_dataset(std::string(kDataRoot));
 
+	std::cout << "Training" << std::endl;
 	learning_and_test_mnist_dataset(device);
 }

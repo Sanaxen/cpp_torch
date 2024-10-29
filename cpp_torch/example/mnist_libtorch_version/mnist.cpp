@@ -6,7 +6,7 @@
 #include <string>
 #include <vector>
 
-#define USE_LIBTORCH_1201
+#define USE_LIBTORCH_2500
 #include "libtorch_link_libs.hpp"
 #define USE_CUDA
 
@@ -120,10 +120,11 @@ auto main() -> int {
   torch::manual_seed(1);
   torch::DeviceType device_type;
 #ifdef USE_CUDA
-  //if (torch::cuda::is_available()) {
+  if (torch::cuda::is_available()) {
     std::cout << "CUDA available! Training on GPU." << std::endl;
     device_type = torch::kCUDA;
-  //} else 
+  } 
+  //else 
 #else
   //{
     std::cout << "Training on CPU." << std::endl;

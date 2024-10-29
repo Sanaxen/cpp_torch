@@ -57,6 +57,7 @@ namespace cpp_torch
 			return -3;
 			break;
 		}
+		cout << "Unknown error\n";
 		return -99;
 	}
 	int url_download(std::string& url, std::string& download_file)

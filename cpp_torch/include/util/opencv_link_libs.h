@@ -10,8 +10,8 @@ in the LICENSE file.
 */
 #ifdef USE_OPENCV_UTIL
 
-//setting lib path(ex. C:\dev\opencv-3.4.0\build\x64\vc14\lib)
-#pragma comment(lib, "opencv_world340.lib")
+//setting lib path(ex. C:\dev\opencv\build\x64\vc16\lib)
+#pragma comment(lib, "opencv_world4100.lib")
 
 #endif
 

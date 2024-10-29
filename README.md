@@ -2,11 +2,22 @@
 
 **header only, deep learning framework with no dependencies other than libtorch**  
 
-#### Enabled to build with libtorch1.6 -> libtorch1.7.1  -> libtorch1.9.0　**-> libtorch1.12.1**  
-#### CUDA 11.3 is required for calculation using GPU.  
+#### Enabled to build with libtorch1.6 -> libtorch1.7.1  -> libtorch1.9.0 -> libtorch1.12.1  -> ** libtorch2.5.0 **
+#### CUDA 11.8 is required for calculation using GPU.  
 
 #### also needs [cuDNN](https://developer.nvidia.com/cudnn)
 
+I am currently trying to upgrade libtorch to version 2.x.  
+The current version of libtorch is 1.12.1, and I was dreading working with it, thinking that there would be major changes when I upgraded to 2.0.
+
+Notes.  
+It turns out that most of the cpp_torch code is no longer needed, but some features are no longer available.
+MNIST datasets can no longer be downloaded, so the example of downloading and running a dataset will not work.
+Some functions of torch_jit and torchvision have also been moved to python, so you can no longer do everything in C++ as in the examples provided.
+
+The OpenCV version has also been changed.
+
+The following are no longer required in libtorch-2.5.  
 **LinkOption(libtorch1.9.0):**  
 -INCLUDE:?warp_size@cuda@at@@YAHXZ  
 

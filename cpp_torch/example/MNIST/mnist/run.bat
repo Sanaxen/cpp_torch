@@ -7,4 +7,4 @@ cd run
 mnist.exe
 
 cd ..
-del /Q .\run\*.dll
+:del /Q .\run\*.dll
