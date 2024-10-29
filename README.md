@@ -17,6 +17,7 @@ torch_jit and some functions in torchvision are also Some functions of torch_jit
 The OpenCV version has also been changed.
 
 The following are no longer required in libtorch-2.5.  
+
 **LinkOption(libtorch1.9.0):**  
 -INCLUDE:?warp_size@cuda@at@@YAHXZ  
 
