@@ -16,6 +16,9 @@
 #include <vector>
 #include <set>
 #include <map>
+#include <iostream>
+#include <sstream>
+#include <iomanip>
 
 namespace tiny_dnn {
 	typedef float float_t;

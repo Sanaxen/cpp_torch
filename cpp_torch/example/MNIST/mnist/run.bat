@@ -1,5 +1,8 @@
 copy ..\..\..\..\libtorch\lib\*.dll run /v /y
-copy ..\..\..\example\mnist\mnist\run\data\* run\data /v /y
+copy ..\..\..\..\libtorch\torchvision\bin\*.dll run /v /y
+copy C:\dev\opencv\build\x64\vc16\bin\opencv_world4100.dll run /v /y
+
+copy ..\..\..\..\cpp_torch\dataset\mnist_data\*.gz run run /v /y
 
 copy .\x64\Release\*.exe run /v /y
 
