@@ -78,6 +78,7 @@ class Net(nn.Module):
 
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
+device = 'cpu'
 model = Net(device).to(device)
 model.load_state_dict(torch.load('model.pt'))
 

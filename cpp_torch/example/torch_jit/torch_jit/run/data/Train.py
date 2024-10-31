@@ -105,6 +105,7 @@ class Net(nn.Module):
 
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
+device = 'cpu'
 model = Net(device).to(device)
 criterion = nn.MSELoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=0.000100)
