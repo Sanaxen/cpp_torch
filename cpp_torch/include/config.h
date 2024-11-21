@@ -9,6 +9,7 @@ in the LICENSE file.
 
 #define _CONFIG_H
 
+#define LIBTORCH_GPU	0
 //#define USE_VS2015	//--> error => USE_LIBTORCH_140
 //#define USE_VS2017		//--> error => USE_LIBTORCH_190
 #define USE_VS2019

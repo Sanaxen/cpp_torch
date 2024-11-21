@@ -7,15 +7,22 @@
 	Use of this source code is governed by a MIT license that can be found
 	in the LICENSE file.
 */
+
+#if LIBTORCH_GPU
 #ifdef USE_TORCHVISION_0200
-#pragma comment(lib, "../torchvision/lib/torchvision.lib")
+//#pragma comment(lib, "../torchvision/lib/torchvision.lib")
+#pragma comment(lib, "../torchvision/vision_cuda/lib/torchvision.lib")
 #endif
+#else
+#ifdef USE_TORCHVISION_0200
+#pragma comment(lib, "../torchvision/vision_cpu/lib/torchvision.lib")
+#endif
+#endif
+
 
 #ifdef USE_LIBTORCH_2500
 #pragma comment(lib, "asmjit.lib")
 #pragma comment(lib, "c10.lib")
-#pragma comment(lib, "c10_cuda.lib")
-#pragma comment(lib, "caffe2_nvrtc.lib")
 #pragma comment(lib, "cpuinfo.lib")
 #pragma comment(lib, "dnnl.lib")
 #pragma comment(lib, "fbgemm.lib")
@@ -28,7 +35,11 @@
 #pragma comment(lib, "sleef.lib")
 #pragma comment(lib, "torch.lib")
 #pragma comment(lib, "torch_cpu.lib")
+#if LIBTORCH_GPU
+#pragma comment(lib, "caffe2_nvrtc.lib")
+#pragma comment(lib, "c10_cuda.lib")
 #pragma comment(lib, "torch_cuda.lib")
+#endif
 #pragma comment(lib, "XNNPACK.lib")
 #endif
 

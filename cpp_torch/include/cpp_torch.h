@@ -37,12 +37,24 @@ in the LICENSE file.
 #include "util/opencv_link_libs.h"
 #endif
 
+#if LIBTORCH_GPU
 #ifdef USE_TORCHVISION_0200
 #define USE_TORCHVISION
 #ifdef USE_TORCHVISION
-#include "../../libtorch/torchvision/include/torchvision/vision.h"
+#include "../../libtorch/torchvision/vision_cuda/include/torchvision/vision.h"
+//#include "../../libtorch/torchvision/include/torchvision/vision.h"
 //#include "../../libtorch/torchvision/include/torchvision/models/resnet.h"
 #endif
+#endif
+#else
+#ifdef USE_TORCHVISION_0200
+#define USE_TORCHVISION
+#ifdef USE_TORCHVISION
+#include "../../libtorch/torchvision/vision_cpu/include/torchvision/vision.h"
+//#include "../../libtorch/torchvision/include/torchvision/models/resnet.h"
+#endif
+#endif
+
 #endif
 
 #include "libtorch_link_libs.hpp"
